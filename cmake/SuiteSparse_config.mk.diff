@@ -1,0 +1,51 @@
+--- SuiteSparse_config/SuiteSparse_config.mk.orig	2013-01-04 10:32:38.892122524 -0600
++++ SuiteSparse_config/SuiteSparse_config.mk	2013-01-04 10:41:23.643137892 -0600
+@@ -82,8 +82,8 @@
+ # LIB = -lm
+ 
+ # For "make install"
+-INSTALL_LIB = /usr/local/lib
+-INSTALL_INCLUDE = /usr/local/include
++INSTALL_LIB = /scratch/jvs/SuiteSparse/lib
++INSTALL_INCLUDE = /scratch/jvs/SuiteSparse/include
+ 
+ # Which version of MAKE you are using (default is "make")
+ # MAKE = make
+@@ -106,14 +106,14 @@
+ # naming the BLAS and LAPACK library (*.a or *.so) files.
+ 
+ # This is probably slow ... it might connect to the Standard Reference BLAS:
+-BLAS = -lblas -lgfortran
+-LAPACK = -llapack
++#BLAS = -lblas -lgfortran
++#LAPACK = -llapack
+ 
+ # NOTE: this next option for the "Goto BLAS" has nothing to do with a "goto"
+ # statement.  Rather, the Goto BLAS is written by Dr. Kazushige Goto.
+ # Using the Goto BLAS:
+ # BLAS = -lgoto -lgfortran -lgfortranbegin
+-# BLAS = -lgoto2 -lgfortran -lgfortranbegin -lpthread
++BLAS = -lgoto2 -lgfortran -lgfortranbegin -lpthread
+ 
+ # Using non-optimized versions:
+ # BLAS = -lblas_plain -lgfortran -lgfortranbegin
+@@ -162,8 +162,8 @@
+ # The path is relative to where it is used, in CHOLMOD/Lib, CHOLMOD/MATLAB, etc.
+ # You may wish to use an absolute path.  METIS is optional.  Compile
+ # CHOLMOD with -DNPARTITION if you do not wish to use METIS.
+-METIS_PATH = ../../metis-4.0
+-METIS = ../../metis-4.0/libmetis.a
++# METIS_PATH = ../../metis-4.0
++# METIS = ../../metis-4.0/libmetis.a
+ 
+ #------------------------------------------------------------------------------
+ # UMFPACK configuration:
+@@ -222,7 +222,7 @@
+ # -DNSUNPERF	    for Solaris only.  If defined, do not use the Sun
+ #			Performance Library
+ 
+-CHOLMOD_CONFIG = $(GPU_CONFIG)
++CHOLMOD_CONFIG = $(GPU_CONFIG) -DNPARTITION
+ 
+ # uncomment this line to compile CHOLMOD without METIS:
+ # CHOLMOD_CONFIG = -DNPARTITION
