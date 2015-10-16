@@ -235,7 +235,8 @@ int writesplinefitstable_mem(struct splinetable_buffer* buffer,
 	}
 	return(0);
 }
-	
+
+#ifdef PHOTOSPLINE_INCLUDES_SPGLAM
 int splinetable_glamfit(struct splinetable* table, const struct ndsparse* data,
 						const double* weights, const double* const* coords,
 						const uint32_t* splineOrder, const double* const* knots,
@@ -285,6 +286,7 @@ int splinetable_glamfit(struct splinetable* table, const struct ndsparse* data,
 	}
 	return(0);
 }
+#endif
 	
 #ifdef __cplusplus
 } //extern "C"

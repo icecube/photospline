@@ -5,8 +5,8 @@ CMAKE_MINIMUM_REQUIRED (VERSION 2.8)
 # -----------------------------------------------------------------------------
 # Release information.
 # -----------------------------------------------------------------------------
-SET (PHOTOSPLINE_MAJOR_VERSION 1 CACHE STRING "Major version number")
-SET (PHOTOSPLINE_MINOR_VERSION 2 CACHE STRING "Minor version number")
+SET (PHOTOSPLINE_MAJOR_VERSION 2 CACHE STRING "Major version number")
+SET (PHOTOSPLINE_MINOR_VERSION 0 CACHE STRING "Minor version number")
 SET (PHOTOSPLINE_PATCH_VERSION 0 CACHE STRING "Patch number")
 SET (PHOTOSPLINE_CODENAME "trunk" CACHE STRING "Code/type name for project")
 
@@ -22,7 +22,7 @@ INCLUDE (SuiteSparse)
 INCLUDE (METIS)
 INCLUDE (Python)
 
-IF (BLAS_FOUND AND LAPACK_FOUND AND SUITESPARSE_FOUND)
+IF (BLAS_FOUND AND LAPACK_FOUND AND SUITESPARSE_FOUND AND NOT DEFINED BUILD_SPGLAM)
   SET(BUILD_SPGLAM TRUE)
 ENDIF ()
 
@@ -43,6 +43,7 @@ IF (NOT DEFINED PHOTOSPLINE_CFLAGS)
   ENDIF ()
   IF (BUILD_SPGLAM)
     SET (PHOTOSPLINE_CFLAGS "${PHOTOSPLINE_CFLAGS} -DPHOTOSPLINE_INCLUDES_SPGLAM")
+	error(no not want)
     STRING(REGEX REPLACE "-std=c\\+\\+11" "" SPGLAM_CFLAGS PHOTOSPLINE_CFLAGS)
     SET (SPGLAM_CFLAGS ${SPGLAM_CFLAGS} CACHE STRING "Compiler flags specific to this project")
   ENDIF ()
@@ -191,18 +192,20 @@ ADD_CUSTOM_TARGET (uninstall
 
 # -----------------------------------------------------------------------------
 # Tools
-# -----------------------------------------------------------------------------
-ADD_EXECUTABLE(photospline-gen_test_splines
-  src/tools/gen_test_splines.cpp
-)
-SET_TARGET_PROPERTIES(photospline-gen_test_splines PROPERTIES 
-  COMPILE_FLAGS "${PHOTOSPLINE_CFLAGS}"
-)
-TARGET_LINK_LIBRARIES(photospline-gen_test_splines
-  photospline-mod
-  spglam
-  ${CFITSIO_LIBRARIES}
-)
+# # -----------------------------------------------------------------------------
+if(BUILD_SPGLAM)
+  ADD_EXECUTABLE(photospline-gen_test_splines
+    src/tools/gen_test_splines.cpp
+  )
+  SET_TARGET_PROPERTIES(photospline-gen_test_splines PROPERTIES
+    COMPILE_FLAGS "${PHOTOSPLINE_CFLAGS}"
+  )
+  TARGET_LINK_LIBRARIES(photospline-gen_test_splines
+    photospline-mod
+    spglam
+    ${CFITSIO_LIBRARIES}
+  )
+endif(BUILD_SPGLAM)
 
 # -----------------------------------------------------------------------------
 # Tests
