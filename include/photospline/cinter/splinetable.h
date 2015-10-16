@@ -4,6 +4,10 @@
 #include <stdint.h>
 #include <stddef.h>
 
+#ifdef PHOTOSPLINE_INCLUDES_SPGLAM
+#include "photospline/detail/splineutil.h"
+#endif //PHOTOSPLINE_INCLUDES_SPGLAM
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -26,6 +30,17 @@ void splinetable_free(struct splinetable* table);
 int readsplinefitstable(const char* path, struct splinetable* table);
 
 int writesplinefitstable(const char* path, const struct splinetable* table);
+
+struct splinetable_buffer {
+	void* data;
+	size_t size;
+};
+	
+int readsplinefitstable_mem(const struct splinetable_buffer* buffer,
+                            struct splinetable* table);
+
+int writesplinefitstable_mem(struct splinetable_buffer* buffer,
+                             const struct splinetable* table);
 
 const char* splinetable_get_key(const struct splinetable* table, const char* key);
 
@@ -66,25 +81,25 @@ double ndsplineeval_deriv2(const struct splinetable* table, const double* x,
                            const int* centers, int derivatives);
 
 // Convolution with another spline
-
+	
 int splinetable_convolve(struct splinetable* table, const int dim,
                          const double* knots, size_t n_knots);
 
+#ifdef PHOTOSPLINE_INCLUDES_SPGLAM
+// Fitting to data
+
+//unlike C++ interface smoothing and penaltyOrder must point to
+//arrays of exactly the same sizes as data->ndim.
+int splinetable_glamfit(struct splinetable* table, const struct ndsparse* data,
+						const double* weights, const double* const* coords,
+						const uint32_t* splineOrder, const double* const* knots,
+						const uint64_t* nknots,
+						const double* smoothing, const uint32_t* penaltyOrder,
+						uint32_t monodim=-1, bool verbose=true);
+#endif //PHOTOSPLINE_INCLUDES_SPGLAM
+
 //TODO:
 //	sampling?
-//	fitting
-//	FITS serialization/deserialization
-
-struct splinetable_buffer {
-	void* data;
-	size_t size;
-};
-	
-int readsplinefitstable_mem(const struct splinetable_buffer* buffer,
-                            struct splinetable* table);
-
-int writesplinefitstable_mem(struct splinetable_buffer* buffer,
-                             const struct splinetable* table);
 	
 #ifdef __cplusplus
 } //extern "C"

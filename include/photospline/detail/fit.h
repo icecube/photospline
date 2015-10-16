@@ -6,7 +6,7 @@
 namespace photospline{
 
 template<typename Alloc>
-void splinetable<Alloc>::fit(const ndsparse& data,
+void splinetable<Alloc>::fit(const ::ndsparse& data,
          const std::vector<double>& weights,
          const std::vector<std::vector<double>>& coords,
          const std::vector<uint32_t>& splineOrder,
@@ -124,7 +124,7 @@ void splinetable<Alloc>::fit(const ndsparse& data,
 	}
 	
 	//do the fit
-	glamfit_complex(&data,weights.data(),dummy_coords,
+	glamfit_complex(&data,weights.data(),dummy_coords.get(),
 					ndim,&nknots[0],dummy_knots.get(),&naxes[0],
 					&coefficients[0],
 					&order[0],penalty,(monodim==no_monodim?-1:(int)monodim),

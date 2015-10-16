@@ -281,7 +281,7 @@ public:
 	
 	//need fancy interface where users can specify an arbitrary penalty matrix
 	//need to indicate nicely if an error occurs
-	void fit(const ndsparse& data,
+	void fit(const ::ndsparse& data,
 			 const std::vector<double>& weights,
 			 const std::vector<std::vector<double>>& coords,
 			 const std::vector<uint32_t>& splineOrder,
