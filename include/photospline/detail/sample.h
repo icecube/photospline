@@ -1,7 +1,7 @@
 #ifndef PHOTOSPLINE_SAMPLE_H
 #define PHOTOSPLINE_SAMPLE_H
 
-#include "photospline/splinetable-mod.h"
+#include "photospline/splinetable.h"
 
 #include <array>
 #include <cassert>
