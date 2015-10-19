@@ -13,10 +13,6 @@ static cholmod_sparse* flatten_ndarray_to_sparse(struct ndsparse *array,
 cholmod_sparse* calc_penalty(uint64_t* nsplines, double *knots, uint32_t ndim, uint32_t i,
     uint32_t order, uint32_t porder, int mono, cholmod_common* c);
 
-void print_ndsparse_py(struct ndsparse *a);
-
-#define max(a,b) ((a > b) ? a : b)
-
 int
 glamfit_complex(const struct ndsparse* data, const double* weights, const double* const* coords,
     uint32_t ndim, const uint64_t* nknots, const double* const* knots,
