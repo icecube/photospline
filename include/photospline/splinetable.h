@@ -57,10 +57,10 @@ struct ndsparse : public ::ndsparse{
 	///\brief A convenience interface for adding entries.
 	///It is a bad idea to mix use of this interface with direct alterations to
 	///the x and i arrays.
-	void insertEntry(double value, int* indices){
+	void insertEntry(double value, unsigned int* indices){
 		//assert(entriesInserted+1<rows && "Attempt to insert and entry into a full ndsparse");
 		if(!(entriesInserted<rows))
-			throw std::runtime_error("Attempt to insert and entry into a full ndsparse");
+			throw std::runtime_error("Attempt to insert an entry into a full ndsparse");
 		x[entriesInserted]=value;
 		for(size_t j=0; j<ndim; j++){
 			i[j][entriesInserted] = indices[j];
