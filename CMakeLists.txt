@@ -200,7 +200,19 @@ ADD_CUSTOM_TARGET (uninstall
 
 # -----------------------------------------------------------------------------
 # Tools
-# # -----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
+ADD_EXECUTABLE(photospline-inspect
+  src/tools/inspect.cpp
+)
+SET_TARGET_PROPERTIES(photospline-inspect PROPERTIES 
+  COMPILE_FLAGS "${PHOTOSPLINE_CFLAGS}"
+)
+TARGET_LINK_LIBRARIES(photospline-inspect
+  photospline-mod
+  spglam
+  ${CFITSIO_LIBRARIES}
+)
+
 if(BUILD_SPGLAM)
   ADD_EXECUTABLE(photospline-gen_test_splines
     src/tools/gen_test_splines.cpp
@@ -222,7 +234,8 @@ ENABLE_TESTING()
 ADD_EXECUTABLE(photospline-test
   test/test_main.cpp
   test/test_fitsio.cpp
-  test/test_eval.cpp)
+  test/test_eval.cpp
+)
 SET_TARGET_PROPERTIES(photospline-test PROPERTIES 
   COMPILE_FLAGS "${PHOTOSPLINE_CFLAGS}"
 )
@@ -236,7 +249,8 @@ ADD_TEST(photospline-test photospline-test
 ADD_EXECUTABLE(photospline-test-templated
   test/test_main.cpp
   test/test_fitsio.cpp
-  test/test_eval.cpp)
+  test/test_eval.cpp
+)
 SET_TARGET_PROPERTIES(photospline-test-templated PROPERTIES 
   COMPILE_FLAGS "${PHOTOSPLINE_CFLAGS} -DPHOTOSPLINE_EVAL_TEMPLATES"
 )
@@ -247,9 +261,33 @@ TARGET_LINK_LIBRARIES(photospline-test-templated
 ADD_TEST(photospline-test-templated photospline-test-templated
  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/test
 )
+LIST (APPEND ALL_TESTS
+  photospline-test
+  photospline-test-templated
+)
+
+if(BUILD_SPGLAM)
+  ADD_EXECUTABLE(photospline-test-fit
+    test/test_main.cpp
+    test/test_fit.cpp
+  )
+  SET_TARGET_PROPERTIES(photospline-test-fit PROPERTIES 
+    COMPILE_FLAGS "${PHOTOSPLINE_CFLAGS}"
+  )
+  TARGET_LINK_LIBRARIES(photospline-test-fit
+    photospline-mod
+    spglam
+    ${CFITSIO_LIBRARIES}
+  )
+  ADD_TEST(photospline-test-fit photospline-test-fit
+   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/test
+  )
+  LIST (APPEND ALL_TESTS photospline-test-fit)
+endif()
+
 ADD_CUSTOM_TARGET(check 
   COMMAND ${CMAKE_CTEST_COMMAND}
-  DEPENDS photospline-test)
+  DEPENDS ${ALL_TESTS})
 
 # -----------------------------------------------------------------------------
 # Documentation

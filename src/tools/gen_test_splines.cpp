@@ -5,10 +5,10 @@
 
 int main(){
 	
-	for(size_t dim=1; dim<7; dim++){
+	for(size_t dim=1; dim<6; dim++){
 		std::cout << "Dimension " << dim  << std::endl;
-		photospline::ndsparse data;
-		std::vector<double> weights;
+		
+		std::cout << "Generating data to fit..." << std::endl;
 		
 		std::vector<uint32_t> orders(dim,2);
 		
@@ -20,11 +20,11 @@ int main(){
 			//std::cout << "  " << width[i] << std::endl;
 		}
 		//choose some knot locations
-		std::vector<std::vector<double>> knots;
+		std::vector<std::vector<double>> knots(dim);
 		//std::cout << " knots:" << std::endl;
 		for(size_t i=0; i<dim; i++){
 			//std::cout << "  dimension " << i  << std::endl;
-			size_t nknots=(20-i*2);
+			size_t nknots=16;//(16-i*2);
 			double offset=!(nknots%2);
 			double scale=(4./((nknots-1)*(nknots-1)))*width[i];
 			for(size_t j=0; j<nknots; j++){
@@ -43,11 +43,54 @@ int main(){
 		}
 		
 		//invent some data to fit
-		//const size_t total_samples=pow(nsamples,dim);
-		//for(size_t i=0; i<total_samples)
+		size_t total_samples=1;
+		for(size_t i=0; i<dim; i++)
+			total_samples*=knots[i].size();
+		photospline::ndsparse data(total_samples,dim);
+		std::vector<double> weights(total_samples,1.);
+		
+		std::vector<unsigned int> indices(dim,0);
+		for(size_t i=0; i<total_samples; i++){
+			for(size_t j=0; j<dim; j++){
+				if((++indices[dim-j-1])>=knots[j].size())
+					indices[dim-j-1]=0;
+				else
+					break;
+			}
+			double value=1;
+			for(size_t j=0; j<dim; j++){
+				double x=coordinates[j][indices[j]];
+				double s=j+1;
+				value*=exp(-(x*x)/(s*s)/2);
+			}
+			data.insertEntry(value,&indices.front());
+		}
+		
+		size_t dataSize=0;
+		dataSize+=total_samples*sizeof(double);
+		dataSize+=total_samples*sizeof(double);
+		dataSize+=total_samples*dim*sizeof(unsigned int);
+		dataSize+=40*dim*sizeof(double);
+		std::cout << "Input data is " << dataSize << " bytes" << std::endl;
+		size_t ncoeffs=1;
+		for(size_t i=0; i<dim; i++)
+			ncoeffs*=knots[i].size()-orders[i]-1;
+		
+		std::cout << "Output will have " << ncoeffs << " coefficients" << std::endl;
+		
+		photospline::splinetable<> spline;
+		spline.fit(data,weights,coordinates,orders,knots,{dim*1e-10},{2});
+		spline.write_fits("test_spline_"+std::to_string(dim)+"d.fits");
+		std::cout << "Output has " << spline.get_ncoeffs() << " coefficients" << std::endl;
+		spline.benchmark_evaluation(1e4,true);
 		
 		//-----
 		orders.back()=3;
 		
+		photospline::splinetable<> spline2;
+		spline2.fit(data,weights,coordinates,orders,knots,{dim*1e-10},{2});
+		spline2.write_fits("test_spline_"+std::to_string(dim)+"d_nco.fits");
+		std::cout << "Output has " << spline2.get_ncoeffs() << " coefficients" << std::endl;
+		spline2.benchmark_evaluation(1e4,true);
 	}
 }
