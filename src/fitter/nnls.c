@@ -1,6 +1,6 @@
 /*
  * nnls.c: Sparse non-negative least squares algorithms. Except for
- *  Lawson-Hanson, all algorithms requrie full-rank problems
+ *  Lawson-Hanson, all algorithms require full-rank problems
  *  (exactly or over-determined). For well-conditioned full-rank problems,
  *  BLOCK3 is the fastest.
  */
