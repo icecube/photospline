@@ -3,12 +3,15 @@
 #include <unistd.h>
 
 TEST(read_fits_spline){
-	photospline::splinetable<> spline("test_data/GaisserH4a_atmod12_DPMJET.single_energy.fits");
+	photospline::splinetable<> spline("test_data/test_spline_4d.fits");
 	
-	ENSURE_EQUAL(spline.get_ndim(),3u,"Test spline should have dimension 3");
+	ENSURE_EQUAL(spline.get_ndim(),4u,"Test spline should have dimension 3");
 	
 	for(uint32_t i=0; i<spline.get_ndim(); i++)
 		ENSURE_EQUAL(spline.get_order(i),2u,"Test spline should be order 2 in all dimensions");
+	
+	for(uint32_t i=0; i<spline.get_ndim(); i++)
+		ENSURE_EQUAL(spline.get_nknots(i),16ULL-2*i);
 }
 
 void compare_splines(const photospline::splinetable<>& spline1,
@@ -44,7 +47,7 @@ void compare_splines(const photospline::splinetable<>& spline1,
 }
 
 TEST(write_fits_spline){
-	photospline::splinetable<> spline("test_data/GaisserH4a_atmod12_DPMJET.single_energy.fits");
+	photospline::splinetable<> spline("test_data/test_spline_4d.fits");
 	
 	spline.write_fits("write_test_spline.fits");
 	photospline::splinetable<> spline2("write_test_spline.fits");
@@ -55,7 +58,7 @@ TEST(write_fits_spline){
 }
 
 TEST(fits_mem_spline){
-	photospline::splinetable<> spline("test_data/GaisserH4a_atmod12_DPMJET.single_energy.fits");
+	photospline::splinetable<> spline("test_data/test_spline_4d.fits");
 	
 	auto buffer=spline.write_fits_mem();
 	std::unique_ptr<void,void(*)(void*)> data(buffer.first,&free);

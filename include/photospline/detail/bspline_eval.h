@@ -51,134 +51,6 @@ bool splinetable<Alloc>::searchcenters(const double* x, int* centers) const
 	
 	return (true);
 }
-	
-template<typename Alloc>
-void splinetable<Alloc>::pick_eval_funcs(){
-	uint32_t constOrder = order[0];
-	for (unsigned int j = 1; j < ndim; j++) {
-		if (order[j] != constOrder) {
-			constOrder = 0;
-			break;
-		}
-	}
-	
-	switch(constOrder){
-#ifdef PHOTOSPLINE_EVAL_TEMPLATES
-		case 2:
-			switch(ndim){
-					//TODO: fix 1D eval
-					//case 1: eval_ptr=&splinetable::ndsplineeval_coreD_FixedOrder<1,2>; break;
-				case 2:
-					eval_ptr=&splinetable::ndsplineeval_coreD_FixedOrder<2,2>;
-					v_eval_ptr=&splinetable::ndsplineeval_multibasis_coreD_FixedOrder<2,2>;
-					break;
-				case 3:
-					eval_ptr=&splinetable::ndsplineeval_coreD_FixedOrder<3,2>;
-					v_eval_ptr=&splinetable::ndsplineeval_multibasis_coreD_FixedOrder<3,2>;
-					break;
-				case 4:
-					eval_ptr=&splinetable::ndsplineeval_coreD_FixedOrder<4,2>;
-					v_eval_ptr=&splinetable::ndsplineeval_multibasis_coreD_FixedOrder<4,2>;
-					break;
-				case 5:
-					eval_ptr=&splinetable::ndsplineeval_coreD_FixedOrder<5,2>;
-					v_eval_ptr=&splinetable::ndsplineeval_multibasis_coreD_FixedOrder<5,2>;
-					break;
-				case 6:
-					eval_ptr=&splinetable::ndsplineeval_coreD_FixedOrder<6,2>;
-					v_eval_ptr=&splinetable::ndsplineeval_multibasis_coreD_FixedOrder<6,2>;
-					break;
-				case 7:
-					eval_ptr=&splinetable::ndsplineeval_coreD_FixedOrder<7,2>;
-					v_eval_ptr=&splinetable::ndsplineeval_multibasis_coreD_FixedOrder<7,2>;
-					break;
-				case 8:
-					eval_ptr=&splinetable::ndsplineeval_coreD_FixedOrder<8,2>;
-					v_eval_ptr=&splinetable::ndsplineeval_multibasis_coreD_FixedOrder<8,2>;
-					break;
-				default:
-					eval_ptr=&splinetable::ndsplineeval_core;
-					v_eval_ptr=&splinetable::ndsplineeval_multibasis_core;
-			}
-			break;
-		case 3:
-			switch(ndim){
-					//TODO: fix 1D eval
-					//case 1: eval_ptr=&splinetable::ndsplineeval_coreD_FixedOrder<1,3>; break;
-				case 2:
-					eval_ptr=&splinetable::ndsplineeval_coreD_FixedOrder<2,3>;
-					v_eval_ptr=&splinetable::ndsplineeval_multibasis_coreD_FixedOrder<2,3>;
-					break;
-				case 3:
-					eval_ptr=&splinetable::ndsplineeval_coreD_FixedOrder<3,3>;
-					v_eval_ptr=&splinetable::ndsplineeval_multibasis_coreD_FixedOrder<3,3>;
-					break;
-				case 4:
-					eval_ptr=&splinetable::ndsplineeval_coreD_FixedOrder<4,3>;
-					v_eval_ptr=&splinetable::ndsplineeval_multibasis_coreD_FixedOrder<4,3>;
-					break;
-				case 5:
-					eval_ptr=&splinetable::ndsplineeval_coreD_FixedOrder<5,3>;
-					v_eval_ptr=&splinetable::ndsplineeval_multibasis_coreD_FixedOrder<5,3>;
-					break;
-				case 6:
-					eval_ptr=&splinetable::ndsplineeval_coreD_FixedOrder<6,3>;
-					v_eval_ptr=&splinetable::ndsplineeval_multibasis_coreD_FixedOrder<6,3>;
-					break;
-				case 7:
-					eval_ptr=&splinetable::ndsplineeval_coreD_FixedOrder<7,3>;
-					v_eval_ptr=&splinetable::ndsplineeval_multibasis_coreD_FixedOrder<7,3>;
-					break;
-				case 8:
-					eval_ptr=&splinetable::ndsplineeval_coreD_FixedOrder<8,3>;
-					v_eval_ptr=&splinetable::ndsplineeval_multibasis_coreD_FixedOrder<8,3>;
-					break;
-				default:
-					eval_ptr=&splinetable::ndsplineeval_core;
-					v_eval_ptr=&splinetable::ndsplineeval_multibasis_core;
-			}
-			break;
-#endif
-		default:
-			switch(ndim){
-#ifdef PHOTOSPLINE_EVAL_TEMPLATES
-					//TODO: fix 1D eval
-					//case 1: eval_ptr=&splinetable::ndsplineeval_coreD<1>; break;
-				case 2:
-					eval_ptr=&splinetable::ndsplineeval_coreD<2>;
-					v_eval_ptr=&splinetable::ndsplineeval_multibasis_coreD<2>; break;
-					break;
-				case 3:
-					eval_ptr=&splinetable::ndsplineeval_coreD<3>;
-					v_eval_ptr=&splinetable::ndsplineeval_multibasis_coreD<3>; break;
-					break;
-				case 4:
-					eval_ptr=&splinetable::ndsplineeval_coreD<4>;
-					v_eval_ptr=&splinetable::ndsplineeval_multibasis_coreD<4>; break;
-					break;
-				case 5:
-					eval_ptr=&splinetable::ndsplineeval_coreD<5>;
-					v_eval_ptr=&splinetable::ndsplineeval_multibasis_coreD<5>; break;
-					break;
-				case 6:
-					eval_ptr=&splinetable::ndsplineeval_coreD<6>;
-					v_eval_ptr=&splinetable::ndsplineeval_multibasis_coreD<6>; break;
-					break;
-				case 7:
-					eval_ptr=&splinetable::ndsplineeval_coreD<7>;
-					v_eval_ptr=&splinetable::ndsplineeval_multibasis_coreD<7>; break;
-					break;
-				case 8:
-					eval_ptr=&splinetable::ndsplineeval_coreD<8>;
-					v_eval_ptr=&splinetable::ndsplineeval_multibasis_coreD<8>; break;
-					break;
-#endif
-				default:
-					eval_ptr=&splinetable::ndsplineeval_core;
-					v_eval_ptr=&splinetable::ndsplineeval_multibasis_core;
-			}
-	}
-}
 
 template<typename Alloc>
 double splinetable<Alloc>::ndsplineeval_core(const int* centers, int maxdegree, detail::buffer2d<float> localbasis) const
@@ -345,160 +217,6 @@ double splinetable<Alloc>::ndsplineeval(const double* x, const int* centers, int
 	
 	return(ndsplineeval_core(centers, maxdegree, localbasis));
 }
-	
-template<typename Alloc>
-double splinetable<Alloc>::ndsplineeval(const double* x, const int* centers, int derivatives, const fast_evaluation_token& token) const
-{
-	uint32_t maxdegree = *std::max_element(order,order+ndim) + 1;
-	float localbasis_store[ndim*maxdegree];
-	detail::buffer2d<float> localbasis{localbasis_store,maxdegree};
-	
-	for (uint32_t n = 0; n < ndim; n++) {
-		if (derivatives & (1 << n)) {
-			bspline_deriv_nonzero(&knots[n][0],
-								  nknots[n], x[n], centers[n],
-								  order[n], localbasis[n]);
-		} else {
-			bsplvb_simple(&knots[n][0], nknots[n],
-						  x[n], centers[n], order[n] + 1,
-						  localbasis[n]);
-		}
-	}
-	
-	return((this->*(token.eval_ptr))(centers, maxdegree, localbasis));
-}
-	
-template<typename Alloc>
-typename splinetable<Alloc>::fast_evaluation_token
-splinetable<Alloc>::get_evaluation_token() const{
-	fast_evaluation_token token;
-	
-	uint32_t constOrder = order[0];
-	for (unsigned int j = 1; j < ndim; j++) {
-		if (order[j] != constOrder) {
-			constOrder = 0;
-			break;
-		}
-	}
-	
-	switch(constOrder){
-#ifdef PHOTOSPLINE_EVAL_TEMPLATES
-		case 2:
-			switch(ndim){
-					//TODO: fix 1D eval
-					//case 1: eval_ptr=&splinetable::ndsplineeval_coreD_FixedOrder<1,2>; break;
-				case 2:
-					token.eval_ptr=&splinetable::ndsplineeval_coreD_FixedOrder<2,2>;
-					token.v_eval_ptr=&splinetable::ndsplineeval_multibasis_coreD_FixedOrder<2,2>;
-					break;
-				case 3:
-					token.eval_ptr=&splinetable::ndsplineeval_coreD_FixedOrder<3,2>;
-					token.v_eval_ptr=&splinetable::ndsplineeval_multibasis_coreD_FixedOrder<3,2>;
-					break;
-				case 4:
-					token.eval_ptr=&splinetable::ndsplineeval_coreD_FixedOrder<4,2>;
-					token.v_eval_ptr=&splinetable::ndsplineeval_multibasis_coreD_FixedOrder<4,2>;
-					break;
-				case 5:
-					token.eval_ptr=&splinetable::ndsplineeval_coreD_FixedOrder<5,2>;
-					token.v_eval_ptr=&splinetable::ndsplineeval_multibasis_coreD_FixedOrder<5,2>;
-					break;
-				case 6:
-					token.eval_ptr=&splinetable::ndsplineeval_coreD_FixedOrder<6,2>;
-					token.v_eval_ptr=&splinetable::ndsplineeval_multibasis_coreD_FixedOrder<6,2>;
-					break;
-				case 7:
-					token.eval_ptr=&splinetable::ndsplineeval_coreD_FixedOrder<7,2>;
-					token.v_eval_ptr=&splinetable::ndsplineeval_multibasis_coreD_FixedOrder<7,2>;
-					break;
-				case 8:
-					token.eval_ptr=&splinetable::ndsplineeval_coreD_FixedOrder<8,2>;
-					token.v_eval_ptr=&splinetable::ndsplineeval_multibasis_coreD_FixedOrder<8,2>;
-					break;
-				default:
-					token.eval_ptr=&splinetable::ndsplineeval_core;
-					token.v_eval_ptr=&splinetable::ndsplineeval_multibasis_core;
-			}
-			break;
-		case 3:
-			switch(ndim){
-					//TODO: fix 1D eval
-					//case 1: eval_ptr=&splinetable::ndsplineeval_coreD_FixedOrder<1,3>; break;
-				case 2:
-					token.eval_ptr=&splinetable::ndsplineeval_coreD_FixedOrder<2,3>;
-					token.v_eval_ptr=&splinetable::ndsplineeval_multibasis_coreD_FixedOrder<2,3>;
-					break;
-				case 3:
-					token.eval_ptr=&splinetable::ndsplineeval_coreD_FixedOrder<3,3>;
-					token.v_eval_ptr=&splinetable::ndsplineeval_multibasis_coreD_FixedOrder<3,3>;
-					break;
-				case 4:
-					token.eval_ptr=&splinetable::ndsplineeval_coreD_FixedOrder<4,3>;
-					token.v_eval_ptr=&splinetable::ndsplineeval_multibasis_coreD_FixedOrder<4,3>;
-					break;
-				case 5:
-					token.eval_ptr=&splinetable::ndsplineeval_coreD_FixedOrder<5,3>;
-					token.v_eval_ptr=&splinetable::ndsplineeval_multibasis_coreD_FixedOrder<5,3>;
-					break;
-				case 6:
-					token.eval_ptr=&splinetable::ndsplineeval_coreD_FixedOrder<6,3>;
-					token.v_eval_ptr=&splinetable::ndsplineeval_multibasis_coreD_FixedOrder<6,3>;
-					break;
-				case 7:
-					token.eval_ptr=&splinetable::ndsplineeval_coreD_FixedOrder<7,3>;
-					token.v_eval_ptr=&splinetable::ndsplineeval_multibasis_coreD_FixedOrder<7,3>;
-					break;
-				case 8:
-					token.eval_ptr=&splinetable::ndsplineeval_coreD_FixedOrder<8,3>;
-					token.v_eval_ptr=&splinetable::ndsplineeval_multibasis_coreD_FixedOrder<8,3>;
-					break;
-				default:
-					token.eval_ptr=&splinetable::ndsplineeval_core;
-					token.v_eval_ptr=&splinetable::ndsplineeval_multibasis_core;
-			}
-			break;
-#endif
-		default:
-			switch(ndim){
-#ifdef PHOTOSPLINE_EVAL_TEMPLATES
-					//TODO: fix 1D eval
-					//case 1: eval_ptr=&splinetable::ndsplineeval_coreD<1>; break;
-				case 2:
-					token.eval_ptr=&splinetable::ndsplineeval_coreD<2>;
-					token.v_eval_ptr=&splinetable::ndsplineeval_multibasis_coreD<2>; break;
-					break;
-				case 3:
-					token.eval_ptr=&splinetable::ndsplineeval_coreD<3>;
-					token.v_eval_ptr=&splinetable::ndsplineeval_multibasis_coreD<3>; break;
-					break;
-				case 4:
-					token.eval_ptr=&splinetable::ndsplineeval_coreD<4>;
-					token.v_eval_ptr=&splinetable::ndsplineeval_multibasis_coreD<4>; break;
-					break;
-				case 5:
-					token.eval_ptr=&splinetable::ndsplineeval_coreD<5>;
-					token.v_eval_ptr=&splinetable::ndsplineeval_multibasis_coreD<5>; break;
-					break;
-				case 6:
-					token.eval_ptr=&splinetable::ndsplineeval_coreD<6>;
-					token.v_eval_ptr=&splinetable::ndsplineeval_multibasis_coreD<6>; break;
-					break;
-				case 7:
-					token.eval_ptr=&splinetable::ndsplineeval_coreD<7>;
-					token.v_eval_ptr=&splinetable::ndsplineeval_multibasis_coreD<7>; break;
-					break;
-				case 8:
-					token.eval_ptr=&splinetable::ndsplineeval_coreD<8>;
-					token.v_eval_ptr=&splinetable::ndsplineeval_multibasis_coreD<8>; break;
-					break;
-#endif
-				default:
-					token.eval_ptr=&splinetable::ndsplineeval_core;
-					token.v_eval_ptr=&splinetable::ndsplineeval_multibasis_core;
-			}
-	}
-	return(token);
-}
 
 template<typename Alloc>
 double splinetable<Alloc>::ndsplineeval_deriv2(const double* x, const int* centers, int derivatives) const
@@ -525,13 +243,194 @@ double splinetable<Alloc>::ndsplineeval_deriv2(const double* x, const int* cente
 }
 	
 template<typename Alloc>
+typename splinetable<Alloc>::evaluator
+splinetable<Alloc>::get_evaluator() const{
+	evaluator eval(*this);
+	
+	uint32_t constOrder = order[0];
+	for (unsigned int j = 1; j < ndim; j++) {
+		if (order[j] != constOrder) {
+			constOrder = 0;
+			break;
+		}
+	}
+	
+	switch(constOrder){
+#ifdef PHOTOSPLINE_EVAL_TEMPLATES
+		case 2:
+			switch(ndim){
+					//TODO: fix 1D eval
+					//case 1: eval_ptr=&splinetable::ndsplineeval_coreD_FixedOrder<1,2>; break;
+				case 2:
+					eval.eval_ptr=&splinetable::ndsplineeval_coreD_FixedOrder<2,2>;
+					eval.v_eval_ptr=&splinetable::ndsplineeval_multibasis_coreD_FixedOrder<2,2>;
+					break;
+				case 3:
+					eval.eval_ptr=&splinetable::ndsplineeval_coreD_FixedOrder<3,2>;
+					eval.v_eval_ptr=&splinetable::ndsplineeval_multibasis_coreD_FixedOrder<3,2>;
+					break;
+				case 4:
+					eval.eval_ptr=&splinetable::ndsplineeval_coreD_FixedOrder<4,2>;
+					eval.v_eval_ptr=&splinetable::ndsplineeval_multibasis_coreD_FixedOrder<4,2>;
+					break;
+				case 5:
+					eval.eval_ptr=&splinetable::ndsplineeval_coreD_FixedOrder<5,2>;
+					eval.v_eval_ptr=&splinetable::ndsplineeval_multibasis_coreD_FixedOrder<5,2>;
+					break;
+				case 6:
+					eval.eval_ptr=&splinetable::ndsplineeval_coreD_FixedOrder<6,2>;
+					eval.v_eval_ptr=&splinetable::ndsplineeval_multibasis_coreD_FixedOrder<6,2>;
+					break;
+				case 7:
+					eval.eval_ptr=&splinetable::ndsplineeval_coreD_FixedOrder<7,2>;
+					eval.v_eval_ptr=&splinetable::ndsplineeval_multibasis_coreD_FixedOrder<7,2>;
+					break;
+				case 8:
+					eval.eval_ptr=&splinetable::ndsplineeval_coreD_FixedOrder<8,2>;
+					eval.v_eval_ptr=&splinetable::ndsplineeval_multibasis_coreD_FixedOrder<8,2>;
+					break;
+				default:
+					eval.eval_ptr=&splinetable::ndsplineeval_core;
+					eval.v_eval_ptr=&splinetable::ndsplineeval_multibasis_core;
+			}
+			break;
+		case 3:
+			switch(ndim){
+					//TODO: fix 1D eval
+					//case 1: eval_ptr=&splinetable::ndsplineeval_coreD_FixedOrder<1,3>; break;
+				case 2:
+					eval.eval_ptr=&splinetable::ndsplineeval_coreD_FixedOrder<2,3>;
+					eval.v_eval_ptr=&splinetable::ndsplineeval_multibasis_coreD_FixedOrder<2,3>;
+					break;
+				case 3:
+					eval.eval_ptr=&splinetable::ndsplineeval_coreD_FixedOrder<3,3>;
+					eval.v_eval_ptr=&splinetable::ndsplineeval_multibasis_coreD_FixedOrder<3,3>;
+					break;
+				case 4:
+					eval.eval_ptr=&splinetable::ndsplineeval_coreD_FixedOrder<4,3>;
+					eval.v_eval_ptr=&splinetable::ndsplineeval_multibasis_coreD_FixedOrder<4,3>;
+					break;
+				case 5:
+					eval.eval_ptr=&splinetable::ndsplineeval_coreD_FixedOrder<5,3>;
+					eval.v_eval_ptr=&splinetable::ndsplineeval_multibasis_coreD_FixedOrder<5,3>;
+					break;
+				case 6:
+					eval.eval_ptr=&splinetable::ndsplineeval_coreD_FixedOrder<6,3>;
+					eval.v_eval_ptr=&splinetable::ndsplineeval_multibasis_coreD_FixedOrder<6,3>;
+					break;
+				case 7:
+					eval.eval_ptr=&splinetable::ndsplineeval_coreD_FixedOrder<7,3>;
+					eval.v_eval_ptr=&splinetable::ndsplineeval_multibasis_coreD_FixedOrder<7,3>;
+					break;
+				case 8:
+					eval.eval_ptr=&splinetable::ndsplineeval_coreD_FixedOrder<8,3>;
+					eval.v_eval_ptr=&splinetable::ndsplineeval_multibasis_coreD_FixedOrder<8,3>;
+					break;
+				default:
+					eval.eval_ptr=&splinetable::ndsplineeval_core;
+					eval.v_eval_ptr=&splinetable::ndsplineeval_multibasis_core;
+			}
+			break;
+#endif
+		default:
+			switch(ndim){
+#ifdef PHOTOSPLINE_EVAL_TEMPLATES
+					//TODO: fix 1D eval
+					//case 1: eval_ptr=&splinetable::ndsplineeval_coreD<1>; break;
+				case 2:
+					eval.eval_ptr=&splinetable::ndsplineeval_coreD<2>;
+					eval.v_eval_ptr=&splinetable::ndsplineeval_multibasis_coreD<2>; break;
+					break;
+				case 3:
+					eval.eval_ptr=&splinetable::ndsplineeval_coreD<3>;
+					eval.v_eval_ptr=&splinetable::ndsplineeval_multibasis_coreD<3>; break;
+					break;
+				case 4:
+					eval.eval_ptr=&splinetable::ndsplineeval_coreD<4>;
+					eval.v_eval_ptr=&splinetable::ndsplineeval_multibasis_coreD<4>; break;
+					break;
+				case 5:
+					eval.eval_ptr=&splinetable::ndsplineeval_coreD<5>;
+					eval.v_eval_ptr=&splinetable::ndsplineeval_multibasis_coreD<5>; break;
+					break;
+				case 6:
+					eval.eval_ptr=&splinetable::ndsplineeval_coreD<6>;
+					eval.v_eval_ptr=&splinetable::ndsplineeval_multibasis_coreD<6>; break;
+					break;
+				case 7:
+					eval.eval_ptr=&splinetable::ndsplineeval_coreD<7>;
+					eval.v_eval_ptr=&splinetable::ndsplineeval_multibasis_coreD<7>; break;
+					break;
+				case 8:
+					eval.eval_ptr=&splinetable::ndsplineeval_coreD<8>;
+					eval.v_eval_ptr=&splinetable::ndsplineeval_multibasis_coreD<8>; break;
+					break;
+#endif
+				default:
+					eval.eval_ptr=&splinetable::ndsplineeval_core;
+					eval.v_eval_ptr=&splinetable::ndsplineeval_multibasis_core;
+			}
+	}
+	return(eval);
+}
+
+template<typename Alloc>
+bool splinetable<Alloc>::evaluator::searchcenters(const double* x, int* centers) const{
+	return(table.searchcenters(x,centers));
+}
+	
+template<typename Alloc>
+double splinetable<Alloc>::evaluator::ndsplineeval(const double* x, const int* centers, int derivatives) const{
+	uint32_t maxdegree = *std::max_element(table.order,table.order+table.ndim) + 1;
+	float localbasis_store[table.ndim*maxdegree];
+	detail::buffer2d<float> localbasis{localbasis_store,maxdegree};
+	
+	for (uint32_t n = 0; n < table.ndim; n++) {
+		if (derivatives & (1 << n)) {
+			bspline_deriv_nonzero(&table.knots[n][0],
+								  table.nknots[n], x[n], centers[n],
+								  table.order[n], localbasis[n]);
+		} else {
+			bsplvb_simple(&table.knots[n][0], table.nknots[n],
+						  x[n], centers[n], table.order[n] + 1,
+						  localbasis[n]);
+		}
+	}
+	
+	return((table.*(eval_ptr))(centers, maxdegree, localbasis));
+}
+	
+template<typename Alloc>
+double splinetable<Alloc>::evaluator::ndsplineeval_deriv2(const double* x, const int* centers, int derivatives) const
+{
+	uint32_t maxdegree = *std::max_element(table.order,table.order+table.ndim) + 1;
+	float localbasis_store[table.ndim*maxdegree];
+	detail::buffer2d<float> localbasis{localbasis_store,maxdegree};
+	
+	for (uint32_t n = 0; n < table.ndim; n++) {
+		if (derivatives & (1 << n)) {
+			for (int32_t i = 0; i <= table.order[n]; i++)
+				localbasis[n][i] = bspline_deriv_2(&table.knots[n][0], x[n],
+												   centers[n] - table.order[n] + i,
+												   table.order[n]);
+		} else {
+			bsplvb_simple(&table.knots[n][0], table.nknots[n],
+						  x[n], centers[n], table.order[n] + 1,
+						  localbasis[n]);
+		}
+	}
+	
+	return((table.*(eval_ptr))(centers, maxdegree, localbasis));
+}
+	
+template<typename Alloc>
 typename splinetable<Alloc>::benchmark_results
 splinetable<Alloc>::benchmark_evaluation(size_t trialCount, bool verbose){
 	std::mt19937 rng;
 	
 	volatile double dummy;
 	benchmark_results result;
-	fast_evaluation_token token=get_evaluation_token();
+	evaluator eval=get_evaluator();
 	
 	std::vector<std::uniform_real_distribution<>> dists;
 	for(size_t i=0; i<ndim; i++)
@@ -551,7 +450,7 @@ splinetable<Alloc>::benchmark_evaluation(size_t trialCount, bool verbose){
 		if(!searchcenters(coords.data(), centers.data()))
 			throw std::logic_error("center lookup failure for pint which should be in bounds");
 		
-		dummy=ndsplineeval(coords.data(), centers.data(), 0, token);
+		dummy=eval.ndsplineeval(coords.data(), centers.data(), 0);
 	}
 	t2 = std::chrono::high_resolution_clock::now();
 	result.single_eval_rate=trialCount/
@@ -568,7 +467,7 @@ splinetable<Alloc>::benchmark_evaluation(size_t trialCount, bool verbose){
 		
 		dummy=ndsplineeval(coords.data(), centers.data(), 0);
 		for(size_t j=0; j<ndim; j++)
-			dummy=ndsplineeval(coords.data(), centers.data(), 1u<<j, token);
+			dummy=eval.ndsplineeval(coords.data(), centers.data(), 1u<<j);
 	}
 	t2 = std::chrono::high_resolution_clock::now();
 	result.gradient_single_eval_rate=trialCount/
@@ -583,7 +482,7 @@ splinetable<Alloc>::benchmark_evaluation(size_t trialCount, bool verbose){
 		if(!searchcenters(coords.data(), centers.data()))
 			throw std::logic_error("center lookup failure for pint which should be in bounds");
 		
-		ndsplineeval_gradient(coords.data(), centers.data(), gradeval.data(), token);
+		eval.ndsplineeval_gradient(coords.data(), centers.data(), gradeval.data());
 	}
 	t2 = std::chrono::high_resolution_clock::now();
 	result.gradient_multi_eval_rate=trialCount/
@@ -599,8 +498,6 @@ splinetable<Alloc>::benchmark_evaluation(size_t trialCount, bool verbose){
 	
 	return(result);
 }
-	
-
 
 } //namespace photospline
 

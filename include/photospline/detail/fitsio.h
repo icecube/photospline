@@ -251,7 +251,6 @@ bool splinetable<Alloc>::read_fits_core(fitsfile* fits, const std::string& fileP
 		//all orders are the same
 		std::fill(order+1,order+ndim,order[0]);
 	}
-	pick_eval_funcs();
 	
 	if (error != 0)
 		return (error);

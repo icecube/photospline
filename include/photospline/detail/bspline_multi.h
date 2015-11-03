@@ -78,8 +78,8 @@ namespace{
 	template <unsigned int D>
 	struct vectorCountHelper{
 		static constexpr unsigned int VC =
-		(D / PHOTOSPLINE_VECTOR_SIZE)
-		+ (D % PHOTOSPLINE_VECTOR_SIZE ? 1 : 0);
+		((D+1) / PHOTOSPLINE_VECTOR_SIZE)
+		+ ((D+1) % PHOTOSPLINE_VECTOR_SIZE ? 1 : 0);
 	};
 }
 	
@@ -271,40 +271,38 @@ splinetable<Alloc>::ndsplineeval_gradient(const double* x, const int* centers, d
 	for (uint32_t i = 0; i < nbases; i++)
 		evaluates[i] = acc_ptr[i];
 }
-	
+
 template<typename Alloc>
-void
-splinetable<Alloc>::ndsplineeval_gradient(const double* x, const int* centers, double* evaluates, const fast_evaluation_token& token) const
-{
-	uint32_t maxdegree = *std::max_element(order,order+ndim) + 1;
-	uint32_t nbases = ndim + 1;
+void splinetable<Alloc>::evaluator::ndsplineeval_gradient(const double* x, const int* centers, double* evaluates) const{
+	uint32_t maxdegree = *std::max_element(table.order,table.order+table.ndim) + 1;
+	uint32_t nbases = table.ndim + 1;
 	v4sf acc[PHOTOSPLINE_NVECS];
 	float valbasis[maxdegree];
 	float gradbasis[maxdegree];
-	v4sf localbasis[ndim][maxdegree][PHOTOSPLINE_NVECS];
-	const v4sf* localbasis_rowptr[ndim][maxdegree];
-	const v4sf** localbasis_ptr[ndim];
-
-	assert(ndim > 0);
-	if (ndim+1 > PHOTOSPLINE_MAXDIM)
+	v4sf localbasis[table.ndim][maxdegree][PHOTOSPLINE_NVECS];
+	const v4sf* localbasis_rowptr[table.ndim][maxdegree];
+	const v4sf** localbasis_ptr[table.ndim];
+	
+	assert(table.ndim > 0);
+	if (table.ndim+1 > PHOTOSPLINE_MAXDIM)
 		throw std::runtime_error("Error: ndsplineeval_gradient() can only "
-		    "process up to "+std::to_string(PHOTOSPLINE_MAXDIM-1)+"-dimensional tables. "
-		    "Adjust PHOTOSPLINE_MAXDIM in detail/simd.h to change this.");
+								 "process up to "+std::to_string(PHOTOSPLINE_MAXDIM-1)+"-dimensional tables. "
+								 "Adjust PHOTOSPLINE_MAXDIM in detail/simd.h to change this.");
+	
+	for (uint32_t n = 0; n < table.ndim; n++) {
 		
-	for (uint32_t n = 0; n < ndim; n++) {
-
-		/* 
+		/*
 		 * Compute the values and derivatives of the table->order[n]+1 non-zero
 		 * splines at x[n], filling them into valbasis and gradbasis.
 		 */
-		bspline_nonzero(knots[n], nknots[n],
-		    x[n], centers[n], order[n], valbasis, gradbasis);
-	
-		for (uint32_t i = 0; i <= order[n]; i++) {
+		bspline_nonzero(table.knots[n], table.nknots[n],
+						x[n], centers[n], table.order[n], valbasis, gradbasis);
+		
+		for (uint32_t i = 0; i <= table.order[n]; i++) {
 			
 			((float*)(localbasis[n][i]))[0] = valbasis[i];
 			
-			for (uint32_t j = 1; j < ndim+1; j++) {
+			for (uint32_t j = 1; j < table.ndim+1; j++) {
 				if (j == 1+n)
 					((float*)(localbasis[n][i]))[j] = gradbasis[i];
 				else
@@ -316,17 +314,14 @@ splinetable<Alloc>::ndsplineeval_gradient(const double* x, const int* centers, d
 		
 		localbasis_ptr[n] = localbasis_rowptr[n];
 	}
-
+	
 	float* acc_ptr = (float*)acc;
-
+	
 	for (uint32_t i = 0; i < nbases; i++)
 		acc_ptr[i] = 0;
-
-	//ndsplineeval_multibasis_core(centers, localbasis_ptr, acc);
-	//(this->*v_eval_ptr)(centers, localbasis_ptr, acc);
-	//ndsplineeval_multibasis_core(centers, localbasis_ptr, acc);
-	(this->*(token.v_eval_ptr))(centers, localbasis_ptr, acc);
-
+	
+	(table.*(v_eval_ptr))(centers, localbasis_ptr, acc);
+	
 	for (uint32_t i = 0; i < nbases; i++)
 		evaluates[i] = acc_ptr[i];
 }

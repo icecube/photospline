@@ -176,14 +176,46 @@ public:
 	template<typename T>
 	bool write_key(const char* key, const T& value);
 	
-	struct fast_evaluation_token{
+	///\brief Manages use of optimized spline evaluation routines
+	///
+	///Particular splines may have properies which can be exploited to evaulate
+	///them more efficiently (e.g. having a constant, low order in all
+	///dimensions). For technical reasons (primarily the inadvisability of
+	///storing function pointers in shared memory) it is best to separate the
+	///data about which internal functions have been selected for greatest
+	///efficiency from the splinetable object itself. The evaluator type
+	///safely encapsulates this information, and presents the same evaluation
+	///interface as the splietable itself to users.
+	///
+	///Since the evaluator holds a reference to the actual splinetable from
+	///which is want obtained it must be considered invalidated if that table is
+	///altered or destroyed.
+	struct evaluator{
 	private:
+		const splinetable<Alloc>& table;
 		double (splinetable::*eval_ptr)(const int*, int, detail::buffer2d<float>) const;
 		void (splinetable::*v_eval_ptr)(const int*, const v4sf***, v4sf*) const;
 		friend class splinetable<Alloc>;
+		evaluator(const splinetable<Alloc>& table):table(table){}
+	public:
+		///\brief Get the underlying splinetable
+		const splinetable<Alloc>& get_table() const{ return(table); }
+		///\brief same as splinetable::searchcenters
+		bool searchcenters(const double* x, int* centers) const;
+		///\brief same as splinetable::ndsplineeval
+		double ndsplineeval(const double* x, const int* centers, int derivatives) const;
+		///\brief same as splinetable::ndsplineeval_gradient
+		void ndsplineeval_gradient(const double* x, const int* centers, double* evaluates) const;
+		///\brief same as splinetable::ndsplineeval_deriv2
+		double ndsplineeval_deriv2(const double* x, const int* centers, int derivatives) const;
 	};
+	friend struct evaluator;
 	
-	fast_evaluation_token get_evaluation_token() const;
+	///Constructs an optimized evaluator object which will use the best
+	///available internal routines to perform evaulations. The evaluator holds
+	///a reference to this splinetable, so it must be considered invalidated if
+	///this table altered or destroyed.
+	evaluator get_evaluator() const;
 	
 	/*
 	 * Spline table based hypersurface evaluation. ndsplineeval() takes a spline
@@ -197,13 +229,11 @@ public:
 	bool searchcenters(const double* x, int* centers) const;
 	
 	double ndsplineeval(const double* x, const int* centers, int derivatives) const;
-	double ndsplineeval(const double* x, const int* centers, int derivatives, const fast_evaluation_token& token) const;
 	
 	double ndsplineeval_deriv2(const double* x, const int* centers, int derivatives) const;
 	
 	/* Evaluate a spline surface and all its derivatives at x */
 	void ndsplineeval_gradient(const double* x, const int* centers, double* evaluates) const;
-	void ndsplineeval_gradient(const double* x, const int* centers, double* evaluates, const fast_evaluation_token& token) const;
 	
 	struct benchmark_results{
 		double single_eval_rate;
@@ -351,7 +381,7 @@ private:
 	template<unsigned int D, unsigned int O>
 	double ndsplineeval_coreD_FixedOrder(const int* centers, int maxdegree, detail::buffer2d<float> localbasis) const;
 	
-	void pick_eval_funcs();
+	//void pick_eval_funcs();
 	
 	void ndsplineeval_multibasis_core(const int *centers, const v4sf*** localbasis, v4sf* result) const;
 	template<unsigned int D>

@@ -132,9 +132,6 @@ void splinetable<Alloc>::fit(const ::ndsparse& data,
 	//clean up
 	cholmod_l_free_sparse(&penalty, &cholmod_state);
 	cholmod_l_finish(&cholmod_state);
-	
-	//make sure the spline is ready to evaluate
-	pick_eval_funcs();
 }
 	
 } //namespace photospline

@@ -134,7 +134,6 @@ void splinetable<Alloc>::convolve(const uint32_t dim, const double* conv_knots, 
 	
 	this->nknots[dim] = n_rho;
 	this->order[dim] = convorder;
-	pick_eval_funcs();
 	this->naxes[dim] = naxes[dim];
 	std::copy(strides.get(),strides.get()+ndim,this->strides);
 	
