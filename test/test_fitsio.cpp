@@ -11,7 +11,7 @@ TEST(read_fits_spline){
 		ENSURE_EQUAL(spline.get_order(i),2u,"Test spline should be order 2 in all dimensions");
 	
 	for(uint32_t i=0; i<spline.get_ndim(); i++)
-		ENSURE_EQUAL(spline.get_nknots(i),16ULL-2*i);
+		ENSURE_EQUAL(spline.get_nknots(i),uint64_t(16)-2*i);
 }
 
 void compare_splines(const photospline::splinetable<>& spline1,

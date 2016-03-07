@@ -20,7 +20,12 @@ void emit_error(const std::string& file, size_t line,
 	throw test_exception(ss.str());
 }
 
-std::map<std::string,void(*)()> test_registry;
+std::map<std::string,void(*)()>&
+test_registry()
+{
+	static std::map<std::string,void(*)()> *registry = new std::map<std::string,void(*)()>;
+	return *registry;
+}
 
 int main(int argc, char* argv[]){
 	for(int i=1; i<argc; i++){
@@ -38,11 +43,11 @@ int main(int argc, char* argv[]){
 		}
 	}
 	
-	std::cout << "Running " << test_registry.size() << " tests" << std::endl;
+	std::cout << "Running " << test_registry().size() << " tests" << std::endl;
 	bool all_pass=true;
 	size_t passes=0, failures=0;
-	for(std::map<std::string,void(*)()>::const_iterator test=test_registry.begin();
-		test!=test_registry.end(); test++){
+	for(std::map<std::string,void(*)()>::const_iterator test=test_registry().begin();
+		test!=test_registry().end(); test++){
 		bool pass=false;
 		std::cout << test->first << ": ";
 		std::cout.flush();

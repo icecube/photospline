@@ -40,11 +40,13 @@ do{ \
 #define FAIL(...) \
 	emit_error(__FILE__,__LINE__,"FAIL",##__VA_ARGS__)
 
-extern std::map<std::string,void(*)()> test_registry;
+std::map<std::string,void(*)()>& test_registry();
+
+// extern std::map<std::string,void(*)()> test_registry;
 
 struct register_test{
 	register_test(const std::string& test_name, void(*test)()){
-		test_registry.insert(std::make_pair(test_name,test));
+		test_registry().insert(std::make_pair(test_name,test));
 	}
 };
 
