@@ -57,6 +57,14 @@ convoluted_blossom(const double* x, size_t nx, const double* y, size_t ny, doubl
 	double scale, fun_x[nx], fun_y[ny];
 	int i, j, k;
 	
+	/*
+	 * If the supports of the source and target spline do not overlap, the
+	 * coeffienct is zero. Short-cut here to avoid round-off errors that can 	
+	 * lead to negative entries in the transfer matrix. 
+	 */
+	if ((x[0] + y[0] > z) || (x[nx-1] + y[ny-1] < bags[nbags-1]))
+		return 0.;
+	
 	scale = x[nx-1] - x[0];
 	
 	for (i = 0; i < nx; i++) {
