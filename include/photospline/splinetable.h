@@ -338,7 +338,10 @@ public:
 	  std::vector<double> coordinates, Distribution distribution, RNG& rng,
 	  Transform transform=[](double x)->double{ return(x); }) const;
 	
-	//TODO: Implement splinetable_permute (r108140/IceCube)
+	///Reorder the dimensions of the spline
+	///\param permutation the new order in which the current spline dimensions
+	///       should appear
+	void permuteDimensions(const std::vector<size_t>& permutation);
 private:
 	
 	uint32_t ndim;
@@ -418,6 +421,7 @@ private:
 #include "photospline/detail/convolve.h"
 #include "photospline/detail/fitsio.h"
 #include "photospline/detail/sample.h"
+#include "photospline/detail/permute.h"
 
 #ifdef PHOTOSPLINE_INCLUDES_SPGLAM
 #include "photospline/detail/fit.h"

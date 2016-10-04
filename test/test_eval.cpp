@@ -485,3 +485,43 @@ TEST(evaluation_benchmark){
 		spline.benchmark_evaluation((unsigned int)(8.e6*exp(-(double)dim/1.4427)),true);
 	}
 }
+
+TEST(permutation){
+	const std::string splinePath="test_data/test_spline_4d_nco.fits";
+	
+	photospline::splinetable<> spline(splinePath);
+	photospline::splinetable<>::evaluator evaluator=spline.get_evaluator();
+	
+	photospline::splinetable<> splineP(splinePath);
+	splineP.permuteDimensions(std::vector<size_t>{2,3,0,1});
+	photospline::splinetable<>::evaluator evaluatorP=splineP.get_evaluator();
+	
+	std::mt19937 rng;
+	rng.seed(93);
+	
+	//Create uniform distributions over the support of the spline in all dimensions
+	std::vector<std::uniform_real_distribution<>> dists;
+	for(size_t i=0; i<spline.get_ndim(); i++)
+		dists.push_back(std::uniform_real_distribution<>(spline.lower_extent(i),spline.upper_extent(i)));
+	
+	std::vector<double> coords(spline.get_ndim()), coordsP(spline.get_ndim());
+	std::vector<int> centers(spline.get_ndim()), centersP(spline.get_ndim());
+	for(size_t i=0; i<10000; i++) {
+		for(size_t j=0; j<spline.get_ndim(); j++)
+			coords[j]=dists[j](rng);
+		coordsP[0]=coords[2];
+		coordsP[1]=coords[3];
+		coordsP[2]=coords[0];
+		coordsP[3]=coords[1];
+		
+		ENSURE(evaluator.searchcenters(coords.data(), centers.data()), "Center lookup should succeed");
+		ENSURE(evaluatorP.searchcenters(coordsP.data(), centersP.data()), "Center lookup should succeed");
+		
+		double evaluate=evaluator.ndsplineeval(coords.data(), centers.data(), 0);
+		double evaluateP=evaluatorP.ndsplineeval(coordsP.data(), centersP.data(), 0);
+		
+		//Reordering the dimensions changes how the calculation rounds off during
+		//intermediate steps, so fairly generour error tolerances are needed here.
+		ENSURE_DISTANCE(evaluate,evaluateP,std::max(std::abs(evaluate*1e-4),1e-4),"Permuted spline should give same result for permuted coordinates");
+	}
+}
