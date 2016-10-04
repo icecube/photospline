@@ -54,4 +54,3 @@ double splineeval(const double* knots, const double* weights, int nknots, double
 } //namespace photospline
 
 #endif /* PHOTOSPLINE_CORE_BSPLINE_H */
-

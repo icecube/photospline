@@ -9,7 +9,7 @@
 #include <sstream>
 #include <vector>
 
-#include "photospline/bspline.h"
+#include "photospline/bspline-mod.h"
 #include "photospline/detail/simd.h"
 
 #include <fitsio.h>
@@ -380,8 +380,6 @@ private:
 	double ndsplineeval_coreD(const int* centers, int maxdegree, detail::buffer2d<float> localbasis) const;
 	template<unsigned int D, unsigned int O>
 	double ndsplineeval_coreD_FixedOrder(const int* centers, int maxdegree, detail::buffer2d<float> localbasis) const;
-	
-	//void pick_eval_funcs();
 	
 	void ndsplineeval_multibasis_core(const int *centers, const v4sf*** localbasis, v4sf* result) const;
 	template<unsigned int D>

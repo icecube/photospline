@@ -16,6 +16,7 @@ std::string express_comparison(const std::string& e1, const T& v1,
                                const std::string& e2, const T& v2,
                                const T& tolerance=0){
 	std::ostringstream ss;
+	ss.precision(16);
 	ss << v1 << " (" << e1 << ") != " << v2 << " (" << e2 << ")";
 	if(tolerance!=0)
 		ss << " to within " << tolerance;

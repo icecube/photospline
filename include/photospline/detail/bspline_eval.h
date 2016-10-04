@@ -75,11 +75,8 @@ double splinetable<Alloc>::ndsplineeval_core(const int* centers, int maxdegree, 
 	float result = 0;
 	n = 0;
 	while (true) {
-		for (uint32_t i = 0; __builtin_expect(i < order[ndim-1] + 1, 1); i++) {
-			result += basis_tree[ndim-1]*
-			localbasis[ndim-1][i]*
-			coefficients[tablepos + i];
-		}
+		for (uint32_t i = 0; __builtin_expect(i < order[ndim-1] + 1, 1); i++)
+			result+=basis_tree[ndim-1]*localbasis[ndim-1][i]*coefficients[tablepos + i];
 		
 		if (__builtin_expect(++n == nchunks, 0))
 			break;
@@ -90,10 +87,9 @@ double splinetable<Alloc>::ndsplineeval_core(const int* centers, int maxdegree, 
 		// Carry to higher dimensions
 		uint32_t i;
 		for (i = ndim-2;
-			 decomposedposition[i] > order[i]; i--) {
+			decomposedposition[i] > order[i]; i--) {
 			decomposedposition[i-1]++;
-			tablepos += (strides[i-1]
-						 - decomposedposition[i]*strides[i]);
+			tablepos += (strides[i-1] - decomposedposition[i]*strides[i]);
 			decomposedposition[i] = 0;
 		}
 		for (uint32_t j = i; __builtin_expect(j < ndim-1, 1); j++)
@@ -127,11 +123,11 @@ double splinetable<Alloc>::ndsplineeval_coreD(const int* centers, int maxdegree,
 	
 	float result = 0;
 	for(uint32_t n=0; __builtin_expect(n<(nchunks-1),1); n++){
-		for (uint32_t i = 0; i < (order[D-1] + 1); i++)
-			result+=basis_tree[D-1]*localbasis[D-1][i]*coefficients[tablepos+i];
+		for (uint32_t i = 0; __builtin_expect(i < order[D-1] + 1, 1); i++)
+			result+=basis_tree[D-1]*localbasis[D-1][i]*coefficients[tablepos + i];
 		
-		tablepos += strides[(int)D-2];
-		decomposedposition[(int)D-2]++;
+		tablepos += strides[D-2u];
+		decomposedposition[D-2u]++;
 		
 		// Carry to higher dimensions
 		uint32_t i;
@@ -141,8 +137,7 @@ double splinetable<Alloc>::ndsplineeval_coreD(const int* centers, int maxdegree,
 			decomposedposition[i] = 0;
 		}
 		for (uint32_t j = i; __builtin_expect(j < D-1, 1); j++)
-			basis_tree[j+1] = basis_tree[j]*
-			localbasis[j][decomposedposition[j]];
+			basis_tree[j+1] = basis_tree[j]*localbasis[j][decomposedposition[j]];
 	}
 	for (uint32_t i = 0; i < (order[D-1] + 1); i++)
 		result+=basis_tree[D-1]*localbasis[D-1][i]*coefficients[tablepos+i];
@@ -174,10 +169,10 @@ double splinetable<Alloc>::ndsplineeval_coreD_FixedOrder(const int* centers, int
 	float result = 0;
 	for(uint32_t n=0; __builtin_expect(n<(nchunks-1),1); n++){
 		for (uint32_t i = 0; i < (O + 1); i++)
-			result+=basis_tree[D-1]*localbasis[D-1][i]*coefficients[tablepos+i];
+			result+=basis_tree[D-1]*localbasis[D-1][i]*coefficients[tablepos + i];
 		
-		tablepos += strides[(int)D-2];
-		decomposedposition[(int)D-2]++;
+		tablepos += strides[D-2u];
+		decomposedposition[D-2u]++;
 		
 		// Carry to higher dimensions
 		uint32_t i;
@@ -187,8 +182,7 @@ double splinetable<Alloc>::ndsplineeval_coreD_FixedOrder(const int* centers, int
 			decomposedposition[i] = 0;
 		}
 		for (uint32_t j = i; __builtin_expect(j < D-1, 1); j++)
-			basis_tree[j+1] = basis_tree[j]*
-			localbasis[j][decomposedposition[j]];
+			basis_tree[j+1] = basis_tree[j]*localbasis[j][decomposedposition[j]];
 	}
 	for (uint32_t i = 0; i < (O + 1); i++)
 		result+=basis_tree[D-1]*localbasis[D-1][i]*coefficients[tablepos+i];
@@ -448,13 +442,13 @@ splinetable<Alloc>::benchmark_evaluation(size_t trialCount, bool verbose){
 			coords[j]=dists[j](rng);
 		
 		if(!searchcenters(coords.data(), centers.data()))
-			throw std::logic_error("center lookup failure for pint which should be in bounds");
+			throw std::logic_error("center lookup failure for point which should be in bounds");
 		
 		dummy=eval.ndsplineeval(coords.data(), centers.data(), 0);
 	}
 	t2 = std::chrono::high_resolution_clock::now();
 	result.single_eval_rate=trialCount/
-	  std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1).count();
+	std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1).count();
 	
 	rng.seed(52);
 	t1 = std::chrono::high_resolution_clock::now();
@@ -463,9 +457,9 @@ splinetable<Alloc>::benchmark_evaluation(size_t trialCount, bool verbose){
 			coords[j]=dists[j](rng);
 		
 		if(!searchcenters(coords.data(), centers.data()))
-			throw std::logic_error("center lookup failure for pint which should be in bounds");
+			throw std::logic_error("center lookup failure for point which should be in bounds");
 		
-		dummy=ndsplineeval(coords.data(), centers.data(), 0);
+		dummy=eval.ndsplineeval(coords.data(), centers.data(), 0);
 		for(size_t j=0; j<ndim; j++)
 			dummy=eval.ndsplineeval(coords.data(), centers.data(), 1u<<j);
 	}
@@ -480,7 +474,7 @@ splinetable<Alloc>::benchmark_evaluation(size_t trialCount, bool verbose){
 			coords[j]=dists[j](rng);
 		
 		if(!searchcenters(coords.data(), centers.data()))
-			throw std::logic_error("center lookup failure for pint which should be in bounds");
+			throw std::logic_error("center lookup failure for point which should be in bounds");
 		
 		eval.ndsplineeval_gradient(coords.data(), centers.data(), gradeval.data());
 	}
@@ -490,9 +484,9 @@ splinetable<Alloc>::benchmark_evaluation(size_t trialCount, bool verbose){
 	
 	if(verbose){
 		printf("Benchmark results:\n");
-		printf("\t%lf single evaluations/second\n",result.single_eval_rate);
-		printf("\t%lf 'single' gradient evaluations/second\n",result.gradient_single_eval_rate);
-		printf("\t%lf 'multiple' gradient evaluations/second\n",result.gradient_multi_eval_rate);
+		printf("\t%.2le single evaluations/second\n",result.single_eval_rate);
+		printf("\t%.2le 'single' gradient evaluations/second\n",result.gradient_single_eval_rate);
+		printf("\t%.2le 'multiple' gradient evaluations/second\n",result.gradient_multi_eval_rate);
 		printf("\t(%zu trial evaluations)\n",trialCount);
 	}
 	

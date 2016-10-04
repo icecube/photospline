@@ -67,7 +67,7 @@ std::vector<std::array<double,N>> splinetable<Alloc>::sample(
 	} while(!accept);
 
 	propx=distribution(s);
-	px=transform(ndsplineeval(x.data(),cx.data(),0));
+	px=transform(x,ndsplineeval(x.data(),cx.data(),0));
 
 	std::uniform_real_distribution<> acceptor(0.,1.);
 
@@ -97,7 +97,7 @@ std::vector<std::array<double,N>> splinetable<Alloc>::sample(
 				continue;
 	
 			propxp=distribution(sp);
-			pxp=transform(ndsplineeval(xp.data(),cxp.data(),0));
+			pxp=transform(xp,ndsplineeval(xp.data(),cxp.data(),0));
 	
 			double odds=(pxp/px)*(propx/propxp);
 			accept=((odds>1.) || acceptor(rng)<odds);

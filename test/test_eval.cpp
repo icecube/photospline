@@ -37,15 +37,20 @@ TEST(ndssplineeval_vs_ndssplineeval_gradient){
 		
 		ENSURE_EQUAL(evaluate, evaluate_with_gradient[0],
 					 "ndsplineeval() and ndssplineeval_gradient() yield identical evaluates");
+		ENSURE_DISTANCE(evaluate, evaluate_with_gradient[0],std::abs(1e-4*evaluate),
+						"ndsplineeval() and ndssplineeval_gradient() yield identical evaluates");
 		for (int j=0; j < ndim; j++) {
 			ENSURE_EQUAL(gradient[j], evaluate_with_gradient[j+1],
 						 "ndsplineeval() and ndssplineeval_gradient() yield identical derivatives");
+			ENSURE_DISTANCE(gradient[j], evaluate_with_gradient[j+1],std::abs(1e-4*gradient[j]),
+							"ndsplineeval() and ndssplineeval_gradient() yield identical derivatives");
 		}
 	}
 }
 
 void test_evaluator_interface(const std::string& splinePath){
-	photospline::splinetable<> spline("test_data/test_spline_4d.fits");
+	std::cout << "Testing evaluation of " << splinePath << std::endl;
+	photospline::splinetable<> spline(splinePath);
 	photospline::splinetable<>::evaluator evaluator=spline.get_evaluator();
 	const int ndim = spline.get_ndim();
 	ENSURE(ndim < 6);
@@ -472,11 +477,11 @@ TEST(evaluation_benchmark){
 	for(size_t dim=2; dim<6; dim++){
 		photospline::splinetable<> spline("test_data/test_spline_"+std::to_string(dim)+"d.fits");
 		std::cout << "Dimension " << spline.get_ndim() << " spline:" << std::endl;
-		spline.benchmark_evaluation((unsigned int)(8.e5*exp(-(double)dim/1.4427)),true);
+		spline.benchmark_evaluation((unsigned int)(8.e6*exp(-(double)dim/1.4427)),true);
 	}
 	for(size_t dim=2; dim<6; dim++){
 		photospline::splinetable<> spline("test_data/test_spline_"+std::to_string(dim)+"d_nco.fits");
 		std::cout << "Dimension " << spline.get_ndim() << " (variable order) spline:" << std::endl;
-		spline.benchmark_evaluation((unsigned int)(8.e5*exp(-(double)dim/1.4427)),true);
+		spline.benchmark_evaluation((unsigned int)(8.e6*exp(-(double)dim/1.4427)),true);
 	}
 }

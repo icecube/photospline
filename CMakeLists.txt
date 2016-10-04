@@ -34,8 +34,8 @@ SET (PHOTOSPLINE_LIBDIR "${CMAKE_INSTALL_PREFIX}/lib")
 SET (PHOTOSPLINE_INCDIR "${CMAKE_INSTALL_PREFIX}/include")
 IF (NOT DEFINED PHOTOSPLINE_CFLAGS)
   SET (PHOTOSPLINE_CFLAGS "-I${CMAKE_SOURCE_DIR}/include -O3 -std=c++11")
-  IF (CMAKE_SYSTEM_PROCESSOR MATCHES "^i.86$")
-    SET (PHOTOSPLINE_CFLAGS "${PHOTOSPLINE_CFLAGS} -msse2 -mfpmath=sse")
+  IF (CMAKE_SYSTEM_PROCESSOR MATCHES "^(i.86|x86_64)$")
+    SET (PHOTOSPLINE_CFLAGS "${PHOTOSPLINE_CFLAGS} -msse2 -msse3 -msse4 -msse4.1 -msse4.2 -mavx -march=native") #-mfpmath=sse
   ELSEIF (CMAKE_SYSTEM_PROCESSOR MATCHES "^(powerpc|ppc)")
     SET (PHOTOSPLINE_CFLAGS "${PHOTOSPLINE_CFLAGS} -maltivec")
   ELSEIF (CMAKE_SYSTEM_PROCESSOR MATCHES "^sparc")
@@ -207,6 +207,29 @@ SET_TARGET_PROPERTIES(photospline-inspect PROPERTIES
   COMPILE_FLAGS "${PHOTOSPLINE_CFLAGS}"
 )
 TARGET_LINK_LIBRARIES(photospline-inspect
+  photospline-mod
+  spglam
+  ${CFITSIO_LIBRARIES}
+)
+
+ADD_EXECUTABLE(photospline-bench
+  src/tools/bench.cpp
+)
+SET_TARGET_PROPERTIES(photospline-bench PROPERTIES 
+  COMPILE_FLAGS "${PHOTOSPLINE_CFLAGS}" # -DPHOTOSPLINE_EVAL_TEMPLATES
+)
+TARGET_LINK_LIBRARIES(photospline-bench
+  photospline-mod
+  spglam
+  ${CFITSIO_LIBRARIES}
+)
+ADD_EXECUTABLE(photospline-bench-templated
+  src/tools/bench.cpp
+)
+SET_TARGET_PROPERTIES(photospline-bench-templated PROPERTIES 
+  COMPILE_FLAGS "${PHOTOSPLINE_CFLAGS} -DPHOTOSPLINE_EVAL_TEMPLATES"
+)
+TARGET_LINK_LIBRARIES(photospline-bench-templated
   photospline-mod
   spglam
   ${CFITSIO_LIBRARIES}

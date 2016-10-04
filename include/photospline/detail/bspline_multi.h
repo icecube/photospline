@@ -9,7 +9,7 @@ void
 bspline_nonzero(const double* knots, const unsigned nknots,
                 const double x, int left, const int n,
                 float* values, float* derivs);
-
+	
 template <typename Alloc>
 void splinetable<Alloc>::ndsplineeval_multibasis_core(const int *centers, const v4sf*** localbasis, v4sf* result) const{
 #if (defined(__i386__) || defined (__x86_64__)) && defined(__ELF__)
@@ -43,8 +43,7 @@ void splinetable<Alloc>::ndsplineeval_multibasis_core(const int *centers, const 
 	
 	uint32_t n = 0;
 	while (1) {
-		for (uint32_t i = 0; __builtin_expect(i < order[ndim-1] +
-									 1, 1); i++) {
+		for (uint32_t i = 0; __builtin_expect(i < order[ndim-1] + 1, 1); i++) {
 			v4sf weights;
 			v4sf_init(weights, coefficients[tablepos + i]);
 			for (uint32_t k = 0; k < PHOTOSPLINE_NVECS; k++)
@@ -117,13 +116,11 @@ void splinetable<Alloc>::ndsplineeval_multibasis_coreD(const int *centers, const
 	
 	uint32_t n = 0;
 	while (1) {
-		for (uint32_t i = 0; __builtin_expect(i < order[D-1] +
-											  1, 1); i++) {
+		for (uint32_t i = 0; __builtin_expect(i < order[D-1] + 1, 1); i++) {
 			v4sf weights;
 			v4sf_init(weights, coefficients[tablepos + i]);
 			for (uint32_t k = 0; k < VC; k++)
-				result[k] += basis_tree[D-1][k]*
-				localbasis[D-1][i][k]*weights;
+				result[k] += basis_tree[D-1][k]*localbasis[D-1][i][k]*weights;
 		}
 		
 		if (__builtin_expect(++n == nchunks, 0))
@@ -134,11 +131,9 @@ void splinetable<Alloc>::ndsplineeval_multibasis_coreD(const int *centers, const
 		
 		/* Carry to higher dimensions */
 		uint32_t i;
-		for (i = D-2;
-			 decomposedposition[i] > order[i]; i--) {
+		for (i = D-2; decomposedposition[i] > order[i]; i--) {
 			decomposedposition[i-1]++;
-			tablepos += (strides[i-1]
-						 - decomposedposition[i]*strides[i]);
+			tablepos += (strides[i-1] - decomposedposition[i]*strides[i]);
 			decomposedposition[i] = 0;
 		}
 		for (uint32_t j = i; __builtin_expect(j < D-1, 1); j++)
@@ -147,7 +142,7 @@ void splinetable<Alloc>::ndsplineeval_multibasis_coreD(const int *centers, const
 				localbasis[j][decomposedposition[j]][k];
 	}
 }
-	
+
 template <typename Alloc>
 template <unsigned int D, unsigned int Order>
 void splinetable<Alloc>::ndsplineeval_multibasis_coreD_FixedOrder(const int *centers, const v4sf*** localbasis, v4sf* result) const{
@@ -264,8 +259,6 @@ splinetable<Alloc>::ndsplineeval_gradient(const double* x, const int* centers, d
 	for (uint32_t i = 0; i < nbases; i++)
 		acc_ptr[i] = 0;
 
-	//ndsplineeval_multibasis_core(centers, localbasis_ptr, acc);
-	//(this->*v_eval_ptr)(centers, localbasis_ptr, acc);
 	ndsplineeval_multibasis_core(centers, localbasis_ptr, acc);
 
 	for (uint32_t i = 0; i < nbases; i++)
