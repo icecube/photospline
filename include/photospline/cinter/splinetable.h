@@ -101,6 +101,8 @@ int splinetable_glamfit(struct splinetable* table, const struct ndsparse* data,
 //TODO:
 //	sampling?
 	
+int splinetable_permute(struct splinetable* table, size_t* permutation);
+	
 #ifdef __cplusplus
 } //extern "C"
 #endif

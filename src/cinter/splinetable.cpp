@@ -288,6 +288,22 @@ int splinetable_glamfit(struct splinetable* table, const struct ndsparse* data,
 }
 #endif
 	
+int splinetable_permute(struct splinetable* table, size_t* permutation){
+	try{
+		auto& real_table=*static_cast<photospline::splinetable<>*>(table->data);
+		std::vector<size_t> permutationv(real_table.get_ndim());
+		//the user had better have supplied the right number of entries; we have no way to check
+		std::copy(permutation,permutation+real_table.get_ndim(),permutationv.begin());
+		real_table.permuteDimensions(permutationv);
+	}catch(std::exception& ex){
+		fprintf(stderr,"%s\n",ex.what());
+		return(1);
+	}catch(...){
+		return(1);
+	}
+	return(0);
+}
+	
 #ifdef __cplusplus
 } //extern "C"
 #endif
