@@ -26,9 +26,9 @@ int main(){
 			//std::cout << "  dimension " << i  << std::endl;
 			size_t nknots=16;//(16-i*2);
 			double offset=!(nknots%2);
-			double scale=(4./((nknots-1)*(nknots-1)))*width[i];
+			double scale=2*width[i]/nknots;
 			for(size_t j=0; j<nknots; j++){
-				double knot=(j<(nknots/2)?-1:1)*scale*(j+.5-nknots/2.)*(j+.5-nknots/2.);
+				double knot=scale*(j+.5-nknots/2.);
 				//std::cout << "   " << knot << std::endl;
 				knots[i].push_back(knot);
 			}
@@ -45,25 +45,26 @@ int main(){
 		//invent some data to fit
 		size_t total_samples=1;
 		for(size_t i=0; i<dim; i++)
-			total_samples*=knots[i].size();
+			total_samples*=nsamples;
 		photospline::ndsparse data(total_samples,dim);
 		std::vector<double> weights(total_samples,1.);
 		
 		std::vector<unsigned int> indices(dim,0);
 		for(size_t i=0; i<total_samples; i++){
+			double value=1;
 			for(size_t j=0; j<dim; j++){
-				if((++indices[dim-j-1])>=knots[j].size())
+				double x=coordinates[j][indices[j]];
+				double s=(j+1)/2.;
+				value*=exp(-(x*x)/(s*s)/2);
+			}
+			data.insertEntry(value,&indices.front());
+			
+			for(size_t j=0; j<dim; j++){
+				if((++indices[dim-j-1])>=nsamples)
 					indices[dim-j-1]=0;
 				else
 					break;
 			}
-			double value=1;
-			for(size_t j=0; j<dim; j++){
-				double x=coordinates[j][indices[j]];
-				double s=j+1;
-				value*=exp(-(x*x)/(s*s)/2);
-			}
-			data.insertEntry(value,&indices.front());
 		}
 		
 		size_t dataSize=0;
@@ -79,7 +80,7 @@ int main(){
 		std::cout << "Output will have " << ncoeffs << " coefficients" << std::endl;
 		
 		photospline::splinetable<> spline;
-		spline.fit(data,weights,coordinates,orders,knots,{dim*1e-10},{2});
+		spline.fit(data,weights,coordinates,orders,knots,{dim*1e-8},{2});
 		spline.write_fits("test_spline_"+std::to_string(dim)+"d.fits");
 		std::cout << "Output has " << spline.get_ncoeffs() << " coefficients" << std::endl;
 		spline.benchmark_evaluation(1e4,true);
