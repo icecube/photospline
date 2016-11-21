@@ -235,6 +235,18 @@ TARGET_LINK_LIBRARIES(photospline-bench-templated
   ${CFITSIO_LIBRARIES}
 )
 
+ADD_EXECUTABLE(photospline-eval
+  src/tools/eval.cpp
+)
+SET_TARGET_PROPERTIES(photospline-eval PROPERTIES 
+  COMPILE_FLAGS "${PHOTOSPLINE_CFLAGS}"
+)
+TARGET_LINK_LIBRARIES(photospline-eval
+  photospline-mod
+  spglam
+  ${CFITSIO_LIBRARIES}
+)
+
 if(BUILD_SPGLAM)
   ADD_EXECUTABLE(photospline-gen_test_splines
     src/tools/gen_test_splines.cpp
