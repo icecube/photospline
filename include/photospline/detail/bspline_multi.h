@@ -127,7 +127,14 @@ void splinetable<Alloc>::ndsplineeval_multibasis_coreD(const int *centers, const
 			break;
 		
 		tablepos += strides[D-2];
+#ifdef __clang__ //this code is unreachable if D<2
+	#pragma clang diagnostic push
+	#pragma clang diagnostic ignored "-Warray-bounds"
+#endif
 		decomposedposition[D-2]++;
+#ifdef __clang__
+	#pragma clang diagnostic pop
+#endif
 		
 		/* Carry to higher dimensions */
 		uint32_t i;
@@ -189,7 +196,14 @@ void splinetable<Alloc>::ndsplineeval_multibasis_coreD_FixedOrder(const int *cen
 			break;
 		
 		tablepos += strides[D-2];
+#ifdef __clang__ //this code is unreachable if D<2
+	#pragma clang diagnostic push
+	#pragma clang diagnostic ignored "-Warray-bounds"
+#endif
 		decomposedposition[D-2]++;
+#ifdef __clang__
+	#pragma clang diagnostic pop
+#endif
 		
 		/* Carry to higher dimensions */
 		uint32_t i;

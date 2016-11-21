@@ -473,13 +473,12 @@ TEST(single_basis_vs_multi){
 
 //hammer on evaluation a bit
 TEST(evaluation_benchmark){
-	//TODO: include dimension 1 once it is implemented
-	for(size_t dim=2; dim<6; dim++){
+	for(size_t dim=1; dim<6; dim++){
 		photospline::splinetable<> spline("test_data/test_spline_"+std::to_string(dim)+"d.fits");
 		std::cout << "Dimension " << spline.get_ndim() << " spline:" << std::endl;
 		spline.benchmark_evaluation((unsigned int)(8.e6*exp(-(double)dim/1.4427)),true);
 	}
-	for(size_t dim=2; dim<6; dim++){
+	for(size_t dim=1; dim<6; dim++){
 		photospline::splinetable<> spline("test_data/test_spline_"+std::to_string(dim)+"d_nco.fits");
 		std::cout << "Dimension " << spline.get_ndim() << " (variable order) spline:" << std::endl;
 		spline.benchmark_evaluation((unsigned int)(8.e6*exp(-(double)dim/1.4427)),true);

@@ -127,7 +127,14 @@ double splinetable<Alloc>::ndsplineeval_coreD(const int* centers, int maxdegree,
 			result+=basis_tree[D-1]*localbasis[D-1][i]*coefficients[tablepos + i];
 		
 		tablepos += strides[D-2u];
+#ifdef __clang__ //this code is unreachable if D<2
+	#pragma clang diagnostic push
+	#pragma clang diagnostic ignored "-Warray-bounds"
+#endif
 		decomposedposition[D-2u]++;
+#ifdef __clang__
+	#pragma clang diagnostic pop
+#endif
 		
 		// Carry to higher dimensions
 		uint32_t i;
@@ -172,7 +179,14 @@ double splinetable<Alloc>::ndsplineeval_coreD_FixedOrder(const int* centers, int
 			result+=basis_tree[D-1]*localbasis[D-1][i]*coefficients[tablepos + i];
 		
 		tablepos += strides[D-2u];
+#ifdef __clang__ //this code is unreachable if D<2
+	#pragma clang diagnostic push
+	#pragma clang diagnostic ignored "-Warray-bounds"
+#endif
 		decomposedposition[D-2u]++;
+#ifdef __clang__
+	#pragma clang diagnostic pop
+#endif
 		
 		// Carry to higher dimensions
 		uint32_t i;
@@ -253,8 +267,10 @@ splinetable<Alloc>::get_evaluator() const{
 #ifdef PHOTOSPLINE_EVAL_TEMPLATES
 		case 2:
 			switch(ndim){
-					//TODO: fix 1D eval
-					//case 1: eval_ptr=&splinetable::ndsplineeval_coreD_FixedOrder<1,2>; break;
+				case 1:
+					eval.eval_ptr=&splinetable::ndsplineeval_coreD_FixedOrder<1,2>;
+					eval.v_eval_ptr=&splinetable::ndsplineeval_multibasis_coreD_FixedOrder<1,2>;
+					break;
 				case 2:
 					eval.eval_ptr=&splinetable::ndsplineeval_coreD_FixedOrder<2,2>;
 					eval.v_eval_ptr=&splinetable::ndsplineeval_multibasis_coreD_FixedOrder<2,2>;
@@ -290,8 +306,10 @@ splinetable<Alloc>::get_evaluator() const{
 			break;
 		case 3:
 			switch(ndim){
-					//TODO: fix 1D eval
-					//case 1: eval_ptr=&splinetable::ndsplineeval_coreD_FixedOrder<1,3>; break;
+				case 1:
+					eval.eval_ptr=&splinetable::ndsplineeval_coreD_FixedOrder<1,3>;
+					eval.v_eval_ptr=&splinetable::ndsplineeval_multibasis_coreD_FixedOrder<1,3>;
+					break;
 				case 2:
 					eval.eval_ptr=&splinetable::ndsplineeval_coreD_FixedOrder<2,3>;
 					eval.v_eval_ptr=&splinetable::ndsplineeval_multibasis_coreD_FixedOrder<2,3>;
@@ -329,8 +347,10 @@ splinetable<Alloc>::get_evaluator() const{
 		default:
 			switch(ndim){
 #ifdef PHOTOSPLINE_EVAL_TEMPLATES
-					//TODO: fix 1D eval
-					//case 1: eval_ptr=&splinetable::ndsplineeval_coreD<1>; break;
+				case 1:
+					eval.eval_ptr=&splinetable::ndsplineeval_coreD<1>;
+					eval.v_eval_ptr=&splinetable::ndsplineeval_multibasis_coreD<1>; break;
+					break;
 				case 2:
 					eval.eval_ptr=&splinetable::ndsplineeval_coreD<2>;
 					eval.v_eval_ptr=&splinetable::ndsplineeval_multibasis_coreD<2>; break;
@@ -420,7 +440,7 @@ double splinetable<Alloc>::evaluator::ndsplineeval_deriv2(const double* x, const
 template<typename Alloc>
 typename splinetable<Alloc>::benchmark_results
 splinetable<Alloc>::benchmark_evaluation(size_t trialCount, bool verbose){
-	std::mt19937 rng;
+	std::default_random_engine rng;
 	
 	volatile double dummy;
 	benchmark_results result;
@@ -435,6 +455,17 @@ splinetable<Alloc>::benchmark_evaluation(size_t trialCount, bool verbose){
 	std::vector<double> gradeval(ndim+1);
 	std::chrono::high_resolution_clock::time_point t1, t2;
 	
+	//estimate time wasted running the RNG
+	rng.seed(52);
+	t1 = std::chrono::high_resolution_clock::now();
+	for(size_t i=0; i<trialCount; i++){
+		for(size_t j=0; j<ndim; j++)
+			dummy=dists[j](rng);
+	}
+	t2 = std::chrono::high_resolution_clock::now();
+	double rng_overhead=std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1).count();
+	//printf("RNG overhead: %lf s\n",rng_overhead);
+	
 	rng.seed(52);
 	t1 = std::chrono::high_resolution_clock::now();
 	for(size_t i=0; i<trialCount; i++){
@@ -448,7 +479,7 @@ splinetable<Alloc>::benchmark_evaluation(size_t trialCount, bool verbose){
 	}
 	t2 = std::chrono::high_resolution_clock::now();
 	result.single_eval_rate=trialCount/
-	std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1).count();
+	(std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1).count()-rng_overhead);
 	
 	rng.seed(52);
 	t1 = std::chrono::high_resolution_clock::now();
@@ -465,7 +496,7 @@ splinetable<Alloc>::benchmark_evaluation(size_t trialCount, bool verbose){
 	}
 	t2 = std::chrono::high_resolution_clock::now();
 	result.gradient_single_eval_rate=trialCount/
-	std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1).count();
+	(std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1).count()-rng_overhead);
 	
 	rng.seed(52);
 	t1 = std::chrono::high_resolution_clock::now();
@@ -480,7 +511,7 @@ splinetable<Alloc>::benchmark_evaluation(size_t trialCount, bool verbose){
 	}
 	t2 = std::chrono::high_resolution_clock::now();
 	result.gradient_multi_eval_rate=trialCount/
-	std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1).count();
+	(std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1).count()-rng_overhead);
 	
 	if(verbose){
 		printf("Benchmark results:\n");
