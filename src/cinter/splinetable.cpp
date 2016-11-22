@@ -6,7 +6,7 @@ extern "C" {
 #endif
 	
 int splinetable_init(struct splinetable* table){
-	if(table)
+	if(!table)
 		return(1);
 	try{
 		table->data=new photospline::splinetable<>();
