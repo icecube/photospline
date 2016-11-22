@@ -178,6 +178,40 @@ ELSEIF(NOT SUITESPARSE_FOUND)
   MESSAGE("SuiteSparse not found, skipping build of fitter")
 ENDIF()
 
+# Python interface
+
+IF(PYTHON_FOUND AND NUMPY_FOUND)
+  MESSAGE("-- Will build the python module")
+
+  LIST (APPEND python_SOURCES
+    ${CMAKE_SOURCE_DIR}/src/python/photosplinemodule.c
+  )
+
+  ADD_LIBRARY (pyphotospline SHARED ${python_SOURCES})
+  LIST (APPEND python_LINK_LIBRARIES
+    ${CFITSIO_LIBRARIES}
+    ${SUITESPARSE_LIBRARIES}
+    ${BLAS_LIBRARIES}
+    ${LAPACK_LIBRARIES}
+    ${PYTHON_LIBRARY}
+    photospline-mod
+    cphotospline
+  )
+  SET(pyphotospline_CFLAGS "${pyphotospline_CFLAGS} -I${PYTHON_INCLUDE_DIR} -I${NUMPY_INCLUDE_DIR}")
+  SET_TARGET_PROPERTIES(pyphotospline PROPERTIES
+    COMPILE_FLAGS "${pyphotospline_CFLAGS}"
+  )
+  SET_TARGET_PROPERTIES(pyphotospline PROPERTIES LINKER_LANGUAGE C PREFIX "" SUFFIX ".so")
+  TARGET_LINK_LIBRARIES (pyphotospline ${python_LINK_LIBRARIES})
+  ADD_DEPENDENCIES(pyphotospline cphotospline)
+  #use get_python_lib to find install location
+ELSEIF(NOT PYTHON_FOUND)
+  MESSAGE("-- Python not found, skipping build of python module")
+ELSEIF(NOT NUMPY_FOUND)
+  MESSAGE("-- Numpy not found, skipping build of python module")
+ENDIF(PYTHON_FOUND AND NUMPY_FOUND)
+
+
 # -----------------------------------------------------------------------------
 # Create a script for configuring the user environment
 # -----------------------------------------------------------------------------
