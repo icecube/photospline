@@ -200,6 +200,12 @@ ADD_CUSTOM_TARGET (uninstall
 # -----------------------------------------------------------------------------
 # Tools
 # -----------------------------------------------------------------------------
+IF(BUILD_SPGLAM)
+  SET(MAYBE_SPGLAM spglam)
+ELSE()
+  SET(MAYBE_SPGLAM "")
+ENDIF()
+
 ADD_EXECUTABLE(photospline-inspect
   src/tools/inspect.cpp
 )
@@ -208,7 +214,7 @@ SET_TARGET_PROPERTIES(photospline-inspect PROPERTIES
 )
 TARGET_LINK_LIBRARIES(photospline-inspect
   photospline-mod
-  spglam
+  ${MAYBE_SPGLAM}
   ${CFITSIO_LIBRARIES}
 )
 
@@ -220,7 +226,7 @@ SET_TARGET_PROPERTIES(photospline-bench PROPERTIES
 )
 TARGET_LINK_LIBRARIES(photospline-bench
   photospline-mod
-  spglam
+  ${MAYBE_SPGLAM}
   ${CFITSIO_LIBRARIES}
 )
 ADD_EXECUTABLE(photospline-bench-templated
@@ -231,7 +237,7 @@ SET_TARGET_PROPERTIES(photospline-bench-templated PROPERTIES
 )
 TARGET_LINK_LIBRARIES(photospline-bench-templated
   photospline-mod
-  spglam
+  ${MAYBE_SPGLAM}
   ${CFITSIO_LIBRARIES}
 )
 
@@ -243,7 +249,7 @@ SET_TARGET_PROPERTIES(photospline-eval PROPERTIES
 )
 TARGET_LINK_LIBRARIES(photospline-eval
   photospline-mod
-  spglam
+  ${MAYBE_SPGLAM}
   ${CFITSIO_LIBRARIES}
 )
 
