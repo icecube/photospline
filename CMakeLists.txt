@@ -180,7 +180,7 @@ ENDIF()
 
 # Python interface
 
-IF(PYTHON_FOUND AND NUMPY_FOUND)
+IF(PYTHON_FOUND)
   MESSAGE("-- Will build the python module")
 
   LIST (APPEND python_SOURCES
@@ -198,6 +198,9 @@ IF(PYTHON_FOUND AND NUMPY_FOUND)
     cphotospline
   )
   SET(pyphotospline_CFLAGS "${pyphotospline_CFLAGS} -I${PYTHON_INCLUDE_DIR} -I${NUMPY_INCLUDE_DIR}")
+  IF(NUMPY_FOUND)
+    SET(pyphotospline_CFLAGS "${pyphotospline_CFLAGS} -DHAVE_NUMPY")
+  ENDIF(NUMPY_FOUND)
   SET_TARGET_PROPERTIES(pyphotospline PROPERTIES
     COMPILE_FLAGS "${pyphotospline_CFLAGS}"
   )
@@ -207,9 +210,7 @@ IF(PYTHON_FOUND AND NUMPY_FOUND)
   #use get_python_lib to find install location
 ELSEIF(NOT PYTHON_FOUND)
   MESSAGE("-- Python not found, skipping build of python module")
-ELSEIF(NOT NUMPY_FOUND)
-  MESSAGE("-- Numpy not found, skipping build of python module")
-ENDIF(PYTHON_FOUND AND NUMPY_FOUND)
+ENDIF(PYTHON_FOUND)
 
 
 # -----------------------------------------------------------------------------

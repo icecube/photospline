@@ -1,5 +1,7 @@
 #include <Python.h>
-//#include <numpy/ndarrayobject.h>
+#ifdef HAVE_NUMPY
+	#include <numpy/ndarrayobject.h>
+#endif
 #include <stdio.h>
 #include <limits.h>
 
@@ -18,7 +20,6 @@ pysplinetable_dealloc(pysplinetable* self){
 
 static PyObject*
 pysplinetable_new(PyTypeObject* type, PyObject* args, PyObject* kwds){
-	printf("pysplinetable_new\n");
 	pysplinetable* self;
 
 	self = (pysplinetable*)type->tp_alloc(type, 0);
@@ -83,8 +84,26 @@ pysplinetable_write(pysplinetable* self, PyObject* args, PyObject* kwds){
 	return(Py_None);
 }
 
-//TODO: get_key
-//OMIT: read_key (uses can do their own casting/parsing in python)
+static PyObject*
+pysplinetable_get_aux_value(pysplinetable* self, PyObject* args, PyObject* kwds){
+	static char* kwlist[] = {"key", NULL};
+	
+	char* key=NULL;
+	
+	if (!PyArg_ParseTupleAndKeywords(args, kwds, "s", kwlist, &key))
+		return(NULL);
+	
+	const char* value=splinetable_get_key(&self->table, key);
+	if(value==NULL){
+		PyErr_SetString(PyExc_KeyError, "Key not found");
+		return(NULL);
+	}
+	
+	PyObject* result=Py_BuildValue("s",value);
+	return(result);
+}
+
+//OMIT: read_key (users can do their own casting/parsing in python)
 //TODO: write_key
 
 static PyObject*
@@ -126,6 +145,28 @@ pysplinetable_nknots(pysplinetable* self, PyObject* args, PyObject* kwds){
 }
 
 //TODO: knots
+/*static PyObject*
+pysplinetable_knots(pysplinetable* self, PyObject* args, PyObject* kwds){
+	static char* kwlist[] = {"dim", NULL};
+	
+	unsigned int dim,idx;
+	
+	if (!PyArg_ParseTupleAndKeywords(args, kwds, "II", kwlist, &dim, &idx))
+		return(NULL);
+	
+	uint32_t ndim=splinetable_ndim(&self->table);
+	if(dim>=ndim){
+		PyErr_SetString(PyExc_ValueError, "Dimension out of range");
+		return(NULL);
+	}
+	
+#ifdef HAVE_NUMPY
+	
+#else //!HAVE_NUMPY
+	uint32_t size=splinetable_nknots(&self->table, dim);
+	(PyArrayObject *)PyArray_SimpleNewFromData(1, &size, PyArray_DOUBLE, splinetable_knots(&self->table, dim));
+#endif
+}*/
 
 static PyObject*
 pysplinetable_knot(pysplinetable* self, PyObject* args, PyObject* kwds){
@@ -254,7 +295,314 @@ pysplinetable_stride(pysplinetable* self, PyObject* args, PyObject* kwds){
 
 //TODO: coefficients
 
-//TODO: evaluation!
+static PyObject*
+pysplinetable_searchcenters(pysplinetable* self, PyObject* args, PyObject* kwds){
+	static char* kwlist[] = {"x", NULL};
+	
+	PyObject* pyx=NULL;
+	
+	if (!PyArg_ParseTupleAndKeywords(args, kwds, "O", kwlist, &pyx))
+		return(NULL);
+	
+	Py_ssize_t xlen=PySequence_Length(pyx);
+	
+	if(xlen==-1){
+		PyErr_SetString(PyExc_ValueError, "x must be a sequence");
+		return(NULL);
+	}
+	uint32_t ndim=splinetable_ndim(&self->table);
+	if(xlen!=ndim){
+		PyErr_SetString(PyExc_ValueError, "Length of x must match the table dimension");
+		return(NULL);
+	}
+	
+	//unpack x
+	//assume these are arbitrary sequences, not numpy arrays
+	//TODO: should be possible to make a more efficient case for numpy arrays
+	{
+		//a small amount of evil
+		double x[ndim];
+		int centers[ndim];
+		
+		for(unsigned int i=0; i!=ndim; i++){
+			PyObject* xi=PySequence_GetItem(pyx,i);
+			x[i]=PyFloat_AsDouble(xi);
+			Py_DECREF(xi); //done with this
+			//printf("x[%u]=%lf\n",i,x[i]);
+		}
+		
+		int status=tablesearchcenters(&self->table,x,centers);
+		if(!status){
+			PyErr_SetString(PyExc_ValueError, "tablesearchcenters failed");
+			return(NULL);
+		}
+		
+		PyObject* result=PyTuple_New(ndim);
+		for(unsigned int i=0; i!=ndim; i++)
+			PyTuple_SetItem(result,i,Py_BuildValue("i",centers[i]));
+		return(result);
+	}
+}
+
+static PyObject*
+pysplinetable_evaluate(pysplinetable* self, PyObject* args, PyObject* kwds){
+	static char* kwlist[] = {"x", "centers", "derivatives", NULL};
+	
+	PyObject* pyx=NULL;
+	PyObject* pycenters=NULL;
+	unsigned long derivatives=0;
+	
+	if (!PyArg_ParseTupleAndKeywords(args, kwds, "OO|k", kwlist, &pyx, &pycenters, &derivatives))
+		return(NULL);
+	
+	if(!PySequence_Check(pyx)){
+		PyErr_SetString(PyExc_ValueError, "x must be a sequence");
+		return(NULL);
+	}
+	if(!PySequence_Check(pycenters)){
+		PyErr_SetString(PyExc_ValueError, "centers must be a sequence");
+		return(NULL);
+	}
+	
+	Py_ssize_t xlen=PySequence_Length(pyx);
+	Py_ssize_t centerslen=PySequence_Length(pycenters);
+	
+	if(xlen==-1){
+		PyErr_SetString(PyExc_ValueError, "x must be a sequence");
+		return(NULL);
+	}
+	if(centerslen==-1){
+		PyErr_SetString(PyExc_ValueError, "centers must be a sequence");
+		return(NULL);
+	}
+	uint32_t ndim=splinetable_ndim(&self->table);
+	if(xlen!=ndim){
+		PyErr_SetString(PyExc_ValueError, "Length of x must match the table dimension");
+		return(NULL);
+	}
+	if(centerslen!=ndim){
+		PyErr_SetString(PyExc_ValueError, "Length of centers must match the table dimension");
+		return(NULL);
+	}
+	
+	unsigned int invalid_derivative_mask=~((1<<ndim)-1);
+	if((derivatives&invalid_derivative_mask)!=0){
+		PyErr_SetString(PyExc_ValueError, "Bits beyond the table dimension must not be set in derivatives");
+		return(NULL);
+	}
+	
+	//unpack x and centers
+	//assume these are arbitrary sequences, not numpy arrays
+	//TODO: should be possible to make a more efficient case for numpy arrays
+	{
+		//a small amount of evil
+		double x[ndim];
+		int centers[ndim];
+		
+		for(unsigned int i=0; i!=ndim; i++){
+			PyObject* xi=PySequence_GetItem(pyx,i);
+			x[i]=PyFloat_AsDouble(xi);
+			Py_DECREF(xi); //done with this
+			PyObject* centeri=PySequence_GetItem(pycenters,i);
+			centers[i]=PyInt_AsLong(centeri);
+			Py_DECREF(centeri); //done with this
+		}
+		
+		double result=ndsplineeval(&self->table,x,centers,derivatives);
+		return(Py_BuildValue("d",result));
+	}
+}
+
+//attempts to do search centers and ndsplineeval in one step
+static PyObject*
+pysplinetable_evaluate_simple(pysplinetable* self, PyObject* args, PyObject* kwds){
+	static char* kwlist[] = {"x", "derivatives", NULL};
+	
+	PyObject* pyx=NULL;
+	unsigned long derivatives=0;
+	
+	if (!PyArg_ParseTupleAndKeywords(args, kwds, "O|k", kwlist, &pyx, &derivatives))
+		return(NULL);
+	
+	Py_ssize_t xlen=PySequence_Length(pyx);
+	
+	if(xlen==-1){
+		PyErr_SetString(PyExc_ValueError, "x must be a sequence");
+		return(NULL);
+	}
+	uint32_t ndim=splinetable_ndim(&self->table);
+	if(xlen!=ndim){
+		PyErr_SetString(PyExc_ValueError, "Length of x must match the table dimension");
+		return(NULL);
+	}
+	
+	unsigned int invalid_derivative_mask=~((1<<ndim)-1);
+	if((derivatives&invalid_derivative_mask)!=0){
+		PyErr_SetString(PyExc_ValueError, "Bits beyond the table dimension must not be set in derivatives");
+		return(NULL);
+	}
+	
+	//unpack x
+	//assume these are arbitrary sequences, not numpy arrays
+	//TODO: should be possible to make a more efficient case for numpy arrays
+	{
+		//a small amount of evil
+		double x[ndim];
+		int centers[ndim];
+		
+		for(unsigned int i=0; i!=ndim; i++){
+			PyObject* xi=PySequence_GetItem(pyx,i);
+			x[i]=PyFloat_AsDouble(xi);
+			Py_DECREF(xi); //done with this
+			//printf("x[%u]=%lf\n",i,x[i]);
+		}
+		
+		int status=tablesearchcenters(&self->table,x,centers);
+		if(!status){
+			PyErr_SetString(PyExc_ValueError, "tablesearchcenters failed");
+			return(NULL);
+		}
+		
+		double result=ndsplineeval(&self->table,x,centers,derivatives);
+		return(Py_BuildValue("d",result));
+	}
+}
+
+static PyObject*
+pysplinetable_evaluate_gradient(pysplinetable* self, PyObject* args, PyObject* kwds){
+	static char* kwlist[] = {"x", "centers", NULL};
+	
+	PyObject* pyx=NULL;
+	PyObject* pycenters=NULL;
+	
+	if (!PyArg_ParseTupleAndKeywords(args, kwds, "OO", kwlist, &pyx, &pycenters))
+		return(NULL);
+	
+	if(!PySequence_Check(pyx)){
+		PyErr_SetString(PyExc_ValueError, "x must be a sequence");
+		return(NULL);
+	}
+	if(!PySequence_Check(pycenters)){
+		PyErr_SetString(PyExc_ValueError, "centers must be a sequence");
+		return(NULL);
+	}
+	
+	Py_ssize_t xlen=PySequence_Length(pyx);
+	Py_ssize_t centerslen=PySequence_Length(pycenters);
+	
+	if(xlen==-1){
+		PyErr_SetString(PyExc_ValueError, "x must be a sequence");
+		return(NULL);
+	}
+	if(centerslen==-1){
+		PyErr_SetString(PyExc_ValueError, "centers must be a sequence");
+		return(NULL);
+	}
+	uint32_t ndim=splinetable_ndim(&self->table);
+	if(xlen!=ndim){
+		PyErr_SetString(PyExc_ValueError, "Length of x must match the table dimension");
+		return(NULL);
+	}
+	if(centerslen!=ndim){
+		PyErr_SetString(PyExc_ValueError, "Length of centers must match the table dimension");
+		return(NULL);
+	}
+	
+	//unpack x and centers
+	//assume these are arbitrary sequences, not numpy arrays
+	//TODO: should be possible to make a more efficient case for numpy arrays
+	{
+		//a small amount of evil
+		double x[ndim];
+		int centers[ndim];
+		double evaluates[ndim+1];
+		
+		for(unsigned int i=0; i!=ndim; i++){
+			PyObject* xi=PySequence_GetItem(pyx,i);
+			x[i]=PyFloat_AsDouble(xi);
+			Py_DECREF(xi); //done with this
+			PyObject* centeri=PySequence_GetItem(pycenters,i);
+			centers[i]=PyInt_AsLong(centeri);
+			Py_DECREF(centeri); //done with this
+		}
+		
+		ndsplineeval_gradient(&self->table,x,centers,evaluates);
+		
+		PyObject* result=PyTuple_New(ndim+1);
+		for(unsigned int i=0; i!=ndim+1; i++)
+			PyTuple_SetItem(result,i,Py_BuildValue("d",evaluates[i]));
+		return(result);
+	}
+}
+
+static PyObject*
+pysplinetable_deriv2(pysplinetable* self, PyObject* args, PyObject* kwds){
+	static char* kwlist[] = {"x", "centers", "derivatives", NULL};
+	
+	PyObject* pyx=NULL;
+	PyObject* pycenters=NULL;
+	unsigned long derivatives=0;
+	
+	if (!PyArg_ParseTupleAndKeywords(args, kwds, "OOk", kwlist, &pyx, &pycenters, &derivatives))
+		return(NULL);
+	
+	if(!PySequence_Check(pyx)){
+		PyErr_SetString(PyExc_ValueError, "x must be a sequence");
+		return(NULL);
+	}
+	if(!PySequence_Check(pycenters)){
+		PyErr_SetString(PyExc_ValueError, "centers must be a sequence");
+		return(NULL);
+	}
+	
+	Py_ssize_t xlen=PySequence_Length(pyx);
+	Py_ssize_t centerslen=PySequence_Length(pycenters);
+	
+	if(xlen==-1){
+		PyErr_SetString(PyExc_ValueError, "x must be a sequence");
+		return(NULL);
+	}
+	if(centerslen==-1){
+		PyErr_SetString(PyExc_ValueError, "centers must be a sequence");
+		return(NULL);
+	}
+	uint32_t ndim=splinetable_ndim(&self->table);
+	if(xlen!=ndim){
+		PyErr_SetString(PyExc_ValueError, "Length of x must match the table dimension");
+		return(NULL);
+	}
+	if(centerslen!=ndim){
+		PyErr_SetString(PyExc_ValueError, "Length of centers must match the table dimension");
+		return(NULL);
+	}
+	
+	unsigned int invalid_derivative_mask=~((1<<ndim)-1);
+	if((derivatives&invalid_derivative_mask)!=0){
+		PyErr_SetString(PyExc_ValueError, "Bits beyond the table dimension must not be set in derivatives");
+		return(NULL);
+	}
+	
+	//unpack x and centers
+	//assume these are arbitrary sequences, not numpy arrays
+	//TODO: should be possible to make a more efficient case for numpy arrays
+	{
+		//a small amount of evil
+		double x[ndim];
+		int centers[ndim];
+		
+		for(unsigned int i=0; i!=ndim; i++){
+			PyObject* xi=PySequence_GetItem(pyx,i);
+			x[i]=PyFloat_AsDouble(xi);
+			Py_DECREF(xi); //done with this
+			PyObject* centeri=PySequence_GetItem(pycenters,i);
+			centers[i]=PyInt_AsLong(centeri);
+			Py_DECREF(centeri); //done with this
+		}
+		
+		double result=ndsplineeval_deriv2(&self->table,x,centers,derivatives);
+		return(Py_BuildValue("d",result));
+	}
+}
 
 #ifdef PHOTOSPLINE_INCLUDES_SPGLAM
 //TODO: fitting!
@@ -269,6 +617,8 @@ static PyMethodDef pysplinetable_methods[] = {
 	 "Write the spline to a FITS file at the given path"},
 	{"ndim", (PyCFunction)pysplinetable_ndim, METH_NOARGS,
 	 "Return the number of dimensions the table has"},
+	{"aux_value", (PyCFunction)pysplinetable_get_aux_value, METH_KEYWORDS,
+	 "Get the value associated with an auxilliary key"},
 	{"order", (PyCFunction)pysplinetable_order, METH_KEYWORDS,
 	 "Return the order of the spline in the given dimension"},
 	{"nknots", (PyCFunction)pysplinetable_nknots, METH_KEYWORDS,
@@ -287,6 +637,16 @@ static PyMethodDef pysplinetable_methods[] = {
 	 "Return the total number of coefficients the table has"},
 	{"stride", (PyCFunction)pysplinetable_stride, METH_KEYWORDS,
 	 "Return the stride in the spline coefficients in the given dimension"},
+	{"search_centers", (PyCFunction)pysplinetable_searchcenters, METH_KEYWORDS,
+	 "Look up the basis function indices corresponding to a set of coordinates"},
+	{"evaluate", (PyCFunction)pysplinetable_evaluate, METH_KEYWORDS,
+	 "Evaluate the spline at a set of coordinates or its derivatives in the given dimensions"},
+	{"evaluate_simple", (PyCFunction)pysplinetable_evaluate_simple, METH_KEYWORDS,
+	 "Evaluate the spline at a set of coordinates or its derivatives in the given dimensions"},
+	{"evaluate_gradient", (PyCFunction)pysplinetable_evaluate_gradient, METH_KEYWORDS,
+	 "Evaluate the spline and all of its derivatives at a set of coordinates"},
+	{"deriv2", (PyCFunction)pysplinetable_deriv2, METH_KEYWORDS,
+	 "Evaluate the second derivative of the spline in the given dimensions"},
 	
     {NULL}  /* Sentinel */
 };
@@ -307,7 +667,7 @@ static PyTypeObject pysplinetableType = {
 	0,                         /*tp_as_sequence*/
 	0,                         /*tp_as_mapping*/
 	0,                         /*tp_hash */
-	0,                         /*tp_call*/
+	(ternaryfunc)pysplinetable_evaluate_simple, /*tp_call*/
 	0,                         /*tp_str*/
 	0,                         /*tp_getattro*/
 	0,                         /*tp_setattro*/
@@ -355,4 +715,3 @@ initpyphotospline(void){
 	Py_INCREF(&pysplinetableType);
 	PyModule_AddObject(module, "Splinetable", (PyObject *)&pysplinetableType);
 }
-
