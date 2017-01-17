@@ -12,6 +12,7 @@
 #include "photospline/bspline-mod.h"
 #include "photospline/detail/simd.h"
 
+#include <string.h>
 #include <fitsio.h>
 #include <fitsio2.h>
 

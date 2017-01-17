@@ -1,6 +1,8 @@
 #ifndef PHOTOSPLINE_FITSIO_H
 #define PHOTOSPLINE_FITSIO_H
 
+#include <string.h>
+
 namespace photospline{
 	
 std::vector<uint32_t> readOrder(fitsfile* fits, uint32_t ndim);

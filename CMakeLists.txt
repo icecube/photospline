@@ -1,6 +1,6 @@
 PROJECT (photospline C CXX)
 
-CMAKE_MINIMUM_REQUIRED (VERSION 2.8)
+CMAKE_MINIMUM_REQUIRED (VERSION 2.8.10)
 
 # -----------------------------------------------------------------------------
 # Release information.
@@ -152,6 +152,10 @@ IF (BUILD_SPGLAM)
     ${LAPACK_LIBRARIES}
     photospline-mod
   )
+  if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+    LIST (APPEND fitter_LINK_LIBRARIES pthread rt)
+  endif(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+
   SET_TARGET_PROPERTIES(spglam PROPERTIES
     COMPILE_FLAGS "${spglam_CFLAGS}"
   )

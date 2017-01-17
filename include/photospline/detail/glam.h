@@ -11,6 +11,7 @@
 extern "C" {
 #endif
 
+#include <stdint.h>
 #include <photospline/detail/splineutil.h>
 
 #include <cholmod.h>

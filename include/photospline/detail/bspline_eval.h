@@ -2,6 +2,7 @@
 #define PHOTOSPLINE_BSPLINE_EVAL_H
 
 #include <random>
+#include <chrono>
 
 namespace photospline{
 	
