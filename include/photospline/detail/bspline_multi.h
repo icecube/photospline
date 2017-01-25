@@ -222,7 +222,7 @@ void splinetable<Alloc>::ndsplineeval_multibasis_coreD_FixedOrder(const int *cen
 }
 
 template <typename Alloc>
-template<unsigned int O1, unsigned int ... Orders>
+template<unsigned int ... Orders>
 void splinetable<Alloc>::ndsplineeval_multibasis_core_KnownOrder(const int *centers, const v4sf*** localbasis, v4sf* result) const{
 #if (defined(__i386__) || defined (__x86_64__)) && defined(__ELF__)
 	/*
@@ -233,7 +233,7 @@ void splinetable<Alloc>::ndsplineeval_multibasis_core_KnownOrder(const int *cent
 	if (__builtin_expect(sp & 15UL, 0))
 		(void)alloca(16 - (sp & 15UL));
 #endif
-	constexpr unsigned int D = sizeof...(Orders)+1;	
+	constexpr unsigned int D = sizeof...(Orders);
 	const unsigned int VC=vectorCountHelper<D>::VC;
 	v4sf basis_tree[D+1][VC];
 	int decomposedposition[D];
@@ -250,8 +250,8 @@ void splinetable<Alloc>::ndsplineeval_multibasis_core_KnownOrder(const int *cent
 			basis_tree[n+1][k] = basis_tree[n][k]*localbasis[n][0][k];
 	}
 	
-	constexpr uint32_t nchunks = detail::nchunks<O1,Orders...>();
-	constexpr uint32_t chunk = detail::chunk<O1,Orders...>();
+	constexpr uint32_t nchunks = detail::nchunks<Orders...>();
+	constexpr uint32_t chunk = detail::chunk<Orders...>();
 	
 	uint32_t n = 0;
 	while (1) {

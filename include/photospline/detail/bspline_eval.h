@@ -250,10 +250,10 @@ bool orders_are(const splinetable<Alloc> &spline, const std::initializer_list<un
 }
 
 template<typename Alloc>
-template<unsigned int O1, unsigned int ... Orders>
+template<unsigned int ... Orders>
 double splinetable<Alloc>::ndsplineeval_core_KnownOrder(const int* centers, int maxdegree, detail::buffer2d<float> localbasis) const
 {
-	constexpr unsigned int D = sizeof...(Orders)+1;
+	constexpr unsigned int D = sizeof...(Orders);
 	uint32_t n;
 	float basis_tree[D+1];
 	int decomposedposition[D];
@@ -269,8 +269,8 @@ double splinetable<Alloc>::ndsplineeval_core_KnownOrder(const int* centers, int 
 	for (n = 0; n < D; n++)
 		basis_tree[n+1] = basis_tree[n]*localbasis[n][0];
 	
-	constexpr uint32_t nchunks = detail::nchunks<O1,Orders...>();
-	constexpr uint32_t chunk = detail::chunk<O1,Orders...>();
+	constexpr uint32_t nchunks = detail::nchunks<Orders...>();
+	constexpr uint32_t chunk = detail::chunk<Orders...>();
 
 	float result = 0;
 	for(uint32_t n=0; __builtin_expect(n<(nchunks-1),1); n++){

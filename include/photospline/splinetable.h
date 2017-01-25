@@ -384,7 +384,7 @@ private:
 	double ndsplineeval_coreD(const int* centers, int maxdegree, detail::buffer2d<float> localbasis) const;
 	template<unsigned int D, unsigned int O>
 	double ndsplineeval_coreD_FixedOrder(const int* centers, int maxdegree, detail::buffer2d<float> localbasis) const;
-	template<unsigned int O1, unsigned int ... Orders>
+	template<unsigned int ... Orders>
 	double ndsplineeval_core_KnownOrder(const int* centers, int maxdegree, detail::buffer2d<float> localbasis) const;
 	
 	void ndsplineeval_multibasis_core(const int *centers, const v4sf*** localbasis, v4sf* result) const;
@@ -392,7 +392,7 @@ private:
 	void ndsplineeval_multibasis_coreD(const int *centers, const v4sf*** localbasis, v4sf* result) const;
 	template<unsigned int D, unsigned int O>
 	void ndsplineeval_multibasis_coreD_FixedOrder(const int *centers, const v4sf*** localbasis, v4sf* result) const;
-	template<unsigned int O1, unsigned int ... Orders>
+	template<unsigned int ... Orders>
 	void ndsplineeval_multibasis_core_KnownOrder(const int *centers, const v4sf*** localbasis, v4sf* result) const;
 	
 	template<typename T>
