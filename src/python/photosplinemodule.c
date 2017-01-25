@@ -1,5 +1,6 @@
 #include <Python.h>
 #ifdef HAVE_NUMPY
+	#define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
 	#include <numpy/ndarrayobject.h>
 #endif
 #include <stdio.h>
@@ -61,12 +62,6 @@ pysplinetable_print(pysplinetable* self, FILE* fp, int flags){
 }
 
 static PyObject*
-pysplinetable_ndim(pysplinetable* self){
-	PyObject* result=Py_BuildValue("I",splinetable_ndim(&self->table));
-	return(result);
-}
-
-static PyObject*
 pysplinetable_write(pysplinetable* self, PyObject* args, PyObject* kwds){
 	static char* kwlist[] = {"path", NULL};
 	
@@ -106,194 +101,65 @@ pysplinetable_get_aux_value(pysplinetable* self, PyObject* args, PyObject* kwds)
 //OMIT: read_key (users can do their own casting/parsing in python)
 //TODO: write_key
 
-static PyObject*
-pysplinetable_order(pysplinetable* self, PyObject* args, PyObject* kwds){
-	static char* kwlist[] = {"dim", NULL};
-	
-	unsigned int dim;
-	
-	if (!PyArg_ParseTupleAndKeywords(args, kwds, "I", kwlist, &dim))
-		return(NULL);
-	
-	uint32_t ndim=splinetable_ndim(&self->table);
-	if(dim>=ndim){
-		PyErr_SetString(PyExc_ValueError, "Dimension out of range");
-		return(NULL);
-	}
-	
-	PyObject* result=Py_BuildValue("I",splinetable_order(&self->table,dim));
-	return(result);
-}
-
-static PyObject*
-pysplinetable_nknots(pysplinetable* self, PyObject* args, PyObject* kwds){
-	static char* kwlist[] = {"dim", NULL};
-	
-	unsigned int dim;
-	
-	if (!PyArg_ParseTupleAndKeywords(args, kwds, "I", kwlist, &dim))
-		return(NULL);
-	
-	uint32_t ndim=splinetable_ndim(&self->table);
-	if(dim>=ndim){
-		PyErr_SetString(PyExc_ValueError, "Dimension out of range");
-		return(NULL);
-	}
-	
-	PyObject* result=Py_BuildValue("I",splinetable_nknots(&self->table,dim));
-	return(result);
-}
-
-//TODO: knots
-/*static PyObject*
-pysplinetable_knots(pysplinetable* self, PyObject* args, PyObject* kwds){
-	static char* kwlist[] = {"dim", NULL};
-	
-	unsigned int dim,idx;
-	
-	if (!PyArg_ParseTupleAndKeywords(args, kwds, "II", kwlist, &dim, &idx))
-		return(NULL);
-	
-	uint32_t ndim=splinetable_ndim(&self->table);
-	if(dim>=ndim){
-		PyErr_SetString(PyExc_ValueError, "Dimension out of range");
-		return(NULL);
-	}
-	
 #ifdef HAVE_NUMPY
+static PyObject*
+pysplinetable_getknots(pysplinetable *self, void *closure)
+{
+	PyObject *list = PyTuple_New(splinetable_ndim(&self->table));
+	for (int dim = 0; dim < splinetable_ndim(&self->table); dim++) {
+		npy_intp nknots = splinetable_nknots(&self->table, dim);
+		PyObject *knots = PyArray_SimpleNewFromData(1, &nknots, NPY_DOUBLE, (void*)splinetable_knots(&self->table, dim));
+		PyArray_CLEARFLAGS((PyArrayObject*)knots, NPY_ARRAY_WRITEABLE);
+		PyTuple_SetItem(list, dim, knots);
+	}
 	
-#else //!HAVE_NUMPY
-	uint32_t size=splinetable_nknots(&self->table, dim);
-	(PyArrayObject *)PyArray_SimpleNewFromData(1, &size, PyArray_DOUBLE, splinetable_knots(&self->table, dim));
+	return list;
+}
 #endif
-}*/
 
 static PyObject*
-pysplinetable_knot(pysplinetable* self, PyObject* args, PyObject* kwds){
-	static char* kwlist[] = {"dim", "idx", NULL};
-	
-	unsigned int dim,idx;
-	
-	if (!PyArg_ParseTupleAndKeywords(args, kwds, "II", kwlist, &dim, &idx))
-		return(NULL);
-	
-	uint32_t ndim=splinetable_ndim(&self->table);
-	if(dim>=ndim){
-		PyErr_SetString(PyExc_ValueError, "Dimension out of range");
-		return(NULL);
-	}
-	uint32_t nknots=splinetable_nknots(&self->table,dim);
-	if(idx>=nknots){
-		PyErr_SetString(PyExc_ValueError, "Knot index out of range");
-		return(NULL);
+pysplinetable_getorder(pysplinetable* self, void *closure){
+	PyObject *list = PyTuple_New(splinetable_ndim(&self->table));
+	for (int dim = 0; dim < splinetable_ndim(&self->table); dim++) {
+		PyTuple_SetItem(list, dim, PyInt_FromLong(splinetable_order(&self->table, dim)));
 	}
 	
-	PyObject* result=Py_BuildValue("d",splinetable_knot(&self->table,dim,idx));
-	return(result);
+	return list;
 }
 
 static PyObject*
-pysplinetable_lower_extent(pysplinetable* self, PyObject* args, PyObject* kwds){
-	static char* kwlist[] = {"dim", NULL};
-	
-	unsigned int dim;
-	
-	if (!PyArg_ParseTupleAndKeywords(args, kwds, "I", kwlist, &dim))
-		return(NULL);
-	
-	uint32_t ndim=splinetable_ndim(&self->table);
-	if(dim>=ndim){
-		PyErr_SetString(PyExc_ValueError, "Dimension out of range");
-		return(NULL);
+pysplinetable_getextents(pysplinetable* self, void *closure){
+	PyObject *list = PyTuple_New(splinetable_ndim(&self->table));
+	for (int dim = 0; dim < splinetable_ndim(&self->table); dim++) {
+		PyTuple_SetItem(list, dim, PyTuple_Pack(2,
+		    PyFloat_FromDouble(splinetable_lower_extent(&self->table,dim)),
+		    PyFloat_FromDouble(splinetable_upper_extent(&self->table,dim))));
 	}
 	
-	PyObject* result=Py_BuildValue("d",splinetable_lower_extent(&self->table,dim));
-	return(result);
+	return list;
 }
 
+#ifdef HAVE_NUMPY
 static PyObject*
-pysplinetable_upper_extent(pysplinetable* self, PyObject* args, PyObject* kwds){
-	static char* kwlist[] = {"dim", NULL};
-	
-	unsigned int dim;
-	
-	if (!PyArg_ParseTupleAndKeywords(args, kwds, "I", kwlist, &dim))
-		return(NULL);
-	
-	uint32_t ndim=splinetable_ndim(&self->table);
-	if(dim>=ndim){
-		PyErr_SetString(PyExc_ValueError, "Dimension out of range");
-		return(NULL);
+pysplinetable_getcoeffcients(pysplinetable* self, void *closure){
+	unsigned int ndim = splinetable_ndim(&self->table);
+	assert (ndim > 0);
+	npy_intp dims[ndim];
+	npy_intp strides[ndim];
+	for (unsigned int i = 0; i < ndim; i++) {
+		dims[i] = splinetable_ncoeffs(&self->table, i);
+		strides[i] = sizeof(float)*splinetable_stride(&self->table, i);
 	}
-	
-	PyObject* result=Py_BuildValue("d",splinetable_upper_extent(&self->table,dim));
-	return(result);
+	return PyArray_New(&PyArray_Type, ndim, dims, NPY_FLOAT, strides,
+	    (void*)splinetable_coefficients(&self->table), sizeof(float),
+	    NPY_ARRAY_CARRAY_RO, NULL);
 }
+#endif
 
 static PyObject*
-pysplinetable_period(pysplinetable* self, PyObject* args, PyObject* kwds){
-	static char* kwlist[] = {"dim", NULL};
-	
-	unsigned int dim;
-	
-	if (!PyArg_ParseTupleAndKeywords(args, kwds, "I", kwlist, &dim))
-		return(NULL);
-	
-	uint32_t ndim=splinetable_ndim(&self->table);
-	if(dim>=ndim){
-		PyErr_SetString(PyExc_ValueError, "Dimension out of range");
-		return(NULL);
-	}
-	
-	PyObject* result=Py_BuildValue("d",splinetable_period(&self->table,dim));
-	return(result);
+pysplinetable_getndim(pysplinetable* self, void *closure){
+	return PyInt_FromLong(splinetable_ndim(&self->table));
 }
-
-static PyObject*
-pysplinetable_ncoeffs(pysplinetable* self, PyObject* args, PyObject* kwds){
-	static char* kwlist[] = {"dim", NULL};
-	
-	unsigned int dim;
-	
-	if (!PyArg_ParseTupleAndKeywords(args, kwds, "I", kwlist, &dim))
-		return(NULL);
-	
-	uint32_t ndim=splinetable_ndim(&self->table);
-	if(dim>=ndim){
-		PyErr_SetString(PyExc_ValueError, "Dimension out of range");
-		return(NULL);
-	}
-	
-	PyObject* result=Py_BuildValue("L",splinetable_ncoeffs(&self->table,dim));
-	return(result);
-}
-
-static PyObject*
-pysplinetable_total_ncoeffs(pysplinetable* self){
-	PyObject* result=Py_BuildValue("L",splinetable_total_ncoeffs(&self->table));
-	return(result);
-}
-
-static PyObject*
-pysplinetable_stride(pysplinetable* self, PyObject* args, PyObject* kwds){
-	static char* kwlist[] = {"dim", NULL};
-	
-	unsigned int dim;
-	
-	if (!PyArg_ParseTupleAndKeywords(args, kwds, "I", kwlist, &dim))
-		return(NULL);
-	
-	uint32_t ndim=splinetable_ndim(&self->table);
-	if(dim>=ndim){
-		PyErr_SetString(PyExc_ValueError, "Dimension out of range");
-		return(NULL);
-	}
-	
-	PyObject* result=Py_BuildValue("L",splinetable_stride(&self->table,dim));
-	return(result);
-}
-
-//TODO: coefficients
 
 static PyObject*
 pysplinetable_searchcenters(pysplinetable* self, PyObject* args, PyObject* kwds){
@@ -612,31 +478,22 @@ pysplinetable_deriv2(pysplinetable* self, PyObject* args, PyObject* kwds){
 
 //TODO: permutation
 
+static PyGetSetDef pysplinetable_properties[] = {
+	{"order", (getter)pysplinetable_getorder, NULL, "Order of spline in each dimension", NULL},
+#ifdef HAVE_NUMPY
+	{"knots", (getter)pysplinetable_getknots, NULL, "Knot vectors for each dimension", NULL},
+	{"coefficients", (getter)pysplinetable_getcoeffcients, NULL, "Spline coefficients", NULL},
+#endif
+	{"extents", (getter)pysplinetable_getextents, NULL, "Range of support in each dimension", NULL},
+	{"ndim", (getter)pysplinetable_getndim, NULL, "Number of dimensions", NULL},
+	{NULL}
+};
+
 static PyMethodDef pysplinetable_methods[] = {
 	{"write", (PyCFunction)pysplinetable_write, METH_KEYWORDS,
 	 "Write the spline to a FITS file at the given path"},
-	{"ndim", (PyCFunction)pysplinetable_ndim, METH_NOARGS,
-	 "Return the number of dimensions the table has"},
 	{"aux_value", (PyCFunction)pysplinetable_get_aux_value, METH_KEYWORDS,
 	 "Get the value associated with an auxilliary key"},
-	{"order", (PyCFunction)pysplinetable_order, METH_KEYWORDS,
-	 "Return the order of the spline in the given dimension"},
-	{"nknots", (PyCFunction)pysplinetable_nknots, METH_KEYWORDS,
-	 "Return the number of knots the spline has in the given dimension"},
-	{"knot", (PyCFunction)pysplinetable_nknots, METH_KEYWORDS,
-	 "Return the number of position of the knot with the given index in the given dimension"},
-	{"lower_extent", (PyCFunction)pysplinetable_lower_extent, METH_KEYWORDS,
-	 "Return the minimum extent of the spline in the given dimension"},
-	{"upper_extent", (PyCFunction)pysplinetable_upper_extent, METH_KEYWORDS,
-	 "Return the maximum extent of the spline in the given dimension"},
-	{"period", (PyCFunction)pysplinetable_period, METH_KEYWORDS,
-	 "Return the period of the spline in the given dimension"},
-	{"ncoeffs", (PyCFunction)pysplinetable_ncoeffs, METH_KEYWORDS,
-	 "Return the number of coefficients the spline has in the given dimension"},
-	{"total_ncoeffs", (PyCFunction)pysplinetable_total_ncoeffs, METH_NOARGS,
-	 "Return the total number of coefficients the table has"},
-	{"stride", (PyCFunction)pysplinetable_stride, METH_KEYWORDS,
-	 "Return the stride in the spline coefficients in the given dimension"},
 	{"search_centers", (PyCFunction)pysplinetable_searchcenters, METH_KEYWORDS,
 	 "Look up the basis function indices corresponding to a set of coordinates"},
 	{"evaluate", (PyCFunction)pysplinetable_evaluate, METH_KEYWORDS,
@@ -682,7 +539,7 @@ static PyTypeObject pysplinetableType = {
     0,		                   /* tp_iternext */
     pysplinetable_methods,     /* tp_methods */
     0,                         /* tp_members */
-    0,                         /* tp_getset */
+    pysplinetable_properties,  /* tp_getset */
     0,                         /* tp_base */
     0,                         /* tp_dict */
     0,                         /* tp_descr_get */
@@ -713,5 +570,9 @@ initpyphotospline(void){
 	                   "B-spline surfaces and evaluating those surfaces");
 	
 	Py_INCREF(&pysplinetableType);
-	PyModule_AddObject(module, "Splinetable", (PyObject *)&pysplinetableType);
+	PyModule_AddObject(module, "SplineTable", (PyObject *)&pysplinetableType);
+	
+#ifdef HAVE_NUMPY
+	import_array();
+#endif
 }
