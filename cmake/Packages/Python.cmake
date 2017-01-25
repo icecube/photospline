@@ -54,7 +54,7 @@ IF(PYTHON_EXECUTABLE)
 
   IF(PYTHON_FOUND)
     # Search for numpy
-    EXECUTE_PROCESS(COMMAND ${PYTHON_EXECUTABLE} -c "import numpy"
+    EXECUTE_PROCESS(COMMAND ${PYTHON_EXECUTABLE} -c "import numpy; exit(numpy.__version__ < 1.7)"
       RESULT_VARIABLE NUMPY_FOUND)
     IF(NUMPY_FOUND EQUAL 0)
       SET(NUMPY_FOUND TRUE)
