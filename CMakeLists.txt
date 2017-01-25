@@ -201,9 +201,9 @@ IF(PYTHON_FOUND)
     photospline-mod
     cphotospline
   )
-  SET(pyphotospline_CFLAGS "${pyphotospline_CFLAGS} -I${PYTHON_INCLUDE_DIR} -I${NUMPY_INCLUDE_DIR}")
+  SET(pyphotospline_CFLAGS "${pyphotospline_CFLAGS} -I${PYTHON_INCLUDE_DIR}")
   IF(NUMPY_FOUND)
-    SET(pyphotospline_CFLAGS "${pyphotospline_CFLAGS} -DHAVE_NUMPY")
+    SET(pyphotospline_CFLAGS "${pyphotospline_CFLAGS} -I${NUMPY_INCLUDE_DIR} -DHAVE_NUMPY")
   ENDIF(NUMPY_FOUND)
   SET_TARGET_PROPERTIES(pyphotospline PROPERTIES
     COMPILE_FLAGS "${pyphotospline_CFLAGS}"
