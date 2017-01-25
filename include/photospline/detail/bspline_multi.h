@@ -220,6 +220,74 @@ void splinetable<Alloc>::ndsplineeval_multibasis_coreD_FixedOrder(const int *cen
 				localbasis[j][decomposedposition[j]][k];
 	}
 }
+
+template <typename Alloc>
+template<unsigned int O1, unsigned int ... Orders>
+void splinetable<Alloc>::ndsplineeval_multibasis_core_KnownOrder(const int *centers, const v4sf*** localbasis, v4sf* result) const{
+#if (defined(__i386__) || defined (__x86_64__)) && defined(__ELF__)
+	/*
+	 * Work around GCC ABI-compliance issue with SSE on x86 by
+	 * forcibly realigning the stack to a 16-byte boundary.
+	 */
+	volatile register unsigned long sp __asm("esp");
+	if (__builtin_expect(sp & 15UL, 0))
+		(void)alloca(16 - (sp & 15UL));
+#endif
+	constexpr unsigned int D = sizeof...(Orders)+1;	
+	const unsigned int VC=vectorCountHelper<D>::VC;
+	v4sf basis_tree[D+1][VC];
+	int decomposedposition[D];
+	
+	int64_t tablepos = 0;
+	for (uint32_t n = 0; n < D; n++) {
+		decomposedposition[n] = 0;
+		tablepos += (centers[n] - order[n])*strides[n];
+	}
+	
+	for (uint32_t k = 0; k < VC; k++) {
+		v4sf_init(basis_tree[0][k], 1);
+		for (uint32_t n = 0; n < D; n++)
+			basis_tree[n+1][k] = basis_tree[n][k]*localbasis[n][0][k];
+	}
+	
+	constexpr uint32_t nchunks = detail::nchunks<O1,Orders...>();
+	constexpr uint32_t chunk = detail::chunk<O1,Orders...>();
+	
+	uint32_t n = 0;
+	while (1) {
+		for (uint32_t i = 0; __builtin_expect(i < chunk, 1); i++) {
+			v4sf weights;
+			v4sf_init(weights, coefficients[tablepos + i]);
+			for (uint32_t k = 0; k < VC; k++)
+				result[k] += basis_tree[D-1][k]*localbasis[D-1][i][k]*weights;
+		}
+		
+		if (__builtin_expect(++n == nchunks, 0))
+			break;
+		
+		tablepos += strides[D-2];
+#ifdef __clang__ //this code is unreachable if D<2
+	#pragma clang diagnostic push
+	#pragma clang diagnostic ignored "-Warray-bounds"
+#endif
+		decomposedposition[D-2]++;
+#ifdef __clang__
+	#pragma clang diagnostic pop
+#endif
+		
+		/* Carry to higher dimensions */
+		uint32_t i;
+		for (i = D-2; decomposedposition[i] > order[i]; i--) {
+			decomposedposition[i-1]++;
+			tablepos += (strides[i-1] - decomposedposition[i]*strides[i]);
+			decomposedposition[i] = 0;
+		}
+		for (uint32_t j = i; __builtin_expect(j < D-1, 1); j++)
+			for (uint32_t k = 0; k < VC; k++)
+				basis_tree[j+1][k] = basis_tree[j][k]*
+				localbasis[j][decomposedposition[j]][k];
+	}
+}
 	
 /* Evaluate the spline surface and all its derivatives at x */
 

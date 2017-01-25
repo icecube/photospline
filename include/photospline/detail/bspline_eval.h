@@ -205,6 +205,104 @@ double splinetable<Alloc>::ndsplineeval_coreD_FixedOrder(const int* centers, int
 	return result;
 }
 
+namespace detail {
+
+template<unsigned int O1>
+constexpr unsigned int nchunks()
+{
+	return 1u;
+}
+
+// product of order+1 of the up to last dimension
+template<unsigned int O1, unsigned int O2, unsigned int ... Orders>
+constexpr unsigned int nchunks()
+{
+	return (O1+1)*nchunks<O2, Orders...>();
+}
+
+template<unsigned int O1>
+constexpr unsigned int chunk()
+{
+	return O1+1;
+}
+
+// order+1 in last dimension
+template<unsigned int O1, unsigned int O2, unsigned int ... Orders>
+constexpr unsigned int chunk()
+{
+	return chunk<O2, Orders...>();
+}
+
+template<typename Alloc>
+bool orders_are(const splinetable<Alloc> &spline, const std::initializer_list<unsigned int> &orders)
+{
+	if (orders.size() != spline.get_ndim())
+		return false;
+	unsigned int i = 0;
+	for(auto order : orders) {
+		if (spline.get_order(i) != order)
+			return false;
+		i++;
+	}
+	return true;
+}
+
+}
+
+template<typename Alloc>
+template<unsigned int O1, unsigned int ... Orders>
+double splinetable<Alloc>::ndsplineeval_core_KnownOrder(const int* centers, int maxdegree, detail::buffer2d<float> localbasis) const
+{
+	constexpr unsigned int D = sizeof...(Orders)+1;
+	uint32_t n;
+	float basis_tree[D+1];
+	int decomposedposition[D];
+	
+	// 
+	int64_t tablepos = 0;
+	for (n = 0; n < D; n++) {
+		decomposedposition[n] = 0;
+		tablepos += (centers[n] - (int64_t)order[n])*(int64_t)strides[n];
+	}
+	
+	basis_tree[0] = 1;
+	for (n = 0; n < D; n++)
+		basis_tree[n+1] = basis_tree[n]*localbasis[n][0];
+	
+	constexpr uint32_t nchunks = detail::nchunks<O1,Orders...>();
+	constexpr uint32_t chunk = detail::chunk<O1,Orders...>();
+
+	float result = 0;
+	for(uint32_t n=0; __builtin_expect(n<(nchunks-1),1); n++){
+		for (uint32_t i = 0; __builtin_expect(i < chunk, 1); i++)
+			result+=basis_tree[D-1]*localbasis[D-1][i]*coefficients[tablepos + i];
+		
+		tablepos += strides[D-2u];
+#ifdef __clang__ //this code is unreachable if D<2
+	#pragma clang diagnostic push
+	#pragma clang diagnostic ignored "-Warray-bounds"
+#endif
+		decomposedposition[D-2u]++;
+#ifdef __clang__
+	#pragma clang diagnostic pop
+#endif
+		
+		// Carry to higher dimensions
+		uint32_t i;
+		for (i = D-2; decomposedposition[i] > order[i]; i--) {
+			decomposedposition[i-1]++;
+			tablepos += (strides[i-1] - decomposedposition[i]*strides[i]);
+			decomposedposition[i] = 0;
+		}
+		for (uint32_t j = i; __builtin_expect(j < D-1, 1); j++)
+			basis_tree[j+1] = basis_tree[j]*localbasis[j][decomposedposition[j]];
+	}
+	for (uint32_t i = 0; i < chunk; i++)
+		result+=basis_tree[D-1]*localbasis[D-1][i]*coefficients[tablepos+i];
+	
+	return result;
+}
+
 template<typename Alloc>
 double splinetable<Alloc>::ndsplineeval(const double* x, const int* centers, int derivatives) const
 {
@@ -386,6 +484,20 @@ splinetable<Alloc>::get_evaluator() const{
 					eval.v_eval_ptr=&splinetable::ndsplineeval_multibasis_core;
 			}
 	}
+
+#ifdef PHOTOSPLINE_EVAL_TEMPLATES
+	// Mixed orders known to exist in the wild
+	if (detail::orders_are(*this, {2,2,2,3,2,2})) {
+		eval.eval_ptr=&splinetable::ndsplineeval_core_KnownOrder<2,2,2,3,2,2>;
+		eval.v_eval_ptr=&splinetable::ndsplineeval_multibasis_coreD<6>;
+		eval.v_eval_ptr=&splinetable::ndsplineeval_multibasis_core_KnownOrder<2,2,2,3,2,2>;
+		
+	} else if (detail::orders_are(*this, {2,2,2,5,2,2})) {
+		eval.eval_ptr=&splinetable::ndsplineeval_core_KnownOrder<2,2,2,5,2,2>;
+		eval.v_eval_ptr=&splinetable::ndsplineeval_multibasis_coreD<6>;
+	}
+#endif
+
 	return(eval);
 }
 
