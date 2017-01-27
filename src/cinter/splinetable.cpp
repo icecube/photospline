@@ -248,33 +248,22 @@ int splinetable_glamfit(struct splinetable* table, const struct ndsparse* data,
 	try{
 		auto& real_table=*static_cast<photospline::splinetable<>*>(table->data);
 		
-		//TODO: this is rather suboptimal: the C++ interface wants vectors,
-		//which want to own their data, so we have to copy everything.
-		//Template the C++ fit function on container type, and provide a shim
-		//type with an STL interface but which doesn't own it storage?
-		std::vector<double> weightsv(data->rows);
-		std::copy_n(weights,data->rows,weightsv.begin());
+		using photospline::detail::array_view;
+		array_view<double> weightsv(weights,data->rows);
 		
-		std::vector<std::vector<double>> coordsv(data->ndim);
-		for(size_t i=0; i<data->ndim; i++){
-			coordsv[i].resize(data->ranges[i]);
-			std::copy_n(coords[i],data->ranges[i],coordsv[i].begin());
-		}
+		std::vector<array_view<double>> coordsv(data->ndim);
+		for(size_t i=0; i<data->ndim; i++)
+			coordsv[i].reset(coords[i],data->ranges[i]);
 		
-		std::vector<uint32_t> splineOrderv(data->ndim);
-		std::copy_n(splineOrder,data->ndim,splineOrderv.begin());
+		array_view<uint32_t> splineOrderv(splineOrder,data->ndim);
 		
-		std::vector<std::vector<double>> knotsv(data->ndim);
-		for(size_t i=0; i<data->ndim; i++){
-			knotsv[i].resize(nknots[i]);
-			std::copy_n(knots[i],nknots[i],knotsv[i].begin());
-		}
+		std::vector<array_view<double>> knotsv(data->ndim);
+		for(size_t i=0; i<data->ndim; i++)
+			knotsv[i].reset(knots[i],nknots[i]);
 		
-		std::vector<double> smoothingv(data->ndim);
-		std::copy_n(smoothing,data->ndim,smoothingv.begin());
+		array_view<double> smoothingv(smoothing,data->ndim);
 		
-		std::vector<uint32_t> penaltyOrderv;
-		std::copy_n(penaltyOrder,data->ndim,penaltyOrderv.begin());
+		array_view<uint32_t> penaltyOrderv(penaltyOrder,data->ndim);
 		
 		real_table.fit(*data,weightsv,coordsv,splineOrderv,knotsv,smoothingv,
 					   penaltyOrderv,monodim,verbose);

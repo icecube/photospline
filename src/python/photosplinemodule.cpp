@@ -639,7 +639,36 @@ pyphotospline_glam_fit(PyObject* self, PyObject* args, PyObject* kwds);
 
 //TODO: sampling?
 
-//TODO: permutation
+static PyObject*
+pysplinetable_permute(pysplinetable* self, PyObject* args, PyObject* kwds){
+	static const char* kwlist[] = {"permutation", NULL};
+	
+	PyObject* pypermutation=NULL;
+	
+	if (!PyArg_ParseTupleAndKeywords(args, kwds, "O", (char**)kwlist, &pypermutation))
+		return(NULL);
+	
+	if(!PySequence_Check(pypermutation)){
+		PyErr_SetString(PyExc_ValueError, "permutation must be a sequence");
+		return(NULL);
+	}
+	
+	try{
+		std::vector<size_t> permutation;
+		for(unsigned int i=0; i!=(unsigned)PySequence_Length(pypermutation); i++){
+			PyObject* idx=PySequence_GetItem(pypermutation,i);
+			permutation.push_back(PyInt_AsSsize_t(idx));
+			Py_DECREF(idx); //done with this
+		}
+		self->table->permuteDimensions(permutation);
+	}catch(std::exception& ex){
+		PyErr_SetString(PyExc_ValueError, ex.what());
+		return(NULL);
+	}
+	
+	Py_INCREF(Py_None);
+	return(Py_None);
+}
 
 static PyGetSetDef pysplinetable_properties[] = {
 	{(char*)"order", (getter)pysplinetable_getorder, NULL, (char*)"Order of spline in each dimension", NULL},
@@ -667,8 +696,9 @@ static PyMethodDef pysplinetable_methods[] = {
 	 "Evaluate the spline and all of its derivatives at a set of coordinates"},
 	{"deriv2", (PyCFunction)pysplinetable_deriv2, METH_KEYWORDS,
 	 "Evaluate the second derivative of the spline in the given dimensions"},
-	
-    {NULL}  /* Sentinel */
+	{"permute_dimensions", (PyCFunction)pysplinetable_permute, METH_KEYWORDS,
+	 "Permute the dimensions of an existing spline table"},
+	{NULL}  /* Sentinel */
 };
 
 static PyTypeObject pysplinetableType = {
@@ -718,7 +748,7 @@ static PyMethodDef photospline_methods[] = {
 	{"glam_fit", (PyCFunction)pyphotospline_glam_fit, METH_KEYWORDS,
 	 "Fit a spline table to data"},
 #endif
-    {NULL}  /* Sentinel */
+	{NULL}  /* Sentinel */
 };
 
 #ifndef PyMODINIT_FUNC	/* declarations for DLL import/export */
