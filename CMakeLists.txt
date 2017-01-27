@@ -182,13 +182,19 @@ ELSEIF(NOT SUITESPARSE_FOUND)
   MESSAGE("SuiteSparse not found, skipping build of fitter")
 ENDIF()
 
+IF(BUILD_SPGLAM)
+  SET(MAYBE_SPGLAM spglam)
+ELSE()
+  SET(MAYBE_SPGLAM "")
+ENDIF()
+
 # Python interface
 
 IF(PYTHON_FOUND)
   MESSAGE("-- Will build the python module")
 
   LIST (APPEND python_SOURCES
-    ${CMAKE_SOURCE_DIR}/src/python/photosplinemodule.c
+    ${CMAKE_SOURCE_DIR}/src/python/photosplinemodule.cpp
   )
 
   ADD_LIBRARY (pyphotospline SHARED ${python_SOURCES})
@@ -199,18 +205,24 @@ IF(PYTHON_FOUND)
     ${LAPACK_LIBRARIES}
     ${PYTHON_LIBRARY}
     photospline-mod
-    cphotospline
+    ${MAYBE_SPGLAM}
   )
   SET(pyphotospline_CFLAGS "${pyphotospline_CFLAGS} -I${PYTHON_INCLUDE_DIR}")
   IF(NUMPY_FOUND)
     SET(pyphotospline_CFLAGS "${pyphotospline_CFLAGS} -I${NUMPY_INCLUDE_DIR} -DHAVE_NUMPY")
   ENDIF(NUMPY_FOUND)
+  IF (BUILD_SPGLAM)
+    SET (pyphotospline_CFLAGS "${pyphotospline_CFLAGS} -DPHOTOSPLINE_INCLUDES_SPGLAM")
+  ENDIF(BUILD_SPGLAM)
   SET_TARGET_PROPERTIES(pyphotospline PROPERTIES
     COMPILE_FLAGS "${pyphotospline_CFLAGS}"
   )
   SET_TARGET_PROPERTIES(pyphotospline PROPERTIES LINKER_LANGUAGE C PREFIX "" SUFFIX ".so")
   TARGET_LINK_LIBRARIES (pyphotospline ${python_LINK_LIBRARIES})
-  ADD_DEPENDENCIES(pyphotospline cphotospline)
+  ADD_DEPENDENCIES(pyphotospline photospline-mod)
+  IF(BUILD_SPGLAM)
+    ADD_DEPENDENCIES(pyphotospline spglam)
+  ENDIF(BUILD_SPGLAM)
   #use get_python_lib to find install location
 ELSEIF(NOT PYTHON_FOUND)
   MESSAGE("-- Python not found, skipping build of python module")
@@ -239,11 +251,6 @@ ADD_CUSTOM_TARGET (uninstall
 # -----------------------------------------------------------------------------
 # Tools
 # -----------------------------------------------------------------------------
-IF(BUILD_SPGLAM)
-  SET(MAYBE_SPGLAM spglam)
-ELSE()
-  SET(MAYBE_SPGLAM "")
-ENDIF()
 
 ADD_EXECUTABLE(photospline-inspect
   src/tools/inspect.cpp

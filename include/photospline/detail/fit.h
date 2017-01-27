@@ -6,14 +6,21 @@
 namespace photospline{
 
 template<typename Alloc>
+template<typename DoubleCont, typename UInt32Cont, typename DoubleContCont>
 void splinetable<Alloc>::fit(const ::ndsparse& data,
-         const std::vector<double>& weights,
-         const std::vector<std::vector<double>>& coords,
-         const std::vector<uint32_t>& splineOrder,
-         const std::vector<std::vector<double>>& knots,
-         const std::vector<double>& smoothing,
-         const std::vector<uint32_t>& penaltyOrder,
-         uint32_t monodim, bool verbose){
+                             const DoubleCont& weights,
+                             const DoubleContCont& coords,
+                             const UInt32Cont& splineOrder,
+                             const DoubleContCont& knots,
+                             const DoubleCont& smoothing,
+                             const UInt32Cont& penaltyOrder,
+                             uint32_t monodim, bool verbose){
+	static_assert(std::is_same<double,typename std::remove_const<typename DoubleCont::value_type>::type>::value,
+	              "DoubleCont must be a container of double values");
+	static_assert(std::is_same<uint32_t,typename std::remove_const<typename UInt32Cont::value_type>::type>::value,
+	              "UInt32Cont must be a container of uint32_t values");
+	static_assert(std::is_same<DoubleCont,typename std::remove_const<typename DoubleContCont::value_type>::type>::value,
+	              "DoubleContCont must be a container of DoubleCont values");
 	
 	//Sanity checking
 	if(data.rows!=weights.size())
@@ -124,6 +131,7 @@ void splinetable<Alloc>::fit(const ::ndsparse& data,
 	}
 	
 	//do the fit
+	int result=
 	glamfit_complex(&data,weights.data(),dummy_coords.get(),
 					ndim,&nknots[0],dummy_knots.get(),&naxes[0],
 					&coefficients[0],
@@ -132,6 +140,8 @@ void splinetable<Alloc>::fit(const ::ndsparse& data,
 	//clean up
 	cholmod_l_free_sparse(&penalty, &cholmod_state);
 	cholmod_l_finish(&cholmod_state);
+	if(result!=0)
+		throw std::runtime_error("GLAM fit failed");
 }
 	
 } //namespace photospline

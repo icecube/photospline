@@ -85,3 +85,41 @@ TEST(glamfit_2d){
 	}
 	std::cout << "Maximimum error: " << maxErr << std::endl;
 }
+
+//Ensure that we can do a fit on inputs which we don't copy (important for
+//making the bindings to other languges efficient)
+TEST(glam_fit_unowned_data){
+	const uint32_t dim=1;
+	const double knot_data[10]={1.,2.,3.,4.,5.,6.,7.,8.,9.,10.};
+	const uint32_t order_data[1]={2};
+	const uint32_t porder_data[1]={2};
+	double penalty_data[1]={0};
+	double coord_data[100];
+	double weight_data[100];
+	photospline::ndsparse data(100,dim);
+	for(unsigned int i=0; i<100; i++){
+		double x=i/10.;
+		coord_data[i]=x;
+		data.insertEntry(x,&i);
+		weight_data[i]=1;
+	}
+	
+	using DoubleCont=photospline::detail::array_view<double>;
+	using UInt32Cont=photospline::detail::array_view<uint32_t>;
+	using DoubleContCont=std::vector<DoubleCont>;
+	
+	DoubleContCont knots={DoubleCont(knot_data,10)};
+	UInt32Cont orders(order_data,1);
+	DoubleContCont coordinates={DoubleCont(coord_data,100)};
+	DoubleCont weights(weight_data,100);
+	UInt32Cont porders(porder_data,1);
+	DoubleCont penalties(penalty_data,1);
+	
+	std::cout << "Fitting..." << std::endl;
+	photospline::splinetable<> spline;
+	spline.fit(data,weights,coordinates,orders,knots,penalties,porders);
+	
+	std::cout << "Testing fit..." << std::endl;
+	std::vector<double> coords(dim);
+	std::vector<int> centers(dim);
+}

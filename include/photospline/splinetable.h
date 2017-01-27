@@ -84,6 +84,39 @@ namespace detail{
 			return(buf+dim1*idx1); }
 		const T* operator[](size_t idx1) const{ return(buf+dim1*idx1); }
 	};
+	///A simple view into un-owned data.
+	template<typename T>
+	struct array_view{
+	public:
+		using value_type=const T;
+		using reference=const T&;
+		using const_reference=const T&;
+		using pointer=const T*;
+		using const_pointer=const T*;
+		using iterator=const T*;
+		using const_iterator=const T*;
+		using difference_type=typename std::iterator_traits<iterator>::difference_type;
+		using size_type=size_t;
+	private:
+		const_pointer d;
+		size_type s;
+	public:
+		array_view():d(nullptr),s(0){}
+		array_view(const_pointer d, size_type s):d(d),s(s){}
+		void reset(const_pointer d, size_type s){
+			this->d=d;
+			this->s=s;
+		}
+		size_type size() const{ return(s); }
+		size_type max_size() const{ return(s); }
+		bool empty() const{ return(s==0); }
+		const_pointer data() const{ return(d); }
+		const_reference operator[](size_type i) const{ return(*(d+i)); }
+		iterator begin() const{ return(d); }
+		const_iterator cbegin() const{ return(d); }
+		iterator end() const{ return(d+s); }
+		const_iterator cend() const{ return(d+s); }
+	};
 }
 	
 template<typename Alloc = std::allocator<void> >
@@ -310,16 +343,35 @@ public:
 	///monotonic when fitting.
 	static constexpr uint32_t no_monodim=PHOTOSPLINE_GLAM_NO_MONODIM;
 	
-	//need fancy interface where users can specify an arbitrary penalty matrix
-	//need to indicate nicely if an error occurs
+	///Construct an approximating spline for possibly sparse, rectangularly gridded data
+	///
+	///\param data the datapoints to be fit, whose locations are specifed as
+	///            indices into the coordinates arrays
+	///\param weights the relative weights associated with the data points
+	///\param coordinates a set of arrays containing the values of the abscissas
+	///                   describing the rectangular grid on which the data
+	///                   points are located
+	///\param splineOrder an array of the b-spline orders which the fitted spline
+	///                   should have in each dimension
+	///\param knots a set of arrays containing the positions for the knots of the
+	///             fitted spline in each dimension
+	///\param smoothing an array specifying the strength of the regularization
+	///                 to apply in each fit dimension
+	///\param penaltyOrder an array specifying the order of the regularization
+	///                    to apply in each fit dimension
+	///\param monodim optionally, a single dimension in which the fit should be
+	///               constrained to be monotonic
+	///\param verbose whether to print logging and progress messages to standard
+	///               output
+	template<typename DoubleCont, typename UInt32Cont, typename DoubleContCont>
 	void fit(const ::ndsparse& data,
-			 const std::vector<double>& weights,
-			 const std::vector<std::vector<double>>& coords,
-			 const std::vector<uint32_t>& splineOrder,
-			 const std::vector<std::vector<double>>& knots,
-			 const std::vector<double>& smoothing,
-			 const std::vector<uint32_t>& penaltyOrder,
-			 uint32_t monodim=no_monodim, bool verbose=true);
+	         const DoubleCont& weights,
+	         const DoubleContCont& coordinates,
+	         const UInt32Cont& splineOrder,
+	         const DoubleContCont& knots,
+	         const DoubleCont& smoothing,
+	         const UInt32Cont& penaltyOrder,
+	         uint32_t monodim=no_monodim, bool verbose=true);
 	
 #endif //PHOTOSPLINE_INCLUDES_SPGLAM
 	
