@@ -50,9 +50,8 @@ size_t splinetable<Alloc>::estimateMemory(const std::string& filePath,
 	//Find out how many coefficients there are
 	std::vector<long> naxes(dim);
 	fits_get_img_size(fits, dim, naxes.data(), &error);
-	if (error != 0) {
-		throw std::runtime_error("Needs real error message 7");
-	}
+	if (error != 0)
+		throw std::runtime_error("Unable to read coefficient array 'image' size: Error "+std::to_string(error));
 	std::reverse(naxes.begin(),naxes.end()); //pull necessary switcheroo
 	
 	std::vector<uint32_t> order = readOrder(fits,dim);
@@ -69,7 +68,7 @@ size_t splinetable<Alloc>::estimateMemory(const std::string& filePath,
 		fits_get_img_size(fits, 1, &nknots, &error);
 		
 		if (error != 0) {
-			throw std::runtime_error("Error reading knot vector"); //TODO: include number
+			throw std::runtime_error("Error reading knot vector "+std::to_string(i));
 		}
 		
 		if (i == convolution_dimension){
@@ -164,10 +163,8 @@ bool splinetable<Alloc>::read_fits_core(fitsfile* fits, const std::string& fileP
 		int hdus, type;
 		fits_get_num_hdus(fits, &hdus, &error);
 		fits_movabs_hdu(fits, 1, &type, &error);
-		if (error != 0) {
-			throw std::runtime_error("Needs real error message 3");
-		}
-		
+		if (error != 0)
+			throw std::runtime_error("Unable to move to first HDU: Error "+std::to_string(error));
 		if (type != IMAGE_HDU)
 			throw std::runtime_error("First HDU in "+filePath+" is not an image");
 	}
@@ -177,12 +174,10 @@ bool splinetable<Alloc>::read_fits_core(fitsfile* fits, const std::string& fileP
 	{
 		int temp_dim;
 		fits_get_img_dim(fits, &temp_dim, &error);
-		if (error != 0) {
-			throw std::runtime_error("Needs real error message 5");
-		}
-		if (temp_dim < 1) {
-			throw std::runtime_error("Invalid table dimension"); //TODO: include number
-		}
+		if (error != 0)
+			throw std::runtime_error("Unable to read table dimension from "+filePath);
+		if (temp_dim < 1)
+			throw std::runtime_error("Invalid table dimension "+std::to_string(temp_dim));
 		ndim = temp_dim;
 	}
 	
@@ -245,9 +240,8 @@ bool splinetable<Alloc>::read_fits_core(fitsfile* fits, const std::string& fileP
 			std::ostringstream ss;
 			ss << "ORDER" << i;
 			fits_read_key(fits, TUINT, ss.str().c_str(), &order[i], NULL, &error);
-			if (error != 0) {
-				throw std::runtime_error("Needs real error message 6");
-			}
+			if (error != 0)
+				throw std::runtime_error("Unable to read order for dimension "+std::to_string(i));
 		}
 	} else {
 		//all orders are the same
@@ -282,9 +276,8 @@ bool splinetable<Alloc>::read_fits_core(fitsfile* fits, const std::string& fileP
 	//Read the coefficient table
 	std::vector<long> naxes_temp(ndim);
 	fits_get_img_size(fits, ndim, naxes_temp.data(), &error);
-	if (error != 0) {
-		throw std::runtime_error("Needs real error message 7");
-	}
+	if (error != 0)
+		throw std::runtime_error("Unable to read coefficient array 'image' size: Error "+std::to_string(error));
 	for(size_t i=0; i<ndim; i++){
 		if(naxes_temp[i]<0)
 			throw std::runtime_error("Invalid size in dimension "+std::to_string(i));
@@ -324,12 +317,10 @@ bool splinetable<Alloc>::read_fits_core(fitsfile* fits, const std::string& fileP
 		long nknots_temp;
 		fits_get_img_size(fits, 1, &nknots_temp, &error);
 		
-		if (error != 0) {
-			throw std::runtime_error("Error reading knot vector"); //TODO: include number
-		}
-		if(nknots_temp<=0){
-			throw std::runtime_error("Invalid number of knots in dimension _"); //TODO: needs number
-		}
+		if (error != 0)
+			throw std::runtime_error("Error reading size of knot vector "+std::to_string(i));
+		if(nknots_temp<=0)
+			throw std::runtime_error("Invalid number of knots ("+std::to_string(nknots_temp)+") in dimension "+std::to_string(i));
 		nknots[i]=nknots_temp;
 		
 		//Allow spline evaluations to run off the ends of the
@@ -339,6 +330,8 @@ bool splinetable<Alloc>::read_fits_core(fitsfile* fits, const std::string& fileP
 		
 		long fpix = 1;
 		fits_read_pix(fits, TDOUBLE, &fpix, nknots[i], NULL, &knots[i][0], NULL, &error);
+		if (error != 0)
+			throw std::runtime_error("Error reading knot vector "+std::to_string(i)+" data");
 	}
 	
 	//Read the axes extents, stored in a single extension HDU.
@@ -363,12 +356,13 @@ bool splinetable<Alloc>::read_fits_core(fitsfile* fits, const std::string& fileP
 		} else {
 			fits_read_pix(fits, TDOUBLE, &fpix, n_extents, NULL,
 						  &extents[0][0], NULL, &ext_error);
+			if (ext_error!=0)
+				throw std::runtime_error("Error reading extent data");
 		}
 	}
 	
-	if(error!=0){
-		throw std::runtime_error("Needs real error message 2");
-	}
+	if(error!=0)
+		throw std::runtime_error("Error reading "+filePath+": Error "+std::to_string(error));
 	
 	return (error==0);
 }
