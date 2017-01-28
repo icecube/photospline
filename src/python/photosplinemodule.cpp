@@ -269,11 +269,19 @@ pysplinetable_get_aux_value(pysplinetable* self, PyObject* args, PyObject* kwds)
 static PyObject*
 pysplinetable_getknots(pysplinetable *self, void *closure)
 {
-	PyObject* list = PyTuple_New(splinetable_ndim(&self->table));
-	for (int dim = 0; dim < splinetable_ndim(&self->table); dim++) {
-		npy_intp nknots = splinetable_nknots(&self->table, dim);
-		PyObject* knots = PyArray_SimpleNewFromData(1, &nknots, NPY_DOUBLE, (void*)splinetable_knots(&self->table, dim));
+	PyObject* list = PyTuple_New(self->table->get_ndim());
+	for (uint32_t dim = 0; dim < self->table->get_ndim(); dim++) {
+		npy_intp nknots = self->table->get_nknots(dim);
+#ifndef NPY_1_7_API_VERSION //old numpy
+		PyObject* knots = PyArray_New(&PyArray_Type, 1, &nknots, NPY_DOUBLE,
+		            NULL, (void*)self->table->get_knots(dim), sizeof(double),
+		            NPY_CARRAY_RO,NULL);
+#else //newer numpy
+		PyObject* knots = PyArray_SimpleNewFromData(1, &nknots, NPY_DOUBLE, (void*)self->table->get_knots(dim));
 		PyArray_CLEARFLAGS((PyArrayObject*)knots, NPY_ARRAY_WRITEABLE);
+#endif
+		((PyArrayObject*)knots)->base=(PyObject*)self;
+		Py_INCREF(self);
 		PyTuple_SetItem(list, dim, knots);
 	}
 	
@@ -311,12 +319,20 @@ pysplinetable_getcoeffcients(pysplinetable* self, void *closure){
 	npy_intp dims[ndim];
 	npy_intp strides[ndim];
 	for (unsigned int i = 0; i < ndim; i++) {
-		dims[i] = splinetable_ncoeffs(&self->table, i);
+		dims[i] = self->table->get_ncoeffs(i);
 		strides[i] = sizeof(float)*self->table->get_stride(i);
 	}
-	return PyArray_New(&PyArray_Type, ndim, dims, NPY_FLOAT, strides,
+	PyObject* arr=PyArray_New(&PyArray_Type, ndim, dims, NPY_FLOAT, strides,
 	    (void*)self->table->get_coefficients(), sizeof(float),
-	    NPY_ARRAY_CARRAY_RO, NULL);
+#ifndef NPY_1_7_API_VERSION //old numpy
+	    NPY_CARRAY_RO,
+#else //newer numpy
+	    NPY_ARRAY_CARRAY_RO,
+#endif
+	    NULL);
+	((PyArrayObject*)arr)->base=(PyObject*)self;
+	Py_INCREF(self);
+	return arr;
 }
 #endif
 
