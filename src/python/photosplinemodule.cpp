@@ -1,6 +1,7 @@
 #include <Python.h>
 #ifdef HAVE_NUMPY
-	#define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
+	// TODO: turn this on once 1.6 API actually disappears from new releases
+	// #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
 	#include <numpy/ndarrayobject.h>
 #endif
 #include <stdio.h>
@@ -62,6 +63,9 @@ pyndsparse_init(pyndsparse* self, PyObject* args, PyObject* kwds){
     return 0;
 }
 
+static PyObject*
+pyndsparse_sparse_data(pyndsparse* self, PyObject* args, PyObject* kwds);
+
 static int
 pyndsparse_print(pyndsparse* self, FILE* fp, int flags){
 	fprintf(fp,"ndsparse with %zu dimension",self->data->ndim);
@@ -114,8 +118,17 @@ pyndsparse_insert(pyndsparse* self, PyObject* args, PyObject* kwds){
 }
 
 static PyMethodDef pyndsparse_methods[] = {
+	{"from_data", (PyCFunction)pyndsparse_sparse_data, METH_KEYWORDS | METH_CLASS,
+		"Create a sparse representation of data, omitting points where `weights==0`\n\n"
+		":param values: an ndarray\n"
+		":param weights: an ndarray of the same shape as `values`\n"
+		":returns: a tuple (sparse_data, weights) suitable as arguments to func:`glam_fit`"
+	},
 	{"insert", (PyCFunction)pyndsparse_insert, METH_KEYWORDS,
-		"Insert a data point"},
+		"Insert a data point\n\n"
+		":param value: value to insert\n"
+		":param indices: a sequence of length `ndim`"
+	},
 	{NULL}
 };
 
@@ -160,6 +173,87 @@ static PyTypeObject pyndsparseType = {
     0,                         /* tp_alloc */
     pyndsparse_new,         /* tp_new */
 };
+
+static PyObject*
+pyndsparse_sparse_data(pyndsparse* self, PyObject* args, PyObject* kwds){
+	static const char* kwlist[] = {"values", "weights", NULL};
+	PyObject *z(NULL), *w(NULL);
+	// count refs the lazy way
+	auto deleter = [](PyArrayObject* ptr){ Py_DECREF(ptr); };
+	typedef std::unique_ptr<PyArrayObject, decltype(deleter)> pyarray;
+	
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "O|O", (char**)kwlist, &z, &w))
+        return NULL;
+	
+	pyarray values((PyArrayObject*)PyArray_ContiguousFromObject(z, NPY_DOUBLE, 1,
+	    INT_MAX), deleter);
+	if (values == NULL) {
+		PyErr_SetString(PyExc_TypeError, "values must be convertible to a numpy array");
+		return NULL;
+	}
+	pyarray weights(w == NULL ? 
+	    (PyArrayObject*)PyArray_SimpleNew(PyArray_NDIM(values.get()), PyArray_DIMS(values.get()), NPY_DOUBLE)
+	    : (PyArrayObject *)PyArray_ContiguousFromObject(w, NPY_DOUBLE, 1,INT_MAX), deleter);
+	if (weights == NULL || !PyArray_SAMESHAPE(values.get(), weights.get())) {
+		PyErr_SetString(PyExc_ValueError, "values and weights must have the same shape");
+		return NULL;
+	}
+
+	const size_t ndim = PyArray_NDIM(values.get());
+	const double *value_data = (const double *)PyArray_DATA(values.get());
+	const double *weight_data = (const double *)PyArray_DATA(weights.get());
+	const size_t size = PyArray_SIZE(values.get());
+	std::vector<unsigned int> moduli(ndim);
+	for (unsigned int dim = 0; dim < ndim; dim++)
+		moduli[dim] = PyArray_STRIDE(values.get(), dim)/sizeof(double);
+	size_t nnz = 0;
+	for (size_t i = 0; i < size; i++)
+		if (weight_data[i] != 0)
+			nnz++;
+
+	self = (pyndsparse*)pyndsparseType.tp_alloc(&pyndsparseType, 0);
+	if (self == NULL) {
+		return NULL;
+	}
+	try{
+		self->data=new photospline::ndsparse(nnz,ndim);
+	}catch(std::exception& ex){
+		PyErr_SetString(PyExc_Exception,
+						(std::string("Unable to allocate ndsparse: ")+ex.what()).c_str());
+		return NULL;
+	}catch(...){
+		PyErr_SetString(PyExc_Exception, "Unable to allocate ndsparse");
+		return NULL;
+	}
+
+	std::vector<unsigned int> indices(ndim);
+	for (size_t i = 0; i < size; i++) {
+		if (weight_data[i] == 0)
+			continue;
+		size_t coord = i;
+		for (unsigned int dim = 0; dim < ndim; dim++) {
+			indices[dim] = coord / moduli[dim];
+			coord = coord % moduli[dim];
+		}
+		self->data->insertEntry(value_data[i], indices.data());
+	}
+	
+	if (PyArray_SIZE(weights.get()) != nnz) {
+		npy_intp entries = nnz;
+		PyArrayObject *flat_weights = (PyArrayObject*)PyArray_SimpleNew(1, &entries, NPY_DOUBLE);
+		size_t pos = 0;
+		double * flat_weights_data = (double*)PyArray_DATA(flat_weights);
+		for (size_t i = 0; i < size; i++) {
+			if (weight_data[i] != 0)
+				flat_weights_data[pos++] = weight_data[i];
+		}
+		assert( pos == nnz );
+		weights.reset(flat_weights);
+	}
+	
+	return PyTuple_Pack(2, self, weights.get());
+}
+
 #endif //#ifdef PHOTOSPLINE_INCLUDES_SPGLAM
 
 typedef struct{
@@ -270,16 +364,12 @@ static PyObject*
 pysplinetable_getknots(pysplinetable *self, void *closure)
 {
 	PyObject* list = PyTuple_New(self->table->get_ndim());
-	for (uint32_t dim = 0; dim < self->table->get_ndim(); dim++) {
+	for (int dim = 0; dim < self->table->get_ndim(); dim++) {
 		npy_intp nknots = self->table->get_nknots(dim);
-#ifndef NPY_1_7_API_VERSION //old numpy
-		PyObject* knots = PyArray_New(&PyArray_Type, 1, &nknots, NPY_DOUBLE,
-		            NULL, (void*)self->table->get_knots(dim), sizeof(double),
-		            NPY_CARRAY_RO,NULL);
-#else //newer numpy
-		PyObject* knots = PyArray_SimpleNewFromData(1, &nknots, NPY_DOUBLE, (void*)self->table->get_knots(dim));
-		PyArray_CLEARFLAGS((PyArrayObject*)knots, NPY_ARRAY_WRITEABLE);
-#endif
+		npy_intp stride = sizeof(double);
+		PyObject* knots = PyArray_New(&PyArray_Type, 1,  &nknots, NPY_DOUBLE, &stride,
+		    (void*)self->table->get_knots(dim), sizeof(double),
+		    NPY_CARRAY_RO, NULL);
 		((PyArrayObject*)knots)->base=(PyObject*)self;
 		Py_INCREF(self);
 		PyTuple_SetItem(list, dim, knots);
@@ -324,12 +414,7 @@ pysplinetable_getcoeffcients(pysplinetable* self, void *closure){
 	}
 	PyObject* arr=PyArray_New(&PyArray_Type, ndim, dims, NPY_FLOAT, strides,
 	    (void*)self->table->get_coefficients(), sizeof(float),
-#ifndef NPY_1_7_API_VERSION //old numpy
-	    NPY_CARRAY_RO,
-#else //newer numpy
-	    NPY_ARRAY_CARRAY_RO,
-#endif
-	    NULL);
+	    NPY_CARRAY_RO, (PyObject*)self);
 	((PyArrayObject*)arr)->base=(PyObject*)self;
 	Py_INCREF(self);
 	return arr;
@@ -803,8 +888,8 @@ initpyphotospline(void){
 #ifdef PHOTOSPLINE_INCLUDES_SPGLAM
 static PyObject*
 pyphotospline_glam_fit(PyObject* self, PyObject* args, PyObject* kwds){
-	static const char* kwlist[] = {"data", "weights", "coordinates", "order",
-		"knots", "smoothing", "penaltyOrder", "monodim", "verbose", NULL};
+	static const char* kwlist[] = {"data", "weights", "coordinates", "knots",
+		"order", "smoothing", "penaltyOrder", "monodim", "verbose", NULL};
 	
 	PyObject* pydata=NULL;
 	PyObject* pyweights=NULL;
@@ -818,7 +903,7 @@ pyphotospline_glam_fit(PyObject* self, PyObject* args, PyObject* kwds){
 	
 	if (!PyArg_ParseTupleAndKeywords(args, kwds, "OOOOOOO|kb", (char**)kwlist,
 									 &pydata, &pyweights, &pycoordinates,
-									 &pyorder, &pyknots, &pysmoothing, &pyporder,
+									 &pyknots, &pyorder, &pysmoothing, &pyporder,
 									 &monodim, &verbose))
 		return(NULL);
 	
@@ -881,6 +966,18 @@ pyphotospline_glam_fit(PyObject* self, PyObject* args, PyObject* kwds){
 		return(NULL);
 	}
 	
+	//length of smoothing should match dimension of data
+	if(PySequence_Length(pysmoothing)!=data.ndim){
+		PyErr_SetString(PyExc_ValueError, "smoothing must be have the same length as the dimension of data");
+		return(NULL);
+	}
+	
+	//length of smoothing order should match dimension of data
+	if(PySequence_Length(pyporder)!=data.ndim){
+		PyErr_SetString(PyExc_ValueError, "smoothing order must be have the same length as the dimension of data");
+		return(NULL);
+	}
+	
 	//coordinates should be a sequence of sequences
 	for(unsigned int i=0; i!=(unsigned)PySequence_Length(pycoordinates); i++){
 		PyObject* pycoordinates_i=PySequence_GetItem(pycoordinates,i);
@@ -898,7 +995,7 @@ pyphotospline_glam_fit(PyObject* self, PyObject* args, PyObject* kwds){
 			PyErr_SetString(PyExc_ValueError, "all entries in knots must be sequences");
 			return(NULL);
 		}
-		Py_DECREF(pyknots);
+		Py_DECREF(pyknots_i);
 	}
 	
 	//If possible we do not want to copy the input data, but it may be necessary.
