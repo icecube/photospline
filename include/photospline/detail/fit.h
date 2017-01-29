@@ -84,7 +84,7 @@ void splinetable<Alloc>::fit(const ::ndsparse& data,
 	strides = allocate<uint64_t>(ndim);
 	strides[ndim-1]=1;
 	for(uint32_t i = ndim-1; i>0; i--)
-		strides[i-1] = strides[i]*naxes[i-1];
+		strides[i-1] = strides[i]*naxes[i];
 	uint64_t ncoeffs=strides[0]*naxes[0];
 	coefficients = allocate<float>(ncoeffs);
 	
