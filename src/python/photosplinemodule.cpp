@@ -239,6 +239,7 @@ pyndsparse_sparse_data(pyndsparse* self, PyObject* args, PyObject* kwds){
 	}
 	
 	if (PyArray_SIZE(weights.get()) != nnz) {
+		// copy nonzero weights into new 1D array
 		npy_intp entries = nnz;
 		PyArrayObject *flat_weights = (PyArrayObject*)PyArray_SimpleNew(1, &entries, NPY_DOUBLE);
 		size_t pos = 0;
@@ -249,6 +250,9 @@ pyndsparse_sparse_data(pyndsparse* self, PyObject* args, PyObject* kwds){
 		}
 		assert( pos == nnz );
 		weights.reset(flat_weights);
+	} else {
+		// just flatten [a view into] the existing weights
+		weights.reset((PyArrayObject*)PyArray_Ravel(weights.get(), NPY_CORDER));
 	}
 	
 	return PyTuple_Pack(2, self, weights.get());

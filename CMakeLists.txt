@@ -369,6 +369,12 @@ if(BUILD_SPGLAM)
    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/test
   )
   LIST (APPEND ALL_TESTS photospline-test-fit)
+  if(NUMPY_FOUND)
+    ADD_TEST(photospline-test-pyfit ${PYTHON_EXECUTABLE} ${CMAKE_SOURCE_DIR}/test/test_fit.py
+     WORKING_DIRECTORY ${CMAKE_BUILD_DIR}
+    )
+    LIST (APPEND ALL_TESTS photospline-test-pyfit)
+  endif()
 endif()
 
 ADD_CUSTOM_TARGET(check 
