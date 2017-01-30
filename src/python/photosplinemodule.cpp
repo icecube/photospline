@@ -578,7 +578,7 @@ pysplinetable_evaluate_simple(pysplinetable* self, PyObject* args, PyObject* kwd
 	
 	//unpack x
 	//assume these are arbitrary sequences, not numpy arrays
-	//TODO: should be possible to make a more efficient case for numpy arrays
+#ifndef HAVE_NUMPY
 	{
 		//a small amount of evil
 		double x[ndim];
@@ -599,6 +599,57 @@ pysplinetable_evaluate_simple(pysplinetable* self, PyObject* args, PyObject* kwd
 		double result=self->table->ndsplineeval(x,centers,derivatives);
 		return(Py_BuildValue("d",result));
 	}
+#else
+	//optimized case for numpy arrays (or things that can be converted to them)
+	{
+		PyArrayObject* arrays[ndim+1];
+		npy_uint32 flags;
+		npy_uint32 op_flags[ndim+1];
+		for(unsigned int i=0; i!=ndim; i++){
+			arrays[i] = (PyArrayObject*)PyArray_ContiguousFromAny(PySequence_GetItem(pyx,i), NPY_DOUBLE, 0, INT_MAX);
+			op_flags[i] = NPY_ITER_READONLY;
+			if (arrays[i] == NULL) {
+				for (unsigned int j=0; j<i; j++)
+					Py_DECREF(arrays[i]);
+				return NULL;
+			}
+		}
+		// allocate the output array automatically
+		arrays[ndim] = NULL;
+		op_flags[ndim] = NPY_ITER_WRITEONLY | NPY_ITER_ALLOCATE;
+		NpyIter *iter = NpyIter_MultiNew(ndim+1, arrays, flags, NPY_KEEPORDER, NPY_NO_CASTING, op_flags, NULL);
+		if (iter == NULL)
+			return NULL;
+		char** data_ptr = NpyIter_GetDataPtrArray(iter);
+		NpyIter_IterNextFunc* iternext = NpyIter_GetIterNext(iter, NULL);
+		
+		double x[ndim];
+		int centers[ndim];
+		do {
+			for (unsigned dim=0; dim<ndim; dim++)
+				x[dim] = *reinterpret_cast<double*>(data_ptr[dim]);
+			if(!self->table->searchcenters(x,centers)){
+				*reinterpret_cast<double*>(data_ptr[ndim]) = 0.;
+			} else {
+				*reinterpret_cast<double*>(data_ptr[ndim]) = self->table->ndsplineeval(x,centers,derivatives);
+			}
+		} while (iternext(iter));
+		
+		// retrieve output array
+		PyArrayObject *out = NpyIter_GetOperandArray(iter)[ndim];
+		Py_INCREF(out);
+		
+		// clean up
+		for (auto ptr : arrays)
+			Py_DECREF(arrays);
+		if (NpyIter_Deallocate(iter) != NPY_SUCCEED) {
+			Py_DECREF(out);
+			return NULL;
+		}
+		
+		return PyArray_Return(out);
+	}
+#endif
 }
 
 static PyObject*
