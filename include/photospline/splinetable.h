@@ -373,6 +373,13 @@ public:
 	         const UInt32Cont& penaltyOrder,
 	         uint32_t monodim=no_monodim, bool verbose=true);
 	
+	///Evaluate the spline on a grid
+	///
+	///\param coords a set of arrays specifying the evaluation points in each
+	///            dimension
+	template<typename DoubleContCont>
+	std::unique_ptr<ndsparse> grideval(const DoubleContCont& coords) const;
+	
 #endif //PHOTOSPLINE_INCLUDES_SPGLAM
 	
 	///\tparam N the number of dimensions in which to sample
@@ -482,6 +489,7 @@ private:
 
 #ifdef PHOTOSPLINE_INCLUDES_SPGLAM
 #include "photospline/detail/fit.h"
+#include "photospline/detail/grideval.h"
 #endif
 
 #endif /* PHOTOSPLINE_SPLINETABLE_H */

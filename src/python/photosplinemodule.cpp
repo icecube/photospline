@@ -736,6 +736,9 @@ pysplinetable_deriv2(pysplinetable* self, PyObject* args, PyObject* kwds){
 #ifdef PHOTOSPLINE_INCLUDES_SPGLAM
 static PyObject*
 pyphotospline_glam_fit(PyObject* self, PyObject* args, PyObject* kwds);
+
+static PyObject*
+pysplinetable_grideval(pysplinetable* self, PyObject* args, PyObject* kwds);
 #endif
 
 //TODO: sampling?
@@ -799,6 +802,11 @@ static PyMethodDef pysplinetable_methods[] = {
 	 "Evaluate the second derivative of the spline in the given dimensions"},
 	{"permute_dimensions", (PyCFunction)pysplinetable_permute, METH_KEYWORDS,
 	 "Permute the dimensions of an existing spline table"},
+	{"grideval", (PyCFunction)pysplinetable_grideval, METH_KEYWORDS,
+	 "Evaluate the spline at a grid of points\n\n"
+	 ":param coords: coordinate vectors for each dimension\n"
+	 ":returns: an array of spline evaluates with size `len(coord[dim])` in each dimension"},
+
 	{NULL}  /* Sentinel */
 };
 
@@ -1166,4 +1174,83 @@ pyphotospline_glam_fit(PyObject* self, PyObject* args, PyObject* kwds){
 	
 	return((PyObject*)spline.release());
 }
+
+#ifdef HAVE_NUMPY
+static PyArrayObject *
+numpy_ndsparse_to_ndarray(struct ndsparse *a)
+{
+	double *x;
+	PyArrayObject *out;
+	unsigned moduli[a->ndim];
+	npy_intp dimensions[a->ndim];
+	int i, j, k, elements;
+
+	/* Change the type of a->ranges to pacify numpy */
+	for (i = 0; i < a->ndim; i++)
+		dimensions[i] = a->ranges[i];
+
+	out = (PyArrayObject *)PyArray_SimpleNew(a->ndim, dimensions,
+	    NPY_DOUBLE);
+
+	moduli[a->ndim-1] = 1;
+	for (i = a->ndim-2; i >= 0; i--)
+		moduli[i] = moduli[i+1]*a->ranges[i+1];
+
+	/* Find and initialize the data array to zero */
+	x = (double *)PyArray_DATA(out);
+	elements = 1;
+	for (i = 0; i < a->ndim; i++) 
+		elements *= a->ranges[i];
+	memset(x, 0, sizeof(double)*elements);
+
+	for (i = 0; i < a->rows; i++) {
+		k = 0;
+		for (j = 0; j < a->ndim; j++)
+			k += a->i[j][i]*moduli[j];
+		
+		x[k] = a->x[i];
+	}
+
+	return out;
+}
+
+static PyObject*
+pysplinetable_grideval(pysplinetable* self, PyObject* args, PyObject* kwds){
+	
+	// count refs the lazy way
+	auto deleter = [](PyArrayObject* ptr){ Py_DECREF(ptr); };
+	typedef std::unique_ptr<PyArrayObject, decltype(deleter)> pyarray;
+	
+	PyObject *coords;
+	const photospline::splinetable<> &spline = *self->table;
+	if (!PyArg_ParseTuple(args, "O", &coords))
+		return NULL;
+	
+	if (!PySequence_Check(coords)) {
+		PyErr_SetString(PyExc_TypeError,
+			"Coords not a sequence");
+		return NULL;
+	}
+	if (PySequence_Length(coords) != spline.get_ndim()) {
+		PyErr_SetString(PyExc_ValueError,
+			"Must have one coordinate array for every dimension");
+	}
+	
+	using photospline::detail::array_view;
+	std::vector<array_view<double>> coordinates(spline.get_ndim());
+	std::vector<pyarray> coord_arrays;
+
+	for (unsigned i=0; i<spline.get_ndim(); i++) {
+		coord_arrays.emplace_back((PyArrayObject *)PyArray_ContiguousFromObject(
+		    PySequence_GetItem(coords, i),
+		    NPY_DOUBLE, 1, 1), deleter);
+		coordinates[i].reset((double*)PyArray_DATA(coord_arrays[i].get()), PyArray_SIZE(coord_arrays[i].get()));
+	}
+	
+	auto nd = self->table->grideval(coordinates);
+
+	return ((PyObject *)numpy_ndsparse_to_ndarray(nd.get()));
+}
+#endif
+
 #endif //PHOTOSPLINE_INCLUDES_SPGLAM
