@@ -395,9 +395,22 @@ public:
 	template<size_t N, typename Distribution, typename RNG, typename Transform>
 	std::vector<std::array<double,N>> sample(
 	  size_t nresults, size_t burnin, std::array<size_t,N> samplingDimensions,
-	  std::vector<double> coordinates, Distribution distribution, RNG& rng,
-	  Transform transform=[](double x)->double{ return(x); }) const;
-	
+	  int derivatives, std::vector<double> coordinates,
+	  Distribution distribution, RNG& rng,
+	  Transform transform) const;
+
+	template<size_t N, typename Distribution, typename RNG>
+	std::vector<std::array<double,N>> sample(
+	  size_t nresults, size_t burnin, std::array<size_t,N> samplingDimensions,
+	  int derivatives, std::vector<double> coordinates,
+	  Distribution distribution, RNG& rng) const;
+
+	template<size_t N, typename Distribution, typename RNG>
+	std::vector<std::array<double,N>> sample(
+	  size_t nresults, size_t burnin, std::array<size_t,N> samplingDimensions,
+	  std::vector<double> coordinates,
+	  Distribution distribution, RNG& rng) const;
+
 	///Reorder the dimensions of the spline
 	///\param permutation the new order in which the current spline dimensions
 	///       should appear

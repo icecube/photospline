@@ -23,8 +23,8 @@ template<typename Alloc>
 template<size_t N, typename Distribution, typename RNG, typename Transform>
 std::vector<std::array<double,N>> splinetable<Alloc>::sample(
   size_t nresults, size_t burnin, std::array<size_t,N> samplingDimensions,
-  std::vector<double> coordinates, Distribution distribution, RNG& rng,
-  Transform transform) const{
+  int derivatives, std::vector<double> coordinates,
+  Distribution distribution, RNG& rng, Transform transform) const{
 	bool accept;
 	const uint32_t tN=get_ndim();
 	std::vector<double> x(tN), xp(tN);
@@ -67,7 +67,7 @@ std::vector<std::array<double,N>> splinetable<Alloc>::sample(
 	} while(!accept);
 
 	propx=distribution(s);
-	px=transform(x,ndsplineeval(x.data(),cx.data(),0));
+	px=transform(x,ndsplineeval(x.data(),cx.data(),derivatives));
 
 	std::uniform_real_distribution<> acceptor(0.,1.);
 
@@ -97,7 +97,7 @@ std::vector<std::array<double,N>> splinetable<Alloc>::sample(
 				continue;
 	
 			propxp=distribution(sp);
-			pxp=transform(xp,ndsplineeval(xp.data(),cxp.data(),0));
+			pxp=transform(xp,ndsplineeval(xp.data(),cxp.data(),derivatives));
 	
 			double odds=(pxp/px)*(propx/propxp);
 			accept=((odds>1.) || acceptor(rng)<odds);
@@ -115,6 +115,28 @@ std::vector<std::array<double,N>> splinetable<Alloc>::sample(
 	}
 
 	return(results);
+}
+
+template <typename Alloc>
+template<size_t N, typename Distribution, typename RNG>
+std::vector<std::array<double,N>> splinetable<Alloc>::sample(
+  size_t nresults, size_t burnin, std::array<size_t,N> samplingDimensions,
+  int derivatives, std::vector<double> coordinates,
+  Distribution distribution, RNG& rng) const{
+	return sample(nresults, burnin, samplingDimensions, derivatives,
+	    coordinates, distribution, rng,
+	    [](const std::vector<double> &x, double pdf) { return pdf; });
+}
+
+template <typename Alloc>
+template<size_t N, typename Distribution, typename RNG>
+std::vector<std::array<double,N>> splinetable<Alloc>::sample(
+  size_t nresults, size_t burnin, std::array<size_t,N> samplingDimensions,
+  std::vector<double> coordinates,
+  Distribution distribution, RNG& rng) const{
+	return sample(nresults, burnin, samplingDimensions, 0,
+	    coordinates, distribution, rng,
+	    [](const std::vector<double> &x, double pdf) { return pdf; });
 }
 
 } //namesapce photospline
