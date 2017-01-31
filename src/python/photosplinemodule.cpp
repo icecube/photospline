@@ -603,7 +603,7 @@ pysplinetable_evaluate_simple(pysplinetable* self, PyObject* args, PyObject* kwd
 	//optimized case for numpy arrays (or things that can be converted to them)
 	{
 		PyArrayObject* arrays[ndim+1];
-		npy_uint32 flags;
+		npy_uint32 flags = 0;
 		npy_uint32 op_flags[ndim+1];
 		for(unsigned int i=0; i!=ndim; i++){
 			arrays[i] = (PyArrayObject*)PyArray_ContiguousFromAny(PySequence_GetItem(pyx,i), NPY_DOUBLE, 0, INT_MAX);
