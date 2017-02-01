@@ -79,20 +79,20 @@ LIST (APPEND core_SOURCES
   ${CMAKE_SOURCE_DIR}/src/core/convolve.cpp
   ${CMAKE_SOURCE_DIR}/src/core/fitsio.cpp
 )
-ADD_LIBRARY (photospline-mod SHARED ${core_SOURCES})
-TARGET_LINK_LIBRARIES (photospline-mod
+ADD_LIBRARY (photospline SHARED ${core_SOURCES})
+TARGET_LINK_LIBRARIES (photospline
   ${CFITSIO_LIBRARIES}
 )
-SET_TARGET_PROPERTIES(photospline-mod PROPERTIES 
+SET_TARGET_PROPERTIES(photospline PROPERTIES 
   COMPILE_FLAGS "${PHOTOSPLINE_CFLAGS}"
 )
-INSTALL (TARGETS photospline-mod LIBRARY DESTINATION lib)
+INSTALL (TARGETS photospline LIBRARY DESTINATION lib)
 FOREACH(header ${core_HEADERS})
   FILE(RELATIVE_PATH relpath ${CMAKE_SOURCE_DIR}/include ${header})
   GET_FILENAME_COMPONENT(dir ${relpath} DIRECTORY)
   INSTALL(FILES ${header} DESTINATION ${PHOTOSPLINE_INCDIR}/${dir})
 endforeach(header ${core_HEADERS})
-SET (PHOTOSPLINE_LDFLAGS "-L${PHOTOSPLINE_LIBDIR} -lphotospline-mod")
+SET (PHOTOSPLINE_LDFLAGS "-L${PHOTOSPLINE_LIBDIR} -lphotospline")
 
 SET (PHOTOSPLINE_LDFLAGS ${PHOTOSPLINE_LDFLAGS}
      CACHE STRING "Linker flags specific to this project")
@@ -107,7 +107,7 @@ LIST (APPEND c_SOURCES
 ADD_LIBRARY (cphotospline SHARED ${c_SOURCES})
 LIST (APPEND cinter_LINK_LIBRARIES
   ${CFITSIO_LIBRARIES}
-  photospline-mod
+  photospline
 )
 IF (BUILD_SPGLAM)
   LIST (APPEND cinter_LINK_LIBRARIES
@@ -115,7 +115,7 @@ IF (BUILD_SPGLAM)
   )
 ENDIF ()
 TARGET_LINK_LIBRARIES (cphotospline ${cinter_LINK_LIBRARIES})
-ADD_DEPENDENCIES(cphotospline photospline-mod)
+ADD_DEPENDENCIES(cphotospline photospline)
 SET_TARGET_PROPERTIES(cphotospline PROPERTIES 
   COMPILE_FLAGS "${PHOTOSPLINE_CFLAGS} -DPHOTOSPLINE_EVAL_TEMPLATES"
   LINK_FLAGS "-L${CMAKE_BINARY_DIR}"
@@ -152,7 +152,7 @@ IF (BUILD_SPGLAM)
     ${SUITESPARSE_LIBRARIES}
     ${BLAS_LIBRARIES}
     ${LAPACK_LIBRARIES}
-    photospline-mod
+    photospline
   )
   if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
     LIST (APPEND fitter_LINK_LIBRARIES pthread rt)
@@ -206,7 +206,7 @@ IF(PYTHON_FOUND)
     ${BLAS_LIBRARIES}
     ${LAPACK_LIBRARIES}
     ${PYTHON_LIBRARY}
-    photospline-mod
+    photospline
     ${MAYBE_SPGLAM}
   )
   SET(pyphotospline_CFLAGS "${pyphotospline_CFLAGS} -I${PYTHON_INCLUDE_DIR}")
@@ -219,13 +219,17 @@ IF(PYTHON_FOUND)
   SET_TARGET_PROPERTIES(pyphotospline PROPERTIES
     COMPILE_FLAGS "${pyphotospline_CFLAGS}"
   )
-  SET_TARGET_PROPERTIES(pyphotospline PROPERTIES LINKER_LANGUAGE C PREFIX "" SUFFIX ".so")
+  SET_TARGET_PROPERTIES(pyphotospline PROPERTIES LINKER_LANGUAGE C OUTPUT_NAME "photospline" PREFIX "" SUFFIX ".so")
   TARGET_LINK_LIBRARIES (pyphotospline ${python_LINK_LIBRARIES})
-  ADD_DEPENDENCIES(pyphotospline photospline-mod)
+  ADD_DEPENDENCIES(pyphotospline photospline)
   IF(BUILD_SPGLAM)
     ADD_DEPENDENCIES(pyphotospline spglam)
   ENDIF(BUILD_SPGLAM)
-  #use get_python_lib to find install location
+  EXECUTE_PROCESS (COMMAND ${PYTHON_EXECUTABLE} -c
+    "from distutils.sysconfig import get_python_lib; print get_python_lib(prefix='')"
+    OUTPUT_VARIABLE PYTHON_MODULE_DIR
+    OUTPUT_STRIP_TRAILING_WHITESPACE)
+  INSTALL(TARGETS pyphotospline LIBRARY DESTINATION ${PYTHON_MODULE_DIR})
 ELSEIF(NOT PYTHON_FOUND)
   MESSAGE("-- Python not found, skipping build of python module")
 ENDIF(PYTHON_FOUND)
@@ -261,7 +265,7 @@ SET_TARGET_PROPERTIES(photospline-inspect PROPERTIES
   COMPILE_FLAGS "${PHOTOSPLINE_CFLAGS}"
 )
 TARGET_LINK_LIBRARIES(photospline-inspect
-  photospline-mod
+  photospline
   ${MAYBE_SPGLAM}
   ${CFITSIO_LIBRARIES}
 )
@@ -273,7 +277,7 @@ SET_TARGET_PROPERTIES(photospline-bench PROPERTIES
   COMPILE_FLAGS "${PHOTOSPLINE_CFLAGS}" # -DPHOTOSPLINE_EVAL_TEMPLATES
 )
 TARGET_LINK_LIBRARIES(photospline-bench
-  photospline-mod
+  photospline
   ${MAYBE_SPGLAM}
   ${CFITSIO_LIBRARIES}
 )
@@ -284,7 +288,7 @@ SET_TARGET_PROPERTIES(photospline-bench-templated PROPERTIES
   COMPILE_FLAGS "${PHOTOSPLINE_CFLAGS} -DPHOTOSPLINE_EVAL_TEMPLATES"
 )
 TARGET_LINK_LIBRARIES(photospline-bench-templated
-  photospline-mod
+  photospline
   ${MAYBE_SPGLAM}
   ${CFITSIO_LIBRARIES}
 )
@@ -296,7 +300,7 @@ SET_TARGET_PROPERTIES(photospline-eval PROPERTIES
   COMPILE_FLAGS "${PHOTOSPLINE_CFLAGS}"
 )
 TARGET_LINK_LIBRARIES(photospline-eval
-  photospline-mod
+  photospline
   ${MAYBE_SPGLAM}
   ${CFITSIO_LIBRARIES}
 )
@@ -309,7 +313,7 @@ if(BUILD_SPGLAM)
     COMPILE_FLAGS "${PHOTOSPLINE_CFLAGS}"
   )
   TARGET_LINK_LIBRARIES(photospline-gen_test_splines
-    photospline-mod
+    photospline
     spglam
     ${CFITSIO_LIBRARIES}
   )
@@ -328,7 +332,7 @@ SET_TARGET_PROPERTIES(photospline-test PROPERTIES
   COMPILE_FLAGS "${PHOTOSPLINE_CFLAGS}"
 )
 TARGET_LINK_LIBRARIES(photospline-test
-  photospline-mod
+  photospline
   ${CFITSIO_LIBRARIES}
 )
 ADD_TEST(photospline-test photospline-test
@@ -343,7 +347,7 @@ SET_TARGET_PROPERTIES(photospline-test-templated PROPERTIES
   COMPILE_FLAGS "${PHOTOSPLINE_CFLAGS} -DPHOTOSPLINE_EVAL_TEMPLATES"
 )
 TARGET_LINK_LIBRARIES(photospline-test-templated
-  photospline-mod
+  photospline
   ${CFITSIO_LIBRARIES}
 )
 ADD_TEST(photospline-test-templated photospline-test-templated
@@ -363,7 +367,7 @@ if(BUILD_SPGLAM)
     COMPILE_FLAGS "${PHOTOSPLINE_CFLAGS}"
   )
   TARGET_LINK_LIBRARIES(photospline-test-fit
-    photospline-mod
+    photospline
     spglam
     ${CFITSIO_LIBRARIES}
   )
