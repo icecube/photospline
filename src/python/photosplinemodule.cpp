@@ -919,7 +919,7 @@ static PyMethodDef photospline_methods[] = {
 #define PyMODINIT_FUNC void
 #endif
 PyMODINIT_FUNC
-initpyphotospline(void){
+initphotospline(void){
 	PyObject* module;
 	
 	pysplinetableType.tp_new = PyType_GenericNew;
@@ -932,7 +932,7 @@ initpyphotospline(void){
 		return;
 #endif
 	
-	module = Py_InitModule3("pyphotospline", photospline_methods,
+	module = Py_InitModule3("photospline", photospline_methods,
 	                   "A package for fitting gridded data to tensor-product "
 	                   "B-spline surfaces and evaluating those surfaces");
 	
