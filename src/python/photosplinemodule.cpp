@@ -7,7 +7,7 @@
 #include <stdio.h>
 #include <limits.h>
 
-#include <photospline/splinetable-mod.h>
+#include <photospline/splinetable.h>
 
 #ifdef PHOTOSPLINE_INCLUDES_SPGLAM
 typedef struct{

@@ -1,7 +1,7 @@
 #ifndef PHOTOSPLINE_DETAIL_GRIDEVAL_H
 #define PHOTOSPLINE_DETAIL_GRIDEVAL_H
 
-#include "photospline/splinetable-mod.h"
+#include "photospline/splinetable.h"
 
 namespace photospline{
 

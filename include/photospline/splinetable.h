@@ -9,7 +9,7 @@
 #include <sstream>
 #include <vector>
 
-#include "photospline/bspline-mod.h"
+#include "photospline/bspline.h"
 #include "photospline/detail/simd.h"
 
 #include <string.h>

@@ -1,5 +1,5 @@
 #include "test.h"
-#include "photospline/splinetable-mod.h"
+#include "photospline/splinetable.h"
 #include <unistd.h>
 
 TEST(read_fits_spline){

@@ -1,7 +1,7 @@
 //Create a variety of splines for testing purposes
 
 #include <iostream>
-#include "photospline/splinetable-mod.h"
+#include "photospline/splinetable.h"
 
 int main(){
 	

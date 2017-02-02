@@ -3,7 +3,7 @@
 #include <iostream>
 #include <random>
 
-#include <photospline/splinetable-mod.h>
+#include <photospline/splinetable.h>
 
 #include <boost/interprocess/managed_shared_memory.hpp>
 #include <boost/interprocess/allocators/allocator.hpp>

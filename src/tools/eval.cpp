@@ -1,7 +1,7 @@
 #include <iostream>
 #include <sstream>
 
-#include <photospline/splinetable-mod.h>
+#include <photospline/splinetable.h>
 
 int main(int argc, char* argv[]){
 	if(argc<3){

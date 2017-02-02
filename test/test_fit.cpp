@@ -1,6 +1,6 @@
 #include "test.h"
 
-#include "photospline/splinetable-mod.h"
+#include "photospline/splinetable.h"
 
 TEST(glamfit_2d){
 	const uint32_t dim=2;

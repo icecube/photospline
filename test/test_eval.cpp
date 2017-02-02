@@ -3,7 +3,7 @@
 #include <random>
 #include <vector>
 
-#include "photospline/splinetable-mod.h"
+#include "photospline/splinetable.h"
 
 TEST(ndssplineeval_vs_ndssplineeval_gradient){
 	photospline::splinetable<> spline("test_data/test_spline_4d.fits");

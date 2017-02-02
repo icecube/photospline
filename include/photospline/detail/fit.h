@@ -1,7 +1,7 @@
 #ifndef PHOTOSPLINE_DETAIL_FIT_H
 #define PHOTOSPLINE_DETAIL_FIT_H
 
-#include "photospline/splinetable-mod.h"
+#include "photospline/splinetable.h"
 
 namespace photospline{
 
