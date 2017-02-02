@@ -71,6 +71,8 @@ LIST (APPEND core_HEADERS
   ${CMAKE_SOURCE_DIR}/include/photospline/detail/convolve.h
   ${CMAKE_SOURCE_DIR}/include/photospline/detail/fit.h
   ${CMAKE_SOURCE_DIR}/include/photospline/detail/fitsio.h
+  ${CMAKE_SOURCE_DIR}/include/photospline/detail/grideval.h
+  ${CMAKE_SOURCE_DIR}/include/photospline/detail/permute.h
   ${CMAKE_SOURCE_DIR}/include/photospline/detail/simd.h
   ${CMAKE_SOURCE_DIR}/include/photospline/detail/sample.h
 )
