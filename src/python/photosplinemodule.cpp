@@ -915,6 +915,9 @@ static PyMethodDef photospline_methods[] = {
 	{NULL}  /* Sentinel */
 };
 
+#define pp_str2(x) #x
+#define pp_str(x) pp_str2(x)
+
 #ifndef PyMODINIT_FUNC	/* declarations for DLL import/export */
 #define PyMODINIT_FUNC void
 #endif
@@ -935,6 +938,7 @@ initphotospline(void){
 	module = Py_InitModule3("photospline", photospline_methods,
 	                   "A package for fitting gridded data to tensor-product "
 	                   "B-spline surfaces and evaluating those surfaces");
+	PyObject_SetAttrString(module, "__version__", PyString_FromString(pp_str(PHOTOSPLINE_VERSION)));
 	
 	Py_INCREF(&pysplinetableType);
 	PyModule_AddObject(module, "SplineTable", (PyObject*)&pysplinetableType);
@@ -947,6 +951,9 @@ initphotospline(void){
 	import_array();
 #endif
 }
+
+#undef pp_str
+#undef pp_str2
 
 #ifdef PHOTOSPLINE_INCLUDES_SPGLAM
 static PyObject*

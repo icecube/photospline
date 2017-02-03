@@ -505,4 +505,6 @@ private:
 #include "photospline/detail/grideval.h"
 #endif
 
+#include "photospline/detail/config.h"
+
 #endif /* PHOTOSPLINE_SPLINETABLE_H */
