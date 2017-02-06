@@ -213,7 +213,6 @@ IF(PYTHON_FOUND)
     ${SUITESPARSE_LIBRARIES}
     ${BLAS_LIBRARIES}
     ${LAPACK_LIBRARIES}
-    ${PYTHON_LIBRARY}
     photospline
     ${MAYBE_SPGLAM}
   )
@@ -229,6 +228,10 @@ IF(PYTHON_FOUND)
   )
   SET_TARGET_PROPERTIES(pyphotospline PROPERTIES LINKER_LANGUAGE C OUTPUT_NAME "photospline" PREFIX "" SUFFIX ".so")
   TARGET_LINK_LIBRARIES (pyphotospline ${python_LINK_LIBRARIES})
+  # Assume that undef symbols (e.g. from libpython) will be present at runtime
+  if(APPLE)
+    SET_TARGET_PROPERTIES(pyphotospline PROPERTIES LINK_FLAGS "-undefined dynamic_lookup")
+  endif(APPLE)
   ADD_DEPENDENCIES(pyphotospline photospline)
   IF(BUILD_SPGLAM)
     ADD_DEPENDENCIES(pyphotospline spglam)
