@@ -57,10 +57,10 @@ ENDIF ()
 # -----------------------------------------------------------------------------
 SET(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
 CONFIGURE_FILE ("${CMAKE_SOURCE_DIR}/include/photospline/detail/config.h.in"
-                "${CMAKE_BUILD_DIR}/include/photospline/detail/config.h")
+                "${CMAKE_BINARY_DIR}/include/photospline/detail/config.h")
 INCLUDE_DIRECTORIES (
   ${CMAKE_SOURCE_DIR}/include
-  ${CMAKE_BUILD_DIR}/include
+  ${CMAKE_BINARY_DIR}/include
   ${CFITSIO_INCLUDE_DIR}
 )
 
@@ -69,7 +69,7 @@ INCLUDE_DIRECTORIES (
 LIST (APPEND core_HEADERS
   ${CMAKE_SOURCE_DIR}/include/photospline/bspline.h
   ${CMAKE_SOURCE_DIR}/include/photospline/splinetable.h
-  ${CMAKE_BUILD_DIR}/include/photospline/detail/config.h
+  ${CMAKE_BINARY_DIR}/include/photospline/detail/config.h
   ${CMAKE_SOURCE_DIR}/include/photospline/detail/bspline_eval.h
   ${CMAKE_SOURCE_DIR}/include/photospline/detail/bspline_multi.h
   ${CMAKE_SOURCE_DIR}/include/photospline/detail/aux.h
