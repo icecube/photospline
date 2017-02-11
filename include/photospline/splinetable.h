@@ -134,11 +134,15 @@ public:
 	typedef typename allocator_traits::template rebind_traits<char_ptr>::pointer char_ptr_ptr;
 	typedef typename allocator_traits::template rebind_traits<char_ptr_ptr>::pointer char_ptr_ptr_ptr;
 	
+	///Construct an empty splinetable.
+	///The resulting object is useful only for calling read_fits, read_fits_mem, or fit.
 	explicit splinetable(allocator_type alloc=Alloc()):
 	ndim(0),order(NULL),knots(NULL),nknots(NULL),extents(NULL),periods(NULL),
 	coefficients(NULL),naxes(NULL),strides(NULL),naux(0),aux(NULL),allocator(alloc)
 	{}
 	
+	///Construct a splinetable from serialized data previously stored in a FITS file.
+	///\param filePath the path to the input file
 	explicit splinetable(const std::string& filePath, allocator_type alloc=Alloc()):
 	ndim(0),order(NULL),knots(NULL),nknots(NULL),extents(NULL),periods(NULL),
 	coefficients(NULL),naxes(NULL),strides(NULL),naux(0),aux(NULL),allocator(alloc)
@@ -172,22 +176,38 @@ public:
 		}
 	}
 	
+	///Estimate the memory needed to load an existing spline.
+	///This function is intended for users using specialized allocators for which
+	///it is useful to know the total memory required before constructing the
+	///allocator and splinetable. If a convolution will be applied to the spline
+	///after it is loaded, doing so will increase its memory requirements, which
+	///this function can also take into account.
+	///\param filePath the path to the input FITS file
+	///\param n_convolution_knots the number of knots possessed by the other
+	///       spline with which one dimension of this spline will be convolved.
+	///       A value of one is equivalent to no convolution.
+	///\param convolution_dimension the dimension of this spline which will have
+	///       a convolution applied.
 	static size_t estimateMemory(const std::string& filePath,
 	                             uint32_t n_convolution_knots = 1,
 	                             uint32_t convolution_dimension = 0);
 	
-	///Read from a file
+	///Read from a FITS file
+	///\param path the path to the input file
 	bool read_fits(const std::string& path);
 	
-	///Read from a fits 'file' in a memory buffer
+	///Read from a FITS 'file' in a memory buffer
+	///\param the input data buffer
+	///\param buffer_size the length of the input buffer
 	bool read_fits_mem(void* buffer, size_t buffer_size);
 	
-	///Write to a file
+	///Write to a FITS file
+	///\param path the path to the output file
 	void write_fits(const std::string& path) const;
 	
-	///Write to a fits memory 'file'.
-	///\returns A pair containing a buffer allocated by malloc() which should be
-	///         deallocated with free() and the size of that buffer.
+	///Write to a FITS memory 'file'.
+	///\returns A pair containing a buffer allocated by malloc(), which should be
+	///         deallocated with free(), and the size of that buffer.
 	std::pair<void*,size_t> write_fits_mem() const;
 	
 	///Get the count of 'auxiliary' keys
@@ -195,6 +215,8 @@ public:
 	///Directly get a particular auxiliary key
 	const char* get_aux_key(size_t i) const{ return(aux[i][0]); }
 	///Directly get a particular auxiliary value
+	///\param key the key whose value should be fetched
+	///\return the value if key exists, otherwise NULL
 	const char* get_aux_value(const char* key) const;
 	///Delete an auxiliary key and associated value
 	///\returns true if the key existed and was removed
@@ -202,11 +224,14 @@ public:
 	///Look up the value associated with an auxiliary key
 	///\param key the name of the key to look up
 	///\param result location to store the value if the key is found
+	///\return true if the key was found and the corresponding value was
+	///        sucessfully parsed into result, otherwise false
 	template<typename T>
 	bool read_key(const char* key, T& result) const;
 	///Insert or overwrite an auxiliary key,value pair
 	///\param key the name of the key to store
 	///\param value the value to store for the key
+	///\return whether the value was successfully stored
 	template<typename T>
 	bool write_key(const char* key, const T& value);
 	
@@ -260,58 +285,110 @@ public:
 	 * for ndsplineeval() using a binary search. Depending on how the table
 	 * was produced, a more efficient method may be available.
 	 */
+	///Acquire a centers vector for use with the ndsplineeval functions.
+	///This performs a binary search over the knots in each spline dimension, so
+	///depending on how the spline was produced a more efficient method may be exist.
+	///\param x a vector of coordinates at which the spline is to be evaluated
+	///\param centers a vector of indices which will be populated by this function
+	///\return whether centers was sucessfully populated
+	///\pre x and centers must both have lengths matching the spline's dimension
 	bool searchcenters(const double* x, int* centers) const;
 	
+	///Evaluate the spline hypersurface.
+	///\param x a vector of coordinates at which the spline is to be evaluated
+	///\param centers a vector of knot indices derived from x, constructed using
+	///       searchcenters
+	///\param derivatives a bitmask indicating in which dimensions the spline
+	///       should be differentiated rather than directly evaluated. Mixed
+	///       partial derivatives are supported.
+	///\return the spline value or derivative value
 	double ndsplineeval(const double* x, const int* centers, int derivatives) const;
 	
+	///Evaluate the second derivative of the spline hypersurface.
+	///\param x a vector of coordinates at which the spline is to be evaluated
+	///\param centers a vector of knot indices derived from x, constructed using
+	///       searchcenters
+	///\param derivatives a bitmask indicating in which dimensions the second
+	///       derivative of the spline should be computed.
+	///\return the second derivative of the spline
 	double ndsplineeval_deriv2(const double* x, const int* centers, int derivatives) const;
 	
-	/* Evaluate a spline surface and all its derivatives at x */
+	///Evaluate the spline hypersurface and its gradient.
+	///If the full gradient is needed along with the spline value this function
+	///can be more efficient than repeated calls to ndsplineeval.
+	///\param x a vector of coordinates at which the spline is to be evaluated
+	///\param centers a vector of knot indices derived from x, constructed using
+	///       searchcenters
+	///\param evaluates a vector which will be populated by this function with
+	///       the spline value, followed by the components of the gradient.
+	///\pre evaluates must have a length one greater than the dimension of the spline
 	void ndsplineeval_gradient(const double* x, const int* centers, double* evaluates) const;
 	
+	///A container for results obtained from benchmark_evaluation
 	struct benchmark_results{
+		///The rate at which ndsplineeval can evaluate the value of the spline
 		double single_eval_rate;
+		///The rate at which ndsplineeval can evaluate the gradient of the spline
+		///(requiring a number of calls to ndsplineeval equal to the spline
+		///dimension per evaluation)
 		double gradient_single_eval_rate;
+		///The rate at which ndsplineeval_gradient can evaluate the value and
+		///gradient of the spline
 		double gradient_multi_eval_rate;
 	};
 	///Evaluate the spline at random points within the extent
+	///\param trialCountthe number of times each type of evaluation should be
+	///       performed. This should be large enough to get a stable result.
+	///\param verbose whether the results should be printed to stdout.
 	benchmark_results benchmark_evaluation(size_t trialCount=1e4, bool verbose=false);
 	
-	/*
-	 * Convolve a table with the spline defined on a set of knots along a given
-	 * dimension and store the spline expansion of the convolved surface in the
-	 * table. This will raise the order of the splines in the given dimension by
-	 * (n_knots - 1), i.e. convolving with an order-0 spline (a box function,
-	 * defined on two knots) will raise the order of the spline surface by 1.
-	 */
+	///Convolve a single dimension of this spline with another spline.
+	///This rewrites the data of this spline in place. The order of the spline
+	///will be raised by (n_knots - 1) in the given dimension, i.e. convolving
+	///with an order-0 spline (a box function, defined on two knots) will raise
+	///the order of the spline surface by 1.
+	///\param dim the dimension in which the convolution should be done
+	///\param knots a vector of positions of the knots of the one dimensional
+	///       spline used for the convolution
+	///\param n_knots the length of knots
 	void convolve(const uint32_t dim, const double* knots, size_t n_knots);
 	
+	///Get the dimension of the spline
 	uint32_t get_ndim() const{ return(ndim); }
+	///Get the order of the spline in a given dimension
 	uint32_t get_order(uint32_t dim) const{
 		assert(dim<ndim);
 		return(order[dim]);
 	}
+	///Get the number of knots in a given dimension
 	uint64_t get_nknots(uint32_t dim) const{
 		assert(dim<ndim);
 		return(nknots[dim]);
 	}
+	///Get the knot vector for a given dimension
 	const double* get_knots(uint32_t dim) const{
 		assert(dim<ndim);
 		return(knots[dim]);
 	}
+	///Get a particular knot from a given dimension
+	///\param dim the dimension
+	///\param knot the index of the knot to fetch
 	double get_knot(uint32_t dim, uint64_t knot) const{
 		assert(dim<ndim);
 		assert(knot<nknots[dim]);
 		return(knots[dim][knot]);
 	}
+	///Get the left boundary of the spline in a given dimension
 	double lower_extent(uint32_t dim) const{
 		assert(dim<ndim);
 		return(extents[dim][0]);
 	}
+	///Get the right boundary of the spline in a given dimension
 	double upper_extent(uint32_t dim) const{
 		assert(dim<ndim);
 		return(extents[dim][1]);
 	}
+	///Get the period of the spline in a given dimension
 	double get_period(uint32_t dim) const{
 		assert(dim<ndim);
 		return(periods[dim]);
@@ -325,6 +402,7 @@ public:
 		assert(dim<ndim);
 		return(naxes[dim]);
 	}
+	///Get the stride through the coefficient array corresponding to a given dimension
 	uint64_t get_stride(uint32_t dim) const{
 		assert(dim<ndim);
 		return(strides[dim]);
@@ -333,6 +411,7 @@ public:
 	float* get_coefficients(){
 		return(&coefficients[0]);
 	}
+	///Raw access to the coefficients.
 	const float* get_coefficients() const{
 		return(&coefficients[0]);
 	}
@@ -382,34 +461,54 @@ public:
 	
 #endif //PHOTOSPLINE_INCLUDES_SPGLAM
 	
+	///Draw a number of random samples from the distribution given by a slice
+	///through the spline.
 	///\tparam N the number of dimensions in which to sample
 	///\tparam Distribution a type which can both evaluate a proposal pdf
 	///        via double operator()(const std::vector<double>& coordinates) const
 	///        and can draw samples from that same pdf
 	///        via std::vector<double> sample(RNG rng)
 	///\tparam RNG a random number generator, conforming to the standard interface
-	///\tparam Transform 
-	///\todo document parameters
+	///\tparam Transform a callable type which can transform values of the spline,
+	///        given the vector of coordinates at which the spline was evaluated
+	///        and the resulting value of the spline surface.
+	///\param nresults the number of samples to draw
+	///\param burnin the length of the burn in period to use
+	///\param samplingDimensions the dimensions in which sampling is to be done
+	///\param coordinates vector of coordinate values at which the spline is to
+	///       be evaluated in the dimensions not being sampled. The length of this
+	///       vector must be the same as spline dimension, but entries for the
+	///       sampling dimensions will be ignored.
+	///\param distribution the proposal distribution
+	///\param rng the source of randomness used for sampling
+	///\param derivatives a bitmask indicating in which dimensions the derivative
+	///       of the spline surface is to be taken rather
+	///\param transform the transformation function to apply to the spline suface
+	///       before sampling. This is useful when one wishes to sample from a
+	///       distribution, but has created a spline representing a transformed
+	///       version of the pdf (for example its logarithm), in which case
+	///       transform should be a function which undoes the transformation
+	///       which was applied to the create the spline. Alternatively, one may
+	///       wish to sample from a distribution in the space of some set of
+	///       variables xi, but have created a spline in the space of some
+	///       transformed variables xi', in which case transform should account
+	///       for the jacobian of the change of variables. A combination of
+	///       these cases is also possible.
 	///\pre The entries of coordinates for dimensions which do not appear in 
 	///        samplingDimensions must be with in the extents of spline
 	template<size_t N, typename Distribution, typename RNG, typename Transform>
 	std::vector<std::array<double,N>> sample(
 	  size_t nresults, size_t burnin, std::array<size_t,N> samplingDimensions,
-	  int derivatives, std::vector<double> coordinates,
-	  Distribution distribution, RNG& rng,
-	  Transform transform) const;
+	  std::vector<double> coordinates, Distribution distribution, RNG& rng,
+	  int derivatives, Transform transform) const;
 
+	///A version of sample which does not apply a transformation.
+	///See sample for more details.
 	template<size_t N, typename Distribution, typename RNG>
 	std::vector<std::array<double,N>> sample(
 	  size_t nresults, size_t burnin, std::array<size_t,N> samplingDimensions,
-	  int derivatives, std::vector<double> coordinates,
-	  Distribution distribution, RNG& rng) const;
-
-	template<size_t N, typename Distribution, typename RNG>
-	std::vector<std::array<double,N>> sample(
-	  size_t nresults, size_t burnin, std::array<size_t,N> samplingDimensions,
-	  std::vector<double> coordinates,
-	  Distribution distribution, RNG& rng) const;
+	  std::vector<double> coordinates, Distribution distribution, RNG& rng,
+	  int derivatives=0) const;
 
 	///Reorder the dimensions of the spline
 	///\param permutation the new order in which the current spline dimensions

@@ -8,8 +8,14 @@ int main(int argc, char* argv[]){
 		std::cerr << "Usage: photospline-eval spline_file coordinates..." << std::endl;
 		return(1);
 	}
-
-	photospline::splinetable<> spline(argv[1]);
+	
+	photospline::splinetable<> spline;
+	try{
+		spline.read_fits(argv[1]);
+	}catch(std::exception& ex){
+		std::cerr << ex.what() << std::endl;
+		return(1);
+	}
 	if(argc!=spline.get_ndim()+2){
 		std::cerr << "Wrong number of coordinates (" << argc-2
 		<< ") for evaluation of " << spline.get_ndim() << "-dimensional spline" << std::endl;
@@ -34,7 +40,18 @@ int main(int argc, char* argv[]){
 	
 	bool okay=spline.searchcenters(coords.data(), centers.data());
 	if(!okay){
-		std::cerr << "Failed to look up knot indices for coordinates" << std::endl;
+		std::cerr << "Failed to look up knot indices for coordinates:" << std::endl;
+		for(unsigned int i=0; i<spline.get_ndim(); i++){
+			if(coords[i]<=spline.get_knot(i,0))
+				std::cerr << "Coordinate (" << coords[i]
+				<< ") is to the left of the first knot ("
+				<< spline.get_knot(i,0) << ") in dimension " << i << std::endl;
+			if(coords[i]>spline.get_knot(i,spline.get_nknots(i)-1))
+				std::cerr << "Coordinate (" << coords[i]
+				<< ") is to the right of the last knot ("
+				<< spline.get_knot(i,spline.get_nknots(i)-1)
+				<< ") in dimension " << i << std::endl;
+		}
 		return(1);
 	}
 	
