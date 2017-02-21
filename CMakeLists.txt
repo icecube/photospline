@@ -207,7 +207,7 @@ ENDIF()
 
 # Python interface
 
-IF(PYTHON_FOUND)
+IF(PYTHON_FOUND AND SUITESPARSE_FOUND)
   MESSAGE("-- Will build the python module")
 
   LIST (APPEND python_SOURCES
@@ -249,9 +249,8 @@ IF(PYTHON_FOUND)
     OUTPUT_STRIP_TRAILING_WHITESPACE)
   INSTALL(TARGETS pyphotospline LIBRARY DESTINATION ${PYTHON_MODULE_DIR})
 ELSEIF(NOT PYTHON_FOUND)
-  MESSAGE("-- Python not found, skipping build of python module")
-ENDIF(PYTHON_FOUND)
-
+  MESSAGE("-- Python or SuiteSparse not found, skipping build of python module")
+ENDIF(PYTHON_FOUND AND SUITESPARSE_FOUND)
 
 # -----------------------------------------------------------------------------
 # Create a script for configuring the user environment
