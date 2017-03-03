@@ -388,6 +388,15 @@ public:
 		assert(dim<ndim);
 		return(extents[dim][1]);
 	}
+    ///Check if a given n-dimensional point is supported by the spline
+    bool is_supported(double *x) const{
+        bool supported = true;
+        for (uint32_t i=0; i < ndim; i++) {
+            supported &= (x[i] >= lower_extent(i));
+            supported &= (x[i] <= upper_extent(i));
+        }
+        return supported;
+    }
 	///Get the period of the spline in a given dimension
 	double get_period(uint32_t dim) const{
 		assert(dim<ndim);
