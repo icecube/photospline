@@ -263,6 +263,8 @@ public:
 		bool searchcenters(const double* x, int* centers) const;
 		///\brief same as splinetable::ndsplineeval
 		double ndsplineeval(const double* x, const int* centers, int derivatives) const;
+		///\brief Convenince short-cut for ndsplineeval
+		double operator()(const double* x) const;
 		///\brief same as splinetable::ndsplineeval_gradient
 		void ndsplineeval_gradient(const double* x, const int* centers, double* evaluates) const;
 		///\brief same as splinetable::ndsplineeval_deriv2
@@ -303,6 +305,15 @@ public:
 	///       partial derivatives are supported.
 	///\return the spline value or derivative value
 	double ndsplineeval(const double* x, const int* centers, int derivatives) const;
+	
+	///Evaluate the spline hypersurface.
+	///This convenience interface for evaluation simply performs searchcenters
+	///and ndsplineeval. It assumes that no derivative is desired, and yields
+	///zero when searchcenters fails. This is suitable for simple uses where the
+	///user knows that the coordinates will be inside the table bounds.
+	///\param x a vector of coordinates at which the spline is to be evaluated
+	///\return the spline value or zero if center lookup fails
+	double operator()(const double* x) const;
 	
 	///Evaluate the second derivative of the spline hypersurface.
 	///\param x a vector of coordinates at which the spline is to be evaluated

@@ -324,6 +324,14 @@ double splinetable<Alloc>::ndsplineeval(const double* x, const int* centers, int
 	
 	return(ndsplineeval_core(centers, maxdegree, localbasis));
 }
+	
+template<typename Alloc>
+double splinetable<Alloc>::operator()(const double* x) const{
+	int centers[ndim];
+	if(!searchcenters(x,centers))
+		return(0);
+	return(ndsplineeval(x,centers,0));
+}
 
 template<typename Alloc>
 double splinetable<Alloc>::ndsplineeval_deriv2(const double* x, const int* centers, int derivatives) const
@@ -525,6 +533,14 @@ double splinetable<Alloc>::evaluator::ndsplineeval(const double* x, const int* c
 	}
 	
 	return((table.*(eval_ptr))(centers, maxdegree, localbasis));
+}
+	
+template<typename Alloc>
+double splinetable<Alloc>::evaluator::operator()(const double* x) const{
+	int centers[table.ndim];
+	if(!table.searchcenters(x,centers))
+		return(0);
+	return(ndsplineeval(x,centers,0));
 }
 	
 template<typename Alloc>

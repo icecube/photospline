@@ -48,6 +48,35 @@ TEST(ndssplineeval_vs_ndssplineeval_gradient){
 	}
 }
 
+TEST(ndssplineeval_vs_call_operator){
+	photospline::splinetable<> spline("test_data/test_spline_4d.fits");
+	const int ndim = spline.get_ndim();
+	ENSURE(ndim < 6);
+	
+	std::mt19937 rng;
+	rng.seed(39);
+	
+	//Create uniform distributions over the support of the spline in all dimensions
+	std::vector<std::uniform_real_distribution<>> dists;
+	for(size_t i=0; i<ndim; i++)
+		dists.push_back(std::uniform_real_distribution<>(spline.lower_extent(i),spline.upper_extent(i)));
+	
+	std::vector<double> coords(ndim);
+	std::vector<int> centers(ndim);
+	
+	//Evaluate the spline both ways at random points
+	for(size_t i=0; i<1000; i++) {
+		for(size_t j=0; j<ndim; j++)
+			coords[j]=dists[j](rng);
+		
+		ENSURE(spline.searchcenters(coords.data(), centers.data()), "Center lookup should succeed");
+		double evaluate=spline.ndsplineeval(coords.data(), centers.data(), 0);
+		double evaluate_c=spline(coords.data());
+		ENSURE_EQUAL(evaluate, evaluate_c,
+		             "ndsplineeval() and operator()() yield identical evaluates");
+	}
+}
+
 void test_evaluator_interface(const std::string& splinePath){
 	std::cout << "Testing evaluation of " << splinePath << std::endl;
 	photospline::splinetable<> spline(splinePath);
@@ -81,9 +110,10 @@ void test_evaluator_interface(const std::string& splinePath){
 		spline.ndsplineeval_gradient(coords.data(), centers1.data(), evaluate_with_gradient1.data());
 		
 		ENSURE(evaluator.searchcenters(coords.data(), centers2.data()), "Center lookup should succeed");
-		double evaluate2=spline.ndsplineeval(coords.data(), centers2.data(), 0);
+		double evaluate2=evaluator.ndsplineeval(coords.data(), centers2.data(), 0);
 		for(uint32_t i=0; i<ndim; i++)
 			gradient2[i]=evaluator.ndsplineeval(coords.data(), centers2.data(), 1u<<i);
+		double evaluate2_c=evaluator(coords.data());
 		
 		evaluator.ndsplineeval_gradient(coords.data(), centers2.data(), evaluate_with_gradient2.data());
 		
@@ -91,9 +121,11 @@ void test_evaluator_interface(const std::string& splinePath){
 			ENSURE_EQUAL(centers1[j],centers2[j],"Center lookups should yield same results");
 		}
 		ENSURE_EQUAL(evaluate1, evaluate2,
-					 "splinetable::ndsplineeval() and evaluator::ndsplineeval() yield identical evaluates");
+		             "splinetable::ndsplineeval() and evaluator::ndsplineeval() yield identical evaluates");
+		ENSURE_EQUAL(evaluate1, evaluate2_c,
+		             "splinetable::ndsplineeval() and evaluator::operator()() yield identical evaluates");
 		ENSURE_EQUAL(evaluate_with_gradient1[0], evaluate_with_gradient2[0],
-					 "splinetable::ndssplineeval_gradient() and evaluator::ndssplineeval_gradient() yield identical evaluates");
+		             "splinetable::ndssplineeval_gradient() and evaluator::ndssplineeval_gradient() yield identical evaluates");
 		for (int j=0; j < ndim; j++) {
 			ENSURE_EQUAL(gradient1[j], gradient2[j],
 						 "splinetable::ndsplineeval() and evaluator::ndsplineeval() yield identical derivatives");
