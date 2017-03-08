@@ -82,6 +82,8 @@ bool splinetable<Alloc>::write_key(const char* key, const T& value){
 	}
 	std::ostringstream ss;
 	ss << value;
+	if(ss.fail())
+		return(false);
 	size_t valuelen = ss.str().size() + 1;
 	if (i!=naux) { //the key was found, so update it
 		//try to allocate the correct amount of space for the new value

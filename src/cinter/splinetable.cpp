@@ -275,7 +275,35 @@ int splinetable_glamfit(struct splinetable* table, const struct ndsparse* data,
 	}
 	return(0);
 }
-#endif
+
+int splinetable_grideval(struct splinetable* table, const double* const* coords,
+                         const uint32_t* ncoords, struct ndsparse** result){
+	*result=NULL;
+	if(!table || !table->data)
+		return(1);
+	try{
+		auto& real_table=*static_cast<photospline::splinetable<>*>(table->data);
+		using photospline::detail::array_view;
+		std::vector<array_view<double>> coordsv(real_table.get_ndim());
+		for(size_t i=0; i<real_table.get_ndim(); i++)
+			coordsv[i].reset(coords[i],ncoords[i]);
+		auto nd=real_table.grideval(coordsv);
+		*result=nd.release();
+	}catch(std::exception& ex){
+		fprintf(stderr,"%s\n",ex.what());
+		return(1);
+	}catch(...){
+		return(1);
+	}
+	return(0);
+}
+
+//This exists to give C callers a way to call operator delete, since grideval
+//allocates with operator new which _might_ not be the same as malloc.
+void ndsparse_destroy(struct ndsparse* nd){
+	delete nd;
+}
+#endif //PHOTOSPLINE_INCLUDES_SPGLAM
 	
 int splinetable_permute(struct splinetable* table, size_t* permutation){
 	try{

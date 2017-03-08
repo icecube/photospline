@@ -146,11 +146,30 @@ int splinetable_convolve(struct splinetable* table, const int dim,
 //unlike C++ interface smoothing and penaltyOrder must point to
 //arrays of exactly the same sizes as data->ndim.
 int splinetable_glamfit(struct splinetable* table, const struct ndsparse* data,
-						const double* weights, const double* const* coords,
-						const uint32_t* splineOrder, const double* const* knots,
-						const uint64_t* nknots,
-						const double* smoothing, const uint32_t* penaltyOrder,
-						uint32_t monodim=-1, bool verbose=true);
+                        const double* weights, const double* const* coords,
+                        const uint32_t* splineOrder, const double* const* knots,
+                        const uint64_t* nknots,
+                        const double* smoothing, const uint32_t* penaltyOrder,
+                        uint32_t monodim=-1, bool verbose=true);
+	
+/// Evaluate a spline on a grid
+///\param table the spline to evaluate
+///\param coords an array of arrays of coordinates at which to evaluate in each
+///       of the spline's dimensions. The length of this array must match the
+///       spline's dimension.
+///\param ncoords an array whose entries specify the number of entries in each
+///       of the per-dimension arrays of coords. The length of this array must
+///       also match the spline's dimension.
+///\param A pointer to an ndsparse* which will be updated by this function to
+///       point to a new ndsaprse, containing the results, which the caller is
+///       responsible for destroying by passing it to ndsparse_destroy, unless
+///       a failure occurs, in which case it will be set to NULL.
+///\return 0 on success, non-zero on failure.
+int splinetable_grideval(struct splinetable* table, const double* const* coords,
+                         const uint32_t* ncoords, struct ndsparse** result);
+
+///Deallocate an ndsparse allocated by splinetable_grideval
+void ndsparse_destroy(struct ndsparse* nd);
 #endif //PHOTOSPLINE_INCLUDES_SPGLAM
 
 //TODO:

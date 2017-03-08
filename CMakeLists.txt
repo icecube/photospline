@@ -69,7 +69,6 @@ INCLUDE_DIRECTORIES (
 LIST (APPEND core_HEADERS
   ${CMAKE_SOURCE_DIR}/include/photospline/bspline.h
   ${CMAKE_SOURCE_DIR}/include/photospline/splinetable.h
-  ${CMAKE_BINARY_DIR}/include/photospline/detail/config.h
   ${CMAKE_SOURCE_DIR}/include/photospline/detail/bspline_eval.h
   ${CMAKE_SOURCE_DIR}/include/photospline/detail/bspline_multi.h
   ${CMAKE_SOURCE_DIR}/include/photospline/detail/aux.h
@@ -100,6 +99,7 @@ FOREACH(header ${core_HEADERS})
   GET_FILENAME_COMPONENT(dir ${relpath} DIRECTORY)
   INSTALL(FILES ${header} DESTINATION ${PHOTOSPLINE_INCDIR}/${dir})
 endforeach(header ${core_HEADERS})
+INSTALL(FILES "${CMAKE_BINARY_DIR}/include/photospline/detail/config.h" DESTINATION ${PHOTOSPLINE_INCDIR}/photospline/detail/)
 SET (PHOTOSPLINE_LDFLAGS "-L${PHOTOSPLINE_LIBDIR} -lphotospline")
 
 SET (PHOTOSPLINE_LDFLAGS ${PHOTOSPLINE_LDFLAGS}

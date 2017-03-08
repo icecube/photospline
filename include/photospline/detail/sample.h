@@ -23,8 +23,8 @@ template<typename Alloc>
 template<size_t N, typename Distribution, typename RNG, typename Transform>
 std::vector<std::array<double,N>> splinetable<Alloc>::sample(
   size_t nresults, size_t burnin, std::array<size_t,N> samplingDimensions,
-  int derivatives, std::vector<double> coordinates,
-  Distribution distribution, RNG& rng, Transform transform) const{
+  std::vector<double> coordinates, Distribution distribution, RNG& rng,
+  int derivatives, Transform transform) const{
 	bool accept;
 	const uint32_t tN=get_ndim();
 	std::vector<double> x(tN), xp(tN);
@@ -121,20 +121,9 @@ template <typename Alloc>
 template<size_t N, typename Distribution, typename RNG>
 std::vector<std::array<double,N>> splinetable<Alloc>::sample(
   size_t nresults, size_t burnin, std::array<size_t,N> samplingDimensions,
-  int derivatives, std::vector<double> coordinates,
-  Distribution distribution, RNG& rng) const{
+  std::vector<double> coordinates, Distribution distribution, RNG& rng,
+  int derivatives) const{
 	return sample(nresults, burnin, samplingDimensions, derivatives,
-	    coordinates, distribution, rng,
-	    [](const std::vector<double> &x, double pdf) { return pdf; });
-}
-
-template <typename Alloc>
-template<size_t N, typename Distribution, typename RNG>
-std::vector<std::array<double,N>> splinetable<Alloc>::sample(
-  size_t nresults, size_t burnin, std::array<size_t,N> samplingDimensions,
-  std::vector<double> coordinates,
-  Distribution distribution, RNG& rng) const{
-	return sample(nresults, burnin, samplingDimensions, 0,
 	    coordinates, distribution, rng,
 	    [](const std::vector<double> &x, double pdf) { return pdf; });
 }
