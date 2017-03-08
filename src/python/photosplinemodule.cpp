@@ -8,6 +8,7 @@
 #include <limits.h>
 
 #include <photospline/splinetable.h>
+#include <photospline/bspline.h>
 
 #ifdef PHOTOSPLINE_INCLUDES_SPGLAM
 typedef struct{
@@ -829,6 +830,52 @@ pysplinetable_permute(pysplinetable* self, PyObject* args, PyObject* kwds){
 	return(Py_None);
 }
 
+static PyObject*
+pyphotospline_bspline(pysplinetable* self, PyObject* args, PyObject* kwds){
+	// count refs the lazy way
+	auto deleter = [](PyObject* ptr){ Py_DECREF(ptr); };
+	typedef std::unique_ptr<PyObject, decltype(deleter)> handle;
+	
+	static const char* kwlist[] = {"knots", "x", "index", "order", NULL};
+	
+	PyObject* pyknots(NULL);
+	double x;
+	int i, order;
+	
+	if (!PyArg_ParseTupleAndKeywords(args, kwds, "Odii", (char**)kwlist, &pyknots, &x, &i, &order))
+		return(NULL);
+	
+#ifdef HAVE_NUMPY
+	handle pyknots_arr(PyArray_ContiguousFromAny(pyknots, NPY_DOUBLE, 1, 1), deleter);
+	if (!pyknots_arr)
+		return NULL;
+	ssize_t n_knots = PyArray_SIZE((PyArrayObject*)pyknots_arr.get());
+	const double *knots = (const double*)PyArray_DATA((PyArrayObject*)pyknots_arr.get());
+#else
+	if (!PySequence_Check(pyknots))
+		PyErr_SetString(PyExc_TypeError, "Knots must be a sequence");
+	std::vector<double> knot_vec(PySequence_Length(pyknots));
+	for (unsigned i=0; i < knot_vec.size(); i++) {
+		handle item(PySequence_GetItem(pyknots,i), deleter);
+		knot_vec[i] = PyFloat_AsDouble(item.get());
+	}
+	ssize_t n_knots = knot_vec.size();
+	const double *knots = knot_vec.data();
+#endif
+	
+	if (order > n_knots-2) {
+		PyErr_SetString(PyExc_ValueError, "Need at least n+2 knots to define an nth-order spline");
+		return NULL;
+	}
+	if (i < 0 || i > n_knots-order-1) {
+		PyErr_SetString(PyExc_ValueError, "Spline index out of range");
+		return NULL;
+	}
+	
+	return PyFloat_FromDouble(photospline::bspline(knots, x, i, order));
+}
+
+
 static PyGetSetDef pysplinetable_properties[] = {
 	{(char*)"order", (getter)pysplinetable_getorder, NULL, (char*)"Order of spline in each dimension", NULL},
 #ifdef HAVE_NUMPY
@@ -912,6 +959,12 @@ static PyMethodDef photospline_methods[] = {
 	{"glam_fit", (PyCFunction)pyphotospline_glam_fit, METH_KEYWORDS,
 	 "Fit a spline table to data"},
 #endif
+	{"bspline", (PyCFunction)pyphotospline_bspline, METH_KEYWORDS,
+	 "Evaluate the `i`th B-spline on knot vector `knots` at `x`\n\n"
+	 ":param knots: knot vector\n"
+	 ":param x: point at which to evaluate\n"
+	 ":param index: index of spline (between 0 and n_knots-order-1)\n"
+	 ":param order: order of spline to evaluate\n"},
 	{NULL}  /* Sentinel */
 };
 
