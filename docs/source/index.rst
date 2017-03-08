@@ -15,35 +15,29 @@ compute, store, and evaluate B-spline representations of such tables.
 
 .. _`penalized spline technique`: http://dx.doi.org/10.1214/ss/1038425655
 
-Fitting tutorial
-================
+Fitting tutorial (Python)
+=========================
 
 .. highlightlang:: python
 
 A basic fitting script starts with a few imports::
 	
 	import numpy
-	from photospline import spglam as glam
-	from photospline import splinefitstable
-	from photospline.glam.glam import grideval
-	from photospline.glam.bspline import bspline
+	from photospline import glam_fit, ndsparse, bspline
 
 Some of these are strictly required.
 
 * ``numpy`` - We need this in order to pass n-dimensional arrays around
-* ``glam`` - We will use the sparse-matrix implementation of the 
-  least-squares fit. Replace this line with 
-  ``from photospline.glam import glam`` in order to use the 
-  inefficient (but readable) Python reference implementation.
-* ``splinefitstable`` - We will use
-  :py:func:`photospline.splinefitstable.write` to store the fit
-  results in a FITS file.
+* ``glam_fit`` - We will use this to perform a least-squares fit of the spline
+  coefficients to the data.
+* ``ndsparse`` - We will use this sparse N-dimensional grid to pass our data
+  to :py:func:`photospline.glam_fit`.
 
 We will also need some extra functions in order to visualize the result.
 
-* ``grideval`` - We will use this function to evaluate the spline surface
+* :py:func:`photospline.splinetable.grideval` - We will use this function to evaluate the spline surface
   on a coordinate grid.
-* ``bspline`` - We will also plot the individual basis functions to get a
+* :py:func:`photospline.bspline` - We will also plot the individual basis functions to get a
   better idea of how the spline surface is constructed.
 
 For this example, we will make up some random, one-dimensional data drawn
@@ -64,15 +58,17 @@ grid of order-2 B-splines that extend beyond the the data points, relying
 on the regularization term for extrapolation::
 	
 	order = 2
+	penalty_order = order
 	knots = [numpy.linspace(-8,35,30)]
 	smooth = 3.14159e3
 
 This generalizes easily to multi-dimensional data; we would simply add an
 extra entry to ``knots`` for each extra dimension.
 
-To actually run the fit, we call :py:func:`photospline.spglam.fit`  ::
+To actually run the fit, we call :py:func:`photospline.glam_fit`::
 	
-	>>> result = glam.fit(z,w,[x1],knots,order,smooth)
+	>>> zs, w = ndsparse.from_data(zs, w)
+	>>> spline = glam_fit(zs,w,[x1],knots,[order],[smooth],[penalty_order])
 	Calculating penalty matrix...
 	Calculating spline basis...
 	Reticulating splines...
@@ -86,10 +82,10 @@ To actually run the fit, we call :py:func:`photospline.spglam.fit`  ::
 	Solve[27]: 0.000022 s
 	Done: cleaning up
 
-Now we can save the fit result for later use with :c:func:`ndsplineeval`
-or :py:func:`photospline.glam.glam.grideval` ::
+Now we can save the fit result for later evaluation with
+:py:func:`photospline.splinetable.write` ::
 	
-	splinefitstable.write(result, 'splinefit-1d.fits')
+	spline.write('splinefit-1d.fits')
 
 To see the result, we can plot it with `matplotlib`_::
 	
@@ -101,6 +97,7 @@ To see the result, we can plot it with `matplotlib`_::
 		pylab.plot(xfine, result.coefficients[n]*splines[n], color=c)
 	# Plot the spline surface (sum of all the basis functions)
 	pylab.plot(xfine, glam.grideval(result, [xfine]), label='Spline fit', color='k')
+	pylab.scatter(x1, z, label='Data')
 	pylab.legend(loc='upper left')
 	pylab.show()
 
@@ -117,8 +114,19 @@ The result is shown below:
 	(blue dots). In the region to the right where there are no data,
 	the order-2 penalty term produces a straight line.
 
+Fitting tutorial (C++)
+======================
+
+.. highlightlang:: c++
+
+We can do the same fit as above directly from C++.
+
+.. warning:: Actually write this section
+
 Python library reference
 ========================
+
+.. warning:: This needs to be updated to the 2.0 API
 
 The interface to the fitting library is entirely in Python, using Numpy
 arrays to as containers for the data, spline coefficients, knot vectors, 
@@ -162,55 +170,38 @@ files that can be loaded and evaluated using the bundled C library.
 
 .. autofunction:: photospline.glam.glam.bspline
 
+C++ library reference
+=====================
+
+The photospline C++ library provides :cpp:class:`photospline::splinetable`,
+which represents a tensor-product B-spline surface. These can be fit to data
+with :cpp:func:`photospline::splinetable::fit`, written to FITS files with
+:cpp:func:`photospline::splinetable::write`, read from FITS files with
+:cpp:func:`photospline::splinetable::read`, and evaluated with
+:cpp:func:`photospline::splinetable::ndsplineeval`.
+
+.. doxygenclass:: photospline::splinetable
+
 C library reference
 ===================
 
 .. highlightlang:: c
 
-The photospline C library contains a collection of functions for 
-efficiently evaluating the tensor-product B-spline surfaces produced by
-:py:func`photospline.spglam.fit` and written to disk as FITS
-files by :py:func:`photospline.splinefitstable.write`.
+The photospline library also provides wrapper functions to create, read, and
+evaluate :cpp:class:`photospline::splinetable` instances from C.
+
+.. doxygenfunction:: ndsplineeval(const struct splinetable *, const double *, const int *, int)
+
+.. doxygenfunction:: splinetable_glamfit
 
 Spline table I/O and manipulation
 ---------------------------------
 
-.. c:type:: struct splinetable
-	
-	A data structure that holds the coefficients, knot grids,
-	and associated metadata needed to evaluate a spline surface::
-		
-		struct splinetable {
-			int ndim;
-			int *order;
-			double **knots;
-			long *nknots;
-			double **extents;
-			double *periods;
-			float *coefficients;
-			long *naxes;
-			unsigned long *strides;  
-			int naux;
-			char ***aux;
-		};
+.. doxygenfunction:: splinetable_init
 
-.. c:function:: int readsplinefitstable(const char *path, struct splinetable *table)
-	
-	Read a spline table from a FITS file on disk.
-	
-	:param path: the filesystem path to read from
-	:param splinetable: a pointer to a pre-allocated :c:type:`splinetable`
-	:returns: 0 upon success
+.. doxygenfunction:: readsplinefitstable
 
-.. c:function:: int readsplinefitstable_mem(struct splinetable_buffer *buffer, struct splinetable *table)
-	
-	Read a spline table from a FITS file in memory.
-	
-	:param buffer: The memory buffer to read from. ``data`` must point
-	               to the beginning of the memory area where the FITS
-		       file is stored, and ``size`` should give its size.
-		       ``mem_alloc`` and ``mem_realloc`` must be set to
-		       valid addresses, but will not be called.
+.. doxygenfunction:: readsplinefitstable_mem
 	
 	Example::
 		
@@ -218,8 +209,6 @@ Spline table I/O and manipulation
 		struct splinetable_buffer buf;
 		
 		readsplinefitstable("foo.fits", &table);
-		buf.mem_alloc = &malloc;
-		buf.mem_realloc = &realloc;
 		writesplinefitstable_mem(&buf, &table);
 		splinetable_free(&table);
 		
@@ -228,159 +217,24 @@ Spline table I/O and manipulation
 		/* do stuff with table */
 		splinetable_free(&table);
 
-.. c:function:: int writesplinefitstable(const char *path, const struct splinetable *table)
-	
-	Write a spline table to a FITS file on disk.
+.. doxygenfunction:: writesplinefitstable
 
-.. c:function:: int writesplinefitstable_mem(struct splinetable_buffer *buffer, const struct splinetable *table)
-	
-	Write a spline table to a FITS file in memory.
-	
-	:param buffer: the memory buffer to write to. Memory will be
-	               allocated internally via ``mem_alloc`` and
-	               ``mem_realloc``, which should point to
-	               :c:func:`malloc` and :c:func:`realloc` or
-	               functional equivalents.
-	
-	Example::
-		
-		struct splinetable table;
-		struct splinetable_buffer buf;
-		
-		readsplinefitstable("foo.fits", &table);
-		buf.mem_alloc = &malloc;
-		buf.mem_realloc = &realloc;
-		writesplinefitstable_mem(&buf, &table);
-		splinetable_free(&table);
-		/* do stuff with buf */
-		free(buf.data);
+.. doxygenfunction:: writesplinefitstable_mem
 
-.. c:type: struct splinetable_buffer
+.. doxygenfunction:: splinetable_get_key
 
-	A structure describing a memory area and how to resize it::
-		struct splinetable_buffer {
-			void *data;
-			size_t size;
-			void *(*mem_alloc)(size_t newsize);
-			void *(*mem_realloc)(void *p, size_t newsize);
-		};
+.. doxygenfunction:: splinetable_read_key
 
-.. c:function:: char * splinetable_get_key(struct splinetable *table, const char *key)
+.. doxygenfunction:: splinetable_convolve
 
-	Get a pointer to the raw string representation of an auxiliary
-	field stored in the FITS header.
-
-	:param key: A null-terminated string containing the key.
-	:returns: A pointer to the beginning of the value string, or NULL
-	          if the key doesn't exist.
-
-.. c:function:: int splinetable_read_key(struct splinetable *table, splinetable_dtype type, const char *key, void *result)
-	
-	Parse and store the value of an auxiliary field stored in the FITS
-	header.
-	
-	:param type: The type of value stored.
-	:param key: A null-terminated string containing the key.
-	:param result: Where to store the result
-	:returns: 0 upon success
-
-.. c:type:: splinetable_dtype
-
-	Types that can be parsed by :c:func:`splinetable_read_key`::
-		
-		typedef enum {
-			SPLINETABLE_INT,
-			SPLINETABLE_DOUBLE
-		} splinetable_dtype;
-
-.. c:function: int splinetable_convolve(struct splinetable *table, const int dim, const double *knots, size_t n_knots)
-	
-	Convolve a table with the spline defined on a set of knots
-	along a given dimension and store the spline expansion of the
-	convolved surface in the table. This will raise the order of the
-	splines in the given dimension by (n_knots - 1), i.e. convolving
-	with an order-0 spline (a box function, defined on two knots) will
-	raise the order of the spline surface by 1.
-	
-	:param dim: The dimension along which to apply the convolution
-	:param knots: The knots defining the convolution kernel spline.
-	:param n_knots: The number of knots. The order of the kernel spline
-	                will be n_knots-2.
-	:returns: 0 upon success
-
-.. c:function:: void splinetable_free(struct splinetable *table)
-	
-	Free memory allocated by :c:func:`readsplinefitstable`.
+.. doxygenfunction:: splinetable_free
 
 Spline evaluation
 -----------------
 
-.. c:function:: int tablesearchcenters(const struct splinetable *table, const double *x, int *centers)
-	
-	Find the index of the order-0 spline in each dimension that has
-	support at the corresponding coordinate.
-	
-	:param x: an array of coordinates, one for each dimension
-	:param centers: the array where the index corresponding to each
-	                coordinate will be stored.
-	:returns: 0 upon success. A non-zero return value indicates that
-	          one or more of the coordinates is outside the
-	          support of the spline basis in its dimension, in which
-	          case the value of the spline surface is 0 by 
-	          construction.
+.. doxygenfunction:: tablesearchcenters
 
+.. doxygenfunction:: ndsplineeval(const struct splinetable *, const double *, const int *, int)
 
-.. c:function:: double ndsplineeval(const struct splinetable *table, const double *x, const int *centers, int derivatives)
-	
-	Evaluate the spline surface or its derivatives.
-	
-	:param x: an array of coordinates, one for each dimension
-	:param centers: an array of central-spline indices in each
-	                dimension, filled in a previous call to
-	                :c:func:`tablesearchcenters`
-	:param derivatives: a bitmask indicating the type of basis to use
-	                    in each dimension. If the bit corresponding to
-	                    a dimension is set, the basis in that
-	                    dimension will consist of the derivatives of
-	                    the usual B-spline basis, and the return value
-	                    will be the gradient of the surface in that
-	                    dimension.
-	
-	For example, passing an unset bitmask evaluates the surface::
-		
-		struct splinetable table;
-		int centers[table.ndim];
-		double x[table.ndim];
-		double v;
-		
-		if (tablesearchcenters(&table, &x, &centers) != 0)
-			v = ndsplineeval(&table, &x, &centers, 0);
-		else
-			v = 0;
+.. doxygenfunction:: ndsplineeval_gradient(const struct splinetable *, const double *, const int *, double *)
 
-	while setting individual bits evalulates the elements of the gradient::
-		
-		double gradient[table.ndim];
-		for (i = 0; i < table.ndim; i++)
-			gradient[i] = ndsplineeval(&table, &x, &centers, (1 << i));
-
-.. c:function:: ndsplineeval_gradient(const struct splinetable *table, const double *x, const int *centers, double *evaluates)
-	
-	Evaluate the spline surface and all of its derivatives, using
-	SIMD operations to efficiently multiply the same coefficient matrix
-	into multiple bases. 
-	
-	:param x: an array of coordinates, one for each dimension
-	:param centers: an array of central-spline indices in each
-	                dimension, filled in a previous call to
-	                :c:func:`tablesearchcenters`
-	:param evaluates: an array of size at least ndim+1 where the value
-	                  of the surface and the elements of the gradient
-	                  will be stored
-	
-	On most platforms, each group of 4 bases (e.g. the value and first
-	3 elements of the gradient) takes the nearly the same number of
-	operations as a single call to :c:func:`ndsplineeval`. As a
-	result, this version is much faster than sequential calls to
-	:c:func:`ndsplineeval` in applications like maximum-likelihood
-	fitting where both the value and entire gradient are required.
