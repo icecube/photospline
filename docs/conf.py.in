@@ -25,7 +25,11 @@ sys.path.insert(0, '@CMAKE_SOURCE_DIR@/python')
 
 # Add any Sphinx extension module names here, as strings. They can be extensions
 # coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
-extensions = ['sphinx.ext.autodoc', 'sphinx.ext.mathjax']
+extensions = ['sphinx.ext.autodoc', 'sphinx.ext.mathjax', 'sphinx.ext.todo', 'breathe']
+
+breathe_projects = dict(photospline="@CMAKE_BINARY_DIR@/docs/xml")
+breathe_default_project = "photospline"
+breathe_default_members = ('members',)
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']

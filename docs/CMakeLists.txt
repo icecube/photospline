@@ -37,3 +37,15 @@ if(SPHINX_BUILD)
 else()
   message("+-- sphinx-build *not* found, disabling build of sphinx documentation.")
 endif()
+
+find_program(DOXYGEN doxygen)
+if(DOXYGEN)
+  add_custom_target(doxygen
+    COMMAND doxygen doxyfile
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/docs
+  )
+  configure_file(${CMAKE_CURRENT_SOURCE_DIR}/doxyfile.in ${CMAKE_BINARY_DIR}/docs/doxyfile
+    @ONLY)
+  add_dependencies(html doxygen)
+  add_dependencies(latex doxygen)
+endif()
