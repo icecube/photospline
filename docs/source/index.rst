@@ -119,9 +119,63 @@ Fitting tutorial (C++)
 
 .. highlightlang:: c++
 
-We can do the same fit as above directly from C++.
+We can do the same fit as above in C++. We start with a few
+necessary includes, namely splinetable and random number generators from the
+C++11 standard library::
+	
+	#include <photospline/splinetable.h>
+	#include <random>
 
-.. warning:: Actually write this section
+As above, we draw Poisson samples from a cosine overlaid on a polynomial. In
+contrast to the Python example, though, we fill the data points directly into
+a sparse array::
+	
+	std::default_random_engine rng(0);
+	
+	size_t numpts = 500;
+	// Create a random coordinate vector
+	std::vector<double> x1(numpts);
+	{
+		std::uniform_real_distribution<> uniform(-4,25);
+		for (unsigned int i=0; i < numpts; i++)
+			x1[i] = uniform(rng);
+		std::sort(x1.begin(), x1.end());
+	}
+	// Create a sparse array to hold the data points and a vector to hold the
+	// weights. The length of `weights` should be the number of entries in
+	// `zsparse` with non-zero weights
+	photospline::ndsparse zsparse(500,1);
+	std::vector<double> weights(numpts);
+	for (unsigned int i=0; i < numpts; i++) {
+		double z = std::poisson_distribution<>(
+		    std::pow(std::cos(x1[i]), 2) + std::pow(x1[i]-3.0, 2) + 10)(rng);
+		zsparse.insertEntry(z, &i);
+		// Use a minimum weight of zero, and weight the high-occupancy points up
+		weights[i] = 1. + z;
+	}
+
+Now, we set up the spline basis and a smoothing coefficient::
+	
+	std::vector<double> knots(30);
+	for (unsigned int i=0; i < knots.size(); i++) {
+		double lo(-8), hi(35);
+		knots[i] = lo + i*(hi-lo)/(knots.size()-1);
+	}
+	
+	std::array<uint32_t,1> order = {2};
+	auto penalty_order = order;
+	double smooth = 3.14159e3;
+
+Then, run the fit. Since :cpp:func:`photospline::splinetable::fit` works on
+N-dimensional data in general, we have to put our knot vector, order, smoothing
+coefficient, etc. in containers::
+	
+	photospline::splinetable<> spline;
+	spline.fit(zsparse, weights, std::array<decltype(x1),1>({x1}), order, {knots}, {smooth}, penalty_order);
+
+Finally, we store the fit result for later use::
+	
+	spline.write_fits("splinefit-1d.fits");
 
 Python library reference
 ========================
