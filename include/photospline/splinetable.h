@@ -150,6 +150,28 @@ public:
 		read_fits(filePath);
 	}
 	
+	splinetable(splinetable&& other):
+	ndim(other.ndim),order(std::move(other.order)),knots(std::move(other.knots)),
+	nknots(other.nknots),extents(std::move(other.extents)),
+	periods(std::move(other.periods)),coefficients(std::move(other.coefficients)),
+	naxes(std::move(other.naxes)),strides(std::move(other.strides)),
+	naux(other.naux),aux(std::move(other.aux)),
+	allocator(std::move(other.allocator))
+	{
+		other.ndim=0;
+		other.order=NULL;
+		other.knots=NULL;
+		other.nknots=NULL;
+		other.extents=NULL;
+		other.periods=NULL;
+		other.coefficients=NULL;
+		other.naxes=NULL;
+		other.strides=NULL;
+		other.naux=0;
+		other.aux=NULL;
+		other.allocator=Alloc();
+	}
+	
 	~splinetable(){
 		if(ndim){
 			uint64_t ncoeffs=strides[0]*naxes[0];
@@ -174,6 +196,25 @@ public:
 			}
 			deallocate(aux,naux);
 		}
+	}
+	
+	splinetable& operator=(splinetable&& other){
+		if(&other==this)
+			return(*this);
+		using std::swap;
+		swap(ndim,other.ndim);
+		swap(order,other.order);
+		swap(knots,other.knots);
+		swap(nknots,other.nknots);
+		swap(extents,other.extents);
+		swap(periods,other.periods);
+		swap(coefficients,other.coefficients);
+		swap(naxes,other.naxes);
+		swap(strides,other.strides);
+		swap(naux,other.naux);
+		swap(aux,other.aux);
+		swap(allocator,other.allocator);
+		return(*this);
 	}
 	
 	///Estimate the memory needed to load an existing spline.
@@ -545,9 +586,6 @@ private:
 	char_ptr_ptr_ptr aux;
 	
 	allocator_type allocator;
-	uint32_t constOrder;
-	double (splinetable::*eval_ptr)(const int*, int, detail::buffer2d<float>) const;
-	void (splinetable::*v_eval_ptr)(const int*, const v4sf***, v4sf*) const;
 	
 	splinetable(const splinetable&);
 	splinetable& operator=(const splinetable& other);
