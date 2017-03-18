@@ -536,11 +536,11 @@ double splinetable<Alloc>::evaluator::ndsplineeval(const double* x, const int* c
 }
 	
 template<typename Alloc>
-double splinetable<Alloc>::evaluator::operator()(const double* x) const{
+double splinetable<Alloc>::evaluator::operator()(const double* x, int derivatives) const{
 	int centers[table.ndim];
 	if(!table.searchcenters(x,centers))
 		return(0);
-	return(ndsplineeval(x,centers,0));
+	return(ndsplineeval(x,centers,derivatives));
 }
 	
 template<typename Alloc>

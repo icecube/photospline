@@ -303,13 +303,13 @@ public:
 		///\brief same as splinetable::searchcenters
 		bool searchcenters(const double* x, int* centers) const;
 		///\brief same as splinetable::ndsplineeval
-		double ndsplineeval(const double* x, const int* centers, int derivatives) const;
+		double ndsplineeval(const double* x, const int* centers, int derivatives=0) const;
 		///\brief Convenince short-cut for ndsplineeval
-		double operator()(const double* x) const;
+		double operator()(const double* x, int derivatives=0) const;
 		///\brief same as splinetable::ndsplineeval_gradient
 		void ndsplineeval_gradient(const double* x, const int* centers, double* evaluates) const;
 		///\brief same as splinetable::ndsplineeval_deriv2
-		double ndsplineeval_deriv2(const double* x, const int* centers, int derivatives) const;
+		double ndsplineeval_deriv2(const double* x, const int* centers, int derivatives=0) const;
 	};
 	friend struct evaluator;
 	
