@@ -316,7 +316,7 @@ splinetable<Alloc>::ndsplineeval_gradient(const double* x, const int* centers, d
 		 * Compute the values and derivatives of the table->order[n]+1 non-zero
 		 * splines at x[n], filling them into valbasis and gradbasis.
 		 */
-		bspline_nonzero(knots[n], nknots[n],
+		bspline_nonzero(&*knots[n], nknots[n],
 		    x[n], centers[n], order[n], valbasis, gradbasis);
 	
 		for (uint32_t i = 0; i <= order[n]; i++) {
@@ -370,7 +370,7 @@ void splinetable<Alloc>::evaluator::ndsplineeval_gradient(const double* x, const
 		 * Compute the values and derivatives of the table->order[n]+1 non-zero
 		 * splines at x[n], filling them into valbasis and gradbasis.
 		 */
-		bspline_nonzero(table.knots[n], table.nknots[n],
+		bspline_nonzero(&*table.knots[n], table.nknots[n],
 						x[n], centers[n], table.order[n], valbasis, gradbasis);
 		
 		for (uint32_t i = 0; i <= table.order[n]; i++) {

@@ -4,13 +4,14 @@
 #include "photospline/detail/fitsio.h"
 
 namespace photospline{
-	
+
 template<typename Alloc>
 const char* splinetable<Alloc>::get_aux_value(const char* key) const{
 	char* value=NULL;
 	for (uint32_t i=0; i < naux; i++) {
-		if (strcmp(key, aux[i][0]) == 0) {
-			value = aux[i][1];
+		// NB: aux[i][0] may be a smart pointer
+		if (strcmp(key, &*aux[i][0]) == 0) {
+			value = &*aux[i][1];
 			break;
 		}
 	}
@@ -21,7 +22,7 @@ template<typename Alloc>
 bool splinetable<Alloc>::remove_key(const char* key){
 	uint32_t i;
 	for (i=0; i < naux; i++) {
-		if (strcmp(key, aux[i][0]) == 0)
+		if (strcmp(key, &*aux[i][0]) == 0)
 			break;
 	}
 	if (i==naux) //key was never here
@@ -77,7 +78,7 @@ bool splinetable<Alloc>::write_key(const char* key, const T& value){
 	//check if the key already exists and we should update it
 	size_t i;
 	for (i=0; i < naux; i++) {
-		if (strcmp(key, aux[i][0]) == 0)
+		if (strcmp(key, &*aux[i][0]) == 0)
 			break;
 	}
 	std::ostringstream ss;
