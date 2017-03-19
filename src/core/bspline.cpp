@@ -221,7 +221,7 @@ bspline_deriv_nonzero(const double* knots, const unsigned nknots,
 }
 
 double
-bspline_deriv(const double *knots, double x, int i, int n)
+bspline_deriv(const double *knots, double x, int i, int n, unsigned order)
 {
 	double result;
 
@@ -234,39 +234,16 @@ bspline_deriv(const double *knots, double x, int i, int n)
 		return 0.0;
 	}
 
-	result = n * bspline(knots, x, i, n-1) / (knots[i+n] - knots[i]);
-	result -= n * bspline(knots, x, i+1, n-1) / (knots[i+n+1] - knots[i+1]);
-	
-	return result;
-}
-
-double
-bspline_deriv_2(const double *knots, double x, int i, int n)
-{
-	double result;
-
-	if (n <= 1) {
-		/*
-		 * Special case the 1st order case, where B-Splines
-		 * are linear functions from one knot to the next.
-		 */
-
-		return 0.0;
+	if (order <= 1) {
+		result = n * bspline(knots, x, i, n-1) / (knots[i+n] - knots[i]);
+		result -= n * bspline(knots, x, i+1, n-1) / (knots[i+n+1] - knots[i+1]);
+	} else {
+		result = n * bspline_deriv(knots, x, i, n-1, order-1) / (knots[i+n] - knots[i]);
+		result -= n * bspline_deriv(knots, x, i+1, n-1, order-1) / (knots[i+n+1] - knots[i+1]);
 	}
 	
-	result = bspline(knots, x, i, n-2) /
-	    ((knots[i+n] - knots[i])*(knots[i+n-1] - knots[i]));
-	result -= bspline(knots, x, i+1, n-2) *
-	    (1./(knots[i+n] - knots[i]) + 1./(knots[i+n+1] - knots[i+1])) / 
-	    (knots[i+n] - knots[i+1]);
-	result += bspline(knots, x, i+2, n-2) / 
-	    ((knots[i+n+1] - knots[i+1])*(knots[i+n+1] - knots[i+2]));
-	
-	result *= n*(n-1);
-	
 	return result;
 }
-
 
 /*
  * Evaluates the results of a full spline basis given a set of knots,

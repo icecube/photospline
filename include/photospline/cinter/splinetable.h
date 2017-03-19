@@ -125,12 +125,12 @@ void ndsplineeval_gradient(const struct splinetable* table, const double* x,
 /// 
 /// \param[in] x           coordinates at which to evaluate
 /// \param[in] centers     indices of the central splines
-/// \param[in] derivatives bitmask indicating which dimensions to doubly differentiate
+/// \param[in] derivatives order of derivative to calculate in each dimension
 /// 
 /// \pre \p centers has been filled via a call to tablesearchcenters()
 /// \returns the value of the spline surface (or one of its second derivatives) at \p x
-double ndsplineeval_deriv2(const struct splinetable* table, const double* x,
-                           const int* centers, int derivatives);
+double ndsplineeval_deriv(const struct splinetable* table, const double* x,
+                           const int* centers, const unsigned int *derivatives);
 
 /// Convolve with another spline
 ///

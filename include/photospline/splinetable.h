@@ -308,8 +308,8 @@ public:
 		double operator()(const double* x, int derivatives=0) const;
 		///\brief same as splinetable::ndsplineeval_gradient
 		void ndsplineeval_gradient(const double* x, const int* centers, double* evaluates) const;
-		///\brief same as splinetable::ndsplineeval_deriv2
-		double ndsplineeval_deriv2(const double* x, const int* centers, int derivatives=0) const;
+		///\brief same as splinetable::ndsplineeval_deriv
+		double ndsplineeval_deriv(const double* x, const int* centers, const unsigned int *derivatives) const;
 	};
 	friend struct evaluator;
 	
@@ -356,14 +356,14 @@ public:
 	///\return the spline value or zero if center lookup fails
 	double operator()(const double* x) const;
 	
-	///Evaluate the second derivative of the spline hypersurface.
+	///Evaluate arbitrary derivative of the spline hypersurface.
 	///\param x a vector of coordinates at which the spline is to be evaluated
 	///\param centers a vector of knot indices derived from x, constructed using
 	///       searchcenters
-	///\param derivatives a bitmask indicating in which dimensions the second
-	///       derivative of the spline should be computed.
-	///\return the second derivative of the spline
-	double ndsplineeval_deriv2(const double* x, const int* centers, int derivatives) const;
+	///\param derivatives a vector giving the order of derivative to compute
+	///       for each dimension
+	///\return the derivative of the spline
+	double ndsplineeval_deriv(const double* x, const int* centers, const unsigned int *derivatives) const;
 	
 	///Evaluate the spline hypersurface and its gradient.
 	///If the full gradient is needed along with the spline value this function
