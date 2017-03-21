@@ -217,6 +217,28 @@ public:
 		return(*this);
 	}
 	
+	///Compare splines for equality.
+	///Splines are considered equal if evaluation would return the same result
+	///at all possible coordinate values. Auxiliary FITS header entries are not
+	///considered.
+	bool operator==(const splinetable& other) const{
+		if (ndim != other.ndim)
+			return false;
+		if (!std::equal(order,order+ndim,other.order))
+			return false;
+		if (!std::equal(naxes,naxes+ndim,other.naxes))
+			return false;
+		if (!std::equal(nknots,nknots+ndim,other.nknots))
+			return false;
+		for (uint32_t i=0; i<ndim; i++)
+			if (!std::equal(knots[i],knots[i]+nknots[i],other.knots[i]))
+				return false;
+		if (get_ncoeffs() != other.get_ncoeffs())
+			return false;
+		if (!std::equal(coefficients,coefficients+get_ncoeffs(),other.coefficients))
+			return false;
+	}
+
 	///Estimate the memory needed to load an existing spline.
 	///This function is intended for users using specialized allocators for which
 	///it is useful to know the total memory required before constructing the
