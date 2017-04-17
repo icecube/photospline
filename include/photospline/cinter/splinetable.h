@@ -2,6 +2,7 @@
 #define PHOTOSPLINE_C_SPLINETABLE_H
 
 #include <stdint.h>
+#include <stdbool.h>
 #include <stddef.h>
 
 #ifdef PHOTOSPLINE_INCLUDES_SPGLAM
@@ -150,7 +151,7 @@ int splinetable_glamfit(struct splinetable* table, const struct ndsparse* data,
                         const uint32_t* splineOrder, const double* const* knots,
                         const uint64_t* nknots,
                         const double* smoothing, const uint32_t* penaltyOrder,
-                        uint32_t monodim=-1, bool verbose=true);
+                        uint32_t monodim, bool verbose);
 	
 /// Evaluate a spline on a grid
 ///\param table the spline to evaluate
