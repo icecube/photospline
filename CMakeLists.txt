@@ -226,6 +226,7 @@ ADD_EXECUTABLE(photospline-inspect
 TARGET_LINK_LIBRARIES(photospline-inspect
   photospline
 )
+install(TARGETS photospline-inspect RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 
 ADD_EXECUTABLE(photospline-bench
   src/tools/bench.cpp
@@ -247,6 +248,7 @@ ADD_EXECUTABLE(photospline-eval
 TARGET_LINK_LIBRARIES(photospline-eval
   photospline
 )
+install(TARGETS photospline-eval RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 
 if(BUILD_SPGLAM)
   ADD_EXECUTABLE(photospline-gen_test_splines
