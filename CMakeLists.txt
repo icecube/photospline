@@ -138,9 +138,9 @@ IF (BUILD_SPGLAM)
   endif(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
   # Assume that if TBB can be found, we need to link
   # against it to use SuiteSparse
-  # IF (TBB_FOUND)
-  #   target_link_libraries(spglam PUBLIC ${TBB_LIBRARIES})
-  # ENDIF (TBB_FOUND)
+  IF (TBB_FOUND)
+    target_link_libraries(spglam PUBLIC ${TBB_LIBRARIES})
+  ENDIF (TBB_FOUND)
   # Likewise assume that if METIS is found we need it as well, 
   # even if we never use it. 
   IF (METIS_FOUND)
@@ -192,13 +192,17 @@ ENDIF(PYTHON_FOUND)
 # -----------------------------------------------------------------------------
 # Export targets for use in downstream CMake projects
 # -----------------------------------------------------------------------------
-set(_config_dir share/${PROJECT_NAME}/cmake)
 include(CMakePackageConfigHelpers)
+# Make importable from build directory
 write_basic_package_version_file(
   "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake"
   VERSION ${PROJECT_VERSION}
   COMPATIBILITY AnyNewerVersion
 )
+export(EXPORT ${PROJECT_NAME}Config FILE ${PROJECT_NAME}Config.cmake)
+
+# Make importable from install location
+set(_config_dir share/${PROJECT_NAME}/cmake)
 install(FILES "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake"
   DESTINATION ${_config_dir}
 )
