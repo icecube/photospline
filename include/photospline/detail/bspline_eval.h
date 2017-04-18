@@ -375,7 +375,7 @@ splinetable<Alloc>::get_evaluator() const{
 	}
 	
 	switch(constOrder){
-#ifdef PHOTOSPLINE_EVAL_TEMPLATES
+#ifndef PHOTOSPLINE_NO_EVAL_TEMPLATES
 		case 2:
 			switch(ndim){
 				case 1:
@@ -457,7 +457,7 @@ splinetable<Alloc>::get_evaluator() const{
 #endif
 		default:
 			switch(ndim){
-#ifdef PHOTOSPLINE_EVAL_TEMPLATES
+#ifndef PHOTOSPLINE_NO_EVAL_TEMPLATES
 				case 1:
 					eval.eval_ptr=&splinetable::ndsplineeval_coreD<1>;
 					eval.v_eval_ptr=&splinetable::ndsplineeval_multibasis_coreD<1>; break;
@@ -497,7 +497,7 @@ splinetable<Alloc>::get_evaluator() const{
 			}
 	}
 
-#ifdef PHOTOSPLINE_EVAL_TEMPLATES
+#ifndef PHOTOSPLINE_NO_EVAL_TEMPLATES
 	// Mixed orders known to exist in the wild
 	if (detail::orders_are(*this, {2,2,2,3,2,2})) {
 		eval.eval_ptr=&splinetable::ndsplineeval_core_KnownOrder<2,2,2,3,2,2>;

@@ -906,11 +906,12 @@ static PyMethodDef pysplinetable_methods[] = {
 	 "Evaluate the given derivatives of the spline along each dimension"},
 	{"permute_dimensions", (PyCFunction)pysplinetable_permute, METH_KEYWORDS,
 	 "Permute the dimensions of an existing spline table"},
+#ifdef PHOTOSPLINE_INCLUDES_SPGLAM
 	{"grideval", (PyCFunction)pysplinetable_grideval, METH_KEYWORDS,
 	 "Evaluate the spline at a grid of points\n\n"
 	 ":param coords: coordinate vectors for each dimension\n"
 	 ":returns: an array of spline evaluates with size `len(coord[dim])` in each dimension"},
-
+#endif
 	{NULL}  /* Sentinel */
 };
 
