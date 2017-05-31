@@ -187,10 +187,10 @@ void ndsplineeval_gradient(const struct splinetable* table, const double* x,
 	real_table.ndsplineeval_gradient(x,centers,evaluates);
 }
 	
-double ndsplineeval_deriv2(const struct splinetable* table, const double* x,
-                           const int* centers, int derivatives){
+double ndsplineeval_deriv(const struct splinetable* table, const double* x,
+                           const int* centers, const unsigned int *derivatives){
 	const auto& real_table=*static_cast<const photospline::splinetable<>*>(table->data);
-	return(real_table.ndsplineeval_deriv2(x,centers,derivatives));
+	return(real_table.ndsplineeval_deriv(x,centers,derivatives));
 }
 	
 int splinetable_convolve(struct splinetable* table, const int dim,

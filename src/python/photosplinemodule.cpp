@@ -8,6 +8,7 @@
 #include <limits.h>
 
 #include <photospline/splinetable.h>
+#include <photospline/bspline.h>
 
 #ifdef PHOTOSPLINE_INCLUDES_SPGLAM
 typedef struct{
@@ -720,34 +721,29 @@ pysplinetable_evaluate_gradient(pysplinetable* self, PyObject* args, PyObject* k
 }
 
 static PyObject*
-pysplinetable_deriv2(pysplinetable* self, PyObject* args, PyObject* kwds){
+pysplinetable_deriv(pysplinetable* self, PyObject* args, PyObject* kwds){
 	static const char* kwlist[] = {"x", "centers", "derivatives", NULL};
 	
 	PyObject* pyx=NULL;
 	PyObject* pycenters=NULL;
-	unsigned long derivatives=0;
+	PyObject* derivatives=NULL;
 	
-	if (!PyArg_ParseTupleAndKeywords(args, kwds, "OOk", (char**)kwlist, &pyx, &pycenters, &derivatives))
+	if (!PyArg_ParseTupleAndKeywords(args, kwds, "OOO", (char**)kwlist, &pyx, &pycenters, &derivatives))
 		return(NULL);
-	
-	if(!PySequence_Check(pyx)){
-		PyErr_SetString(PyExc_ValueError, "x must be a sequence");
-		return(NULL);
-	}
-	if(!PySequence_Check(pycenters)){
-		PyErr_SetString(PyExc_ValueError, "centers must be a sequence");
-		return(NULL);
-	}
 	
 	Py_ssize_t xlen=PySequence_Length(pyx);
 	Py_ssize_t centerslen=PySequence_Length(pycenters);
-	
+	Py_ssize_t derivativeslen=PySequence_Length(derivatives);
 	if(xlen==-1){
 		PyErr_SetString(PyExc_ValueError, "x must be a sequence");
 		return(NULL);
 	}
 	if(centerslen==-1){
 		PyErr_SetString(PyExc_ValueError, "centers must be a sequence");
+		return(NULL);
+	}
+	if(derivativeslen==-1){
+		PyErr_SetString(PyExc_ValueError, "derivatives must be a sequence");
 		return(NULL);
 	}
 	uint32_t ndim=self->table->get_ndim();
@@ -759,10 +755,8 @@ pysplinetable_deriv2(pysplinetable* self, PyObject* args, PyObject* kwds){
 		PyErr_SetString(PyExc_ValueError, "Length of centers must match the table dimension");
 		return(NULL);
 	}
-	
-	unsigned int invalid_derivative_mask=~((1<<ndim)-1);
-	if((derivatives&invalid_derivative_mask)!=0){
-		PyErr_SetString(PyExc_ValueError, "Bits beyond the table dimension must not be set in derivatives");
+	if(derivativeslen!=ndim){
+		PyErr_SetString(PyExc_ValueError, "Length of derivatives must match the table dimension");
 		return(NULL);
 	}
 	
@@ -773,6 +767,7 @@ pysplinetable_deriv2(pysplinetable* self, PyObject* args, PyObject* kwds){
 		//a small amount of evil
 		double x[ndim];
 		int centers[ndim];
+		unsigned int derivs[ndim];
 		
 		for(unsigned int i=0; i!=ndim; i++){
 			PyObject* xi=PySequence_GetItem(pyx,i);
@@ -781,9 +776,17 @@ pysplinetable_deriv2(pysplinetable* self, PyObject* args, PyObject* kwds){
 			PyObject* centeri=PySequence_GetItem(pycenters,i);
 			centers[i]=PyInt_AsLong(centeri);
 			Py_DECREF(centeri); //done with this
+			PyObject* derivi=PySequence_GetItem(derivatives,i);
+			if (PyInt_AsLong(derivi) < 0) {
+				Py_DECREF(derivi);
+				PyErr_SetString(PyExc_ValueError, "Derivatives must be nonnegative integers");
+				return(NULL);
+			}
+			derivs[i] = PyInt_AsLong(derivi);
+			Py_DECREF(derivi);
 		}
 		
-		double result=self->table->ndsplineeval_deriv2(x,centers,derivatives);
+		double result=self->table->ndsplineeval_deriv(x,centers,derivs);
 		return(Py_BuildValue("d",result));
 	}
 }
@@ -829,6 +832,52 @@ pysplinetable_permute(pysplinetable* self, PyObject* args, PyObject* kwds){
 	return(Py_None);
 }
 
+static PyObject*
+pyphotospline_bspline(pysplinetable* self, PyObject* args, PyObject* kwds){
+	// count refs the lazy way
+	auto deleter = [](PyObject* ptr){ Py_DECREF(ptr); };
+	typedef std::unique_ptr<PyObject, decltype(deleter)> handle;
+	
+	static const char* kwlist[] = {"knots", "x", "index", "order", NULL};
+	
+	PyObject* pyknots(NULL);
+	double x;
+	int i, order;
+	
+	if (!PyArg_ParseTupleAndKeywords(args, kwds, "Odii", (char**)kwlist, &pyknots, &x, &i, &order))
+		return(NULL);
+	
+#ifdef HAVE_NUMPY
+	handle pyknots_arr(PyArray_ContiguousFromAny(pyknots, NPY_DOUBLE, 1, 1), deleter);
+	if (!pyknots_arr)
+		return NULL;
+	ssize_t n_knots = PyArray_SIZE((PyArrayObject*)pyknots_arr.get());
+	const double *knots = (const double*)PyArray_DATA((PyArrayObject*)pyknots_arr.get());
+#else
+	if (!PySequence_Check(pyknots))
+		PyErr_SetString(PyExc_TypeError, "Knots must be a sequence");
+	std::vector<double> knot_vec(PySequence_Length(pyknots));
+	for (unsigned i=0; i < knot_vec.size(); i++) {
+		handle item(PySequence_GetItem(pyknots,i), deleter);
+		knot_vec[i] = PyFloat_AsDouble(item.get());
+	}
+	ssize_t n_knots = knot_vec.size();
+	const double *knots = knot_vec.data();
+#endif
+	
+	if (order > n_knots-2) {
+		PyErr_SetString(PyExc_ValueError, "Need at least n+2 knots to define an nth-order spline");
+		return NULL;
+	}
+	if (i < 0 || i > n_knots-order-1) {
+		PyErr_SetString(PyExc_ValueError, "Spline index out of range");
+		return NULL;
+	}
+	
+	return PyFloat_FromDouble(photospline::bspline(knots, x, i, order));
+}
+
+
 static PyGetSetDef pysplinetable_properties[] = {
 	{(char*)"order", (getter)pysplinetable_getorder, NULL, (char*)"Order of spline in each dimension", NULL},
 #ifdef HAVE_NUMPY
@@ -853,15 +902,16 @@ static PyMethodDef pysplinetable_methods[] = {
 	 "Evaluate the spline at a set of coordinates or its derivatives in the given dimensions"},
 	{"evaluate_gradient", (PyCFunction)pysplinetable_evaluate_gradient, METH_KEYWORDS,
 	 "Evaluate the spline and all of its derivatives at a set of coordinates"},
-	{"deriv2", (PyCFunction)pysplinetable_deriv2, METH_KEYWORDS,
-	 "Evaluate the second derivative of the spline in the given dimensions"},
+	{"deriv", (PyCFunction)pysplinetable_deriv, METH_KEYWORDS,
+	 "Evaluate the given derivatives of the spline along each dimension"},
 	{"permute_dimensions", (PyCFunction)pysplinetable_permute, METH_KEYWORDS,
 	 "Permute the dimensions of an existing spline table"},
+#ifdef PHOTOSPLINE_INCLUDES_SPGLAM
 	{"grideval", (PyCFunction)pysplinetable_grideval, METH_KEYWORDS,
 	 "Evaluate the spline at a grid of points\n\n"
 	 ":param coords: coordinate vectors for each dimension\n"
 	 ":returns: an array of spline evaluates with size `len(coord[dim])` in each dimension"},
-
+#endif
 	{NULL}  /* Sentinel */
 };
 
@@ -912,6 +962,12 @@ static PyMethodDef photospline_methods[] = {
 	{"glam_fit", (PyCFunction)pyphotospline_glam_fit, METH_KEYWORDS,
 	 "Fit a spline table to data"},
 #endif
+	{"bspline", (PyCFunction)pyphotospline_bspline, METH_KEYWORDS,
+	 "Evaluate the `i`th B-spline on knot vector `knots` at `x`\n\n"
+	 ":param knots: knot vector\n"
+	 ":param x: point at which to evaluate\n"
+	 ":param index: index of spline (between 0 and n_knots-order-1)\n"
+	 ":param order: order of spline to evaluate\n"},
 	{NULL}  /* Sentinel */
 };
 

@@ -123,8 +123,8 @@ std::vector<std::array<double,N>> splinetable<Alloc>::sample(
   size_t nresults, size_t burnin, std::array<size_t,N> samplingDimensions,
   std::vector<double> coordinates, Distribution distribution, RNG& rng,
   int derivatives) const{
-	return sample(nresults, burnin, samplingDimensions, derivatives,
-	    coordinates, distribution, rng,
+	return sample(nresults, burnin, samplingDimensions,
+	    coordinates, distribution, rng, derivatives,
 	    [](const std::vector<double> &x, double pdf) { return pdf; });
 }
 

@@ -150,6 +150,28 @@ public:
 		read_fits(filePath);
 	}
 	
+	splinetable(splinetable&& other):
+	ndim(other.ndim),order(std::move(other.order)),knots(std::move(other.knots)),
+	nknots(other.nknots),extents(std::move(other.extents)),
+	periods(std::move(other.periods)),coefficients(std::move(other.coefficients)),
+	naxes(std::move(other.naxes)),strides(std::move(other.strides)),
+	naux(other.naux),aux(std::move(other.aux)),
+	allocator(std::move(other.allocator))
+	{
+		other.ndim=0;
+		other.order=NULL;
+		other.knots=NULL;
+		other.nknots=NULL;
+		other.extents=NULL;
+		other.periods=NULL;
+		other.coefficients=NULL;
+		other.naxes=NULL;
+		other.strides=NULL;
+		other.naux=0;
+		other.aux=NULL;
+		other.allocator=Alloc();
+	}
+	
 	~splinetable(){
 		if(ndim){
 			uint64_t ncoeffs=strides[0]*naxes[0];
@@ -176,6 +198,47 @@ public:
 		}
 	}
 	
+	splinetable& operator=(splinetable&& other){
+		if(&other==this)
+			return(*this);
+		using std::swap;
+		swap(ndim,other.ndim);
+		swap(order,other.order);
+		swap(knots,other.knots);
+		swap(nknots,other.nknots);
+		swap(extents,other.extents);
+		swap(periods,other.periods);
+		swap(coefficients,other.coefficients);
+		swap(naxes,other.naxes);
+		swap(strides,other.strides);
+		swap(naux,other.naux);
+		swap(aux,other.aux);
+		swap(allocator,other.allocator);
+		return(*this);
+	}
+	
+	///Compare splines for equality.
+	///Splines are considered equal if evaluation would return the same result
+	///at all possible coordinate values. Auxiliary FITS header entries are not
+	///considered.
+	bool operator==(const splinetable& other) const{
+		if (ndim != other.ndim)
+			return false;
+		if (!std::equal(order,order+ndim,other.order))
+			return false;
+		if (!std::equal(naxes,naxes+ndim,other.naxes))
+			return false;
+		if (!std::equal(nknots,nknots+ndim,other.nknots))
+			return false;
+		for (uint32_t i=0; i<ndim; i++)
+			if (!std::equal(knots[i],knots[i]+nknots[i],other.knots[i]))
+				return false;
+		if (get_ncoeffs() != other.get_ncoeffs())
+			return false;
+		if (!std::equal(coefficients,coefficients+get_ncoeffs(),other.coefficients))
+			return false;
+	}
+
 	///Estimate the memory needed to load an existing spline.
 	///This function is intended for users using specialized allocators for which
 	///it is useful to know the total memory required before constructing the
@@ -262,11 +325,13 @@ public:
 		///\brief same as splinetable::searchcenters
 		bool searchcenters(const double* x, int* centers) const;
 		///\brief same as splinetable::ndsplineeval
-		double ndsplineeval(const double* x, const int* centers, int derivatives) const;
+		double ndsplineeval(const double* x, const int* centers, int derivatives=0) const;
+		///\brief Convenince short-cut for ndsplineeval
+		double operator()(const double* x, int derivatives=0) const;
 		///\brief same as splinetable::ndsplineeval_gradient
 		void ndsplineeval_gradient(const double* x, const int* centers, double* evaluates) const;
-		///\brief same as splinetable::ndsplineeval_deriv2
-		double ndsplineeval_deriv2(const double* x, const int* centers, int derivatives) const;
+		///\brief same as splinetable::ndsplineeval_deriv
+		double ndsplineeval_deriv(const double* x, const int* centers, const unsigned int *derivatives) const;
 	};
 	friend struct evaluator;
 	
@@ -304,14 +369,23 @@ public:
 	///\return the spline value or derivative value
 	double ndsplineeval(const double* x, const int* centers, int derivatives) const;
 	
-	///Evaluate the second derivative of the spline hypersurface.
+	///Evaluate the spline hypersurface.
+	///This convenience interface for evaluation simply performs searchcenters
+	///and ndsplineeval. It assumes that no derivative is desired, and yields
+	///zero when searchcenters fails. This is suitable for simple uses where the
+	///user knows that the coordinates will be inside the table bounds.
+	///\param x a vector of coordinates at which the spline is to be evaluated
+	///\return the spline value or zero if center lookup fails
+	double operator()(const double* x) const;
+	
+	///Evaluate arbitrary derivative of the spline hypersurface.
 	///\param x a vector of coordinates at which the spline is to be evaluated
 	///\param centers a vector of knot indices derived from x, constructed using
 	///       searchcenters
-	///\param derivatives a bitmask indicating in which dimensions the second
-	///       derivative of the spline should be computed.
-	///\return the second derivative of the spline
-	double ndsplineeval_deriv2(const double* x, const int* centers, int derivatives) const;
+	///\param derivatives a vector giving the order of derivative to compute
+	///       for each dimension
+	///\return the derivative of the spline
+	double ndsplineeval_deriv(const double* x, const int* centers, const unsigned int *derivatives) const;
 	
 	///Evaluate the spline hypersurface and its gradient.
 	///If the full gradient is needed along with the spline value this function
@@ -543,9 +617,6 @@ private:
 	char_ptr_ptr_ptr aux;
 	
 	allocator_type allocator;
-	uint32_t constOrder;
-	double (splinetable::*eval_ptr)(const int*, int, detail::buffer2d<float>) const;
-	void (splinetable::*v_eval_ptr)(const int*, const v4sf***, v4sf*) const;
 	
 	splinetable(const splinetable&);
 	splinetable& operator=(const splinetable& other);
@@ -612,7 +683,5 @@ private:
 #include "photospline/detail/fit.h"
 #include "photospline/detail/grideval.h"
 #endif
-
-#include "photospline/detail/config.h"
 
 #endif /* PHOTOSPLINE_SPLINETABLE_H */

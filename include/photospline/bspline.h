@@ -11,8 +11,7 @@ namespace photospline{
  */
 
 double bspline(const double* knots, double x, int i, int n);
-double bspline_deriv(const double* knots, double x, int i, int n);
-double bspline_deriv_2(const double* knots, double x, int i, int n);
+double bspline_deriv(const double* knots, double x, int i, int n, unsigned order);
 
 /*
  * A brain-dead reimplementation of de Boor's BSPLVB, which generates

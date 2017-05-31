@@ -324,25 +324,37 @@ double splinetable<Alloc>::ndsplineeval(const double* x, const int* centers, int
 	
 	return(ndsplineeval_core(centers, maxdegree, localbasis));
 }
+	
+template<typename Alloc>
+double splinetable<Alloc>::operator()(const double* x) const{
+	int centers[ndim];
+	if(!searchcenters(x,centers))
+		return(0);
+	return(ndsplineeval(x,centers,0));
+}
 
 template<typename Alloc>
-double splinetable<Alloc>::ndsplineeval_deriv2(const double* x, const int* centers, int derivatives) const
+double splinetable<Alloc>::ndsplineeval_deriv(const double* x, const int* centers, const unsigned int *derivatives) const
 {
 	uint32_t maxdegree = *std::max_element(order,order+ndim) + 1;
 	float localbasis_store[ndim*maxdegree];
 	detail::buffer2d<float> localbasis{localbasis_store,maxdegree};
 	
 	for (uint32_t n = 0; n < ndim; n++) {
-		if (derivatives & (1 << n)) {
-			for (int32_t i = 0; i <= order[n]; i++)
-				localbasis[n][i] = bspline_deriv_2(
-												   &knots[n][0], x[n],
-												   centers[n] - order[n] + i, 
-												   order[n]);
-		} else {
+		if (derivatives == nullptr || derivatives[n] == 0) {
 			bsplvb_simple(&knots[n][0], nknots[n],
 						  x[n], centers[n], order[n] + 1,
 						  localbasis[n]);
+		} else if (derivatives[n] == 1) {
+			bspline_deriv_nonzero(&knots[n][0], nknots[n],
+						  x[n], centers[n], order[n],
+						  localbasis[n]);
+		} else {
+			for (int32_t i = 0; i <= order[n]; i++)
+				localbasis[n][i] = bspline_deriv(
+												   &knots[n][0], x[n],
+												   centers[n] - order[n] + i, 
+												   order[n], derivatives[n]);
 		}
 	}
 	
@@ -363,7 +375,7 @@ splinetable<Alloc>::get_evaluator() const{
 	}
 	
 	switch(constOrder){
-#ifdef PHOTOSPLINE_EVAL_TEMPLATES
+#ifndef PHOTOSPLINE_NO_EVAL_TEMPLATES
 		case 2:
 			switch(ndim){
 				case 1:
@@ -445,7 +457,7 @@ splinetable<Alloc>::get_evaluator() const{
 #endif
 		default:
 			switch(ndim){
-#ifdef PHOTOSPLINE_EVAL_TEMPLATES
+#ifndef PHOTOSPLINE_NO_EVAL_TEMPLATES
 				case 1:
 					eval.eval_ptr=&splinetable::ndsplineeval_coreD<1>;
 					eval.v_eval_ptr=&splinetable::ndsplineeval_multibasis_coreD<1>; break;
@@ -485,7 +497,7 @@ splinetable<Alloc>::get_evaluator() const{
 			}
 	}
 
-#ifdef PHOTOSPLINE_EVAL_TEMPLATES
+#ifndef PHOTOSPLINE_NO_EVAL_TEMPLATES
 	// Mixed orders known to exist in the wild
 	if (detail::orders_are(*this, {2,2,2,3,2,2})) {
 		eval.eval_ptr=&splinetable::ndsplineeval_core_KnownOrder<2,2,2,3,2,2>;
@@ -528,22 +540,35 @@ double splinetable<Alloc>::evaluator::ndsplineeval(const double* x, const int* c
 }
 	
 template<typename Alloc>
-double splinetable<Alloc>::evaluator::ndsplineeval_deriv2(const double* x, const int* centers, int derivatives) const
+double splinetable<Alloc>::evaluator::operator()(const double* x, int derivatives) const{
+	int centers[table.ndim];
+	if(!table.searchcenters(x,centers))
+		return(0);
+	return(ndsplineeval(x,centers,derivatives));
+}
+	
+template<typename Alloc>
+double splinetable<Alloc>::evaluator::ndsplineeval_deriv(const double* x, const int* centers, const unsigned int *derivatives) const
 {
 	uint32_t maxdegree = *std::max_element(table.order,table.order+table.ndim) + 1;
 	float localbasis_store[table.ndim*maxdegree];
 	detail::buffer2d<float> localbasis{localbasis_store,maxdegree};
 	
 	for (uint32_t n = 0; n < table.ndim; n++) {
-		if (derivatives & (1 << n)) {
-			for (int32_t i = 0; i <= table.order[n]; i++)
-				localbasis[n][i] = bspline_deriv_2(&table.knots[n][0], x[n],
-												   centers[n] - table.order[n] + i,
-												   table.order[n]);
-		} else {
+		if (derivatives == nullptr || derivatives[n] == 0) {
 			bsplvb_simple(&table.knots[n][0], table.nknots[n],
 						  x[n], centers[n], table.order[n] + 1,
 						  localbasis[n]);
+		} else if (derivatives[n] == 1) {
+			bspline_deriv_nonzero(&table.knots[n][0], table.nknots[n],
+						  x[n], centers[n], table.order[n],
+						  localbasis[n]);
+		} else {
+			for (int32_t i = 0; i <= table.order[n]; i++)
+				localbasis[n][i] = bspline_deriv(
+												   &table.knots[n][0], x[n],
+												   centers[n] - table.order[n] + i, 
+												   table.order[n], derivatives[n]);
 		}
 	}
 	
