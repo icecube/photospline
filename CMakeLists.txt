@@ -135,8 +135,9 @@ IF (BUILD_SPGLAM)
 
   if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
     target_link_libraries(spglam PUBLIC pthread rt)
-  elseif(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-    target_link_libraries(spglam PUBLIC pthread c++)
+# Test if this is still necessary
+#  elseif(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+#    target_link_libraries(spglam PUBLIC c++)
   endif(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
   # Assume that if TBB can be found, we need to link
   # against it to use SuiteSparse
@@ -163,7 +164,7 @@ ENDIF()
 
 # Python interface
 
-IF(PYTHON_FOUND AND SUITESPARSE_FOUND)
+IF(PYTHON_FOUND)
   MESSAGE("-- Will build the python module")
 
   LIST (APPEND python_SOURCES
