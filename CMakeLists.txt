@@ -135,9 +135,8 @@ IF (BUILD_SPGLAM)
 
   if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
     target_link_libraries(spglam PUBLIC pthread rt)
-# Test if this is still necessary
-#  elseif(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-#    target_link_libraries(spglam PUBLIC c++)
+  elseif(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+    target_link_libraries(spglam PUBLIC c++)
   endif(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
   # Assume that if TBB can be found, we need to link
   # against it to use SuiteSparse
