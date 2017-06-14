@@ -56,7 +56,7 @@ target_compile_features (photospline
 )
 target_compile_options (photospline PUBLIC -O3)
 IF (CMAKE_SYSTEM_PROCESSOR MATCHES "^(i.86|x86_64)$")
-  target_compile_options (photospline PUBLIC -msse2 -msse3 -msse4 -msse4.1 -msse4.2 -mavx -march=native)
+  target_compile_options (photospline PUBLIC -msse2 -msse3 -msse4 -msse4.1 -msse4.2 -march=native)
 ELSEIF (CMAKE_SYSTEM_PROCESSOR MATCHES "^(powerpc|ppc)")
   target_compile_options (photospline PUBLIC -maltivec)
 ELSEIF (CMAKE_SYSTEM_PROCESSOR MATCHES "^sparc")
