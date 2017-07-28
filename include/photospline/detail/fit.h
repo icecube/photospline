@@ -25,48 +25,54 @@ void splinetable<Alloc>::fit(const ::ndsparse& data,
 	//Sanity checking
 	if(data.rows!=weights.size())
 		throw std::logic_error("Number of weights ("
-							   +std::to_string(weights.size())
-							   +") does not equal number of data points ("
-							   +std::to_string(data.rows)+")");
+		                       +std::to_string(weights.size())
+		                       +") does not equal number of data points ("
+		                       +std::to_string(data.rows)+")");
 	for(uint32_t i=0; i<data.ndim; i++){
 		unsigned int maxIdx=*std::max_element(data.i[i],data.i[i]+data.rows);
 		if(maxIdx>=data.ranges[i])
 			throw std::logic_error("Range of coordinate indices ("
-								   +std::to_string(data.ranges[i])
-								   +") in dimension "+std::to_string(i)
-								   +" does not include the maximum index used ("
-								   +std::to_string(maxIdx)+")");
+			                       +std::to_string(data.ranges[i])
+			                       +") in dimension "+std::to_string(i)
+			                       +" does not include the maximum index used ("
+			                       +std::to_string(maxIdx)+")");
 	}
 	if(coords.size()!=data.ndim)
 		throw std::logic_error("Number of coordinate vectors ("
-							   +std::to_string(coords.size())
-							   +") does not equal dimension of input data ("
-							   +std::to_string(data.ndim)+")");
+		                       +std::to_string(coords.size())
+		                       +") does not equal dimension of input data ("
+		                       +std::to_string(data.ndim)+")");
 	if(splineOrder.size()!=data.ndim)
 		throw std::logic_error("Number of spline orders ("
-							   +std::to_string(splineOrder.size())
-							   +") does not equal dimension of input data ("
-							   +std::to_string(data.ndim)+")");
+		                       +std::to_string(splineOrder.size())
+		                       +") does not equal dimension of input data ("
+		                       +std::to_string(data.ndim)+")");
 	if(knots.size()!=data.ndim)
 		throw std::logic_error("Number of knot vectors ("
-							   +std::to_string(knots.size())
-							   +") does not equal dimension of input data ("
-							   +std::to_string(data.ndim)+")");
+		                       +std::to_string(knots.size())
+		                       +") does not equal dimension of input data ("
+		                       +std::to_string(data.ndim)+")");
+	for(uint32_t i=0; i<data.ndim; i++){
+		if(!std::is_sorted(knots[i].begin(),knots[i].end()))
+			throw std::logic_error("Knot vector for dimension "
+			                       +std::to_string(i)+
+			                       " is not in sorted order");
+	}
 	if(smoothing.size()!=data.ndim && smoothing.size()!=1)
 		throw std::logic_error("Number of smoothing strengths specified ("
-							   +std::to_string(smoothing.size())
-							   +") should be 1 or the number of spline dimensions ("
-							   +std::to_string(data.ndim)+")");
-	if(penaltyOrder.size()!=data.ndim && smoothing.size()!=1)
+		                       +std::to_string(smoothing.size())
+		                       +") should be 1 or the number of spline dimensions ("
+		                       +std::to_string(data.ndim)+")");
+	if(penaltyOrder.size()!=data.ndim && penaltyOrder.size()!=1)
 		throw std::logic_error("Number of penalty orders specified ("
-							   +std::to_string(penaltyOrder.size())
-							   +") should be 1 or the number of spline dimensions ("
-							   +std::to_string(data.ndim)+")");
+		                       +std::to_string(penaltyOrder.size())
+		                       +") should be 1 or the number of spline dimensions ("
+		                       +std::to_string(data.ndim)+")");
 	if(monodim!=no_monodim && monodim>=data.ndim)
 		throw std::logic_error("Requested monotonic dimension ("
-							   +std::to_string(monodim)
-							   +") shoulb be less than the number of spline dimensions ("
-							   +std::to_string(data.ndim)+")");
+		                       +std::to_string(monodim)
+		                       +") shoulb be less than the number of spline dimensions ("
+		                       +std::to_string(data.ndim)+")");
 	
 	//Initialize variables
 	ndim=data.ndim;
@@ -122,21 +128,21 @@ void splinetable<Alloc>::fit(const ::ndsparse& data,
 		penalty=cholmod_l_spzeros(sidelen, sidelen, 1, CHOLMOD_REAL, &cholmod_state);
 		for(uint32_t i = 0; i < ndim; i++){
 			penalty = add_penalty_term(nsplines.get(), &this->knots[i][0], ndim,
-									   i, order[i],
-									   (penaltyOrder.size()>1?penaltyOrder[i]:penaltyOrder[0]),
-									   (smoothing.size()>1?smoothing[i]:smoothing[0]),
-									   i==monodim, penalty,
-									   &cholmod_state);
+			                           i, order[i],
+			                           (penaltyOrder.size()>1?penaltyOrder[i]:penaltyOrder[0]),
+			                           (smoothing.size()>1?smoothing[i]:smoothing[0]),
+			                           i==monodim, penalty,
+			                           &cholmod_state);
 		}
 	}
 	
 	//do the fit
 	int result=
 	glamfit_complex(&data,weights.data(),dummy_coords.get(),
-					ndim,&nknots[0],dummy_knots.get(),&naxes[0],
-					&coefficients[0],
-					&order[0],penalty,(monodim==no_monodim?-1:(int)monodim),
-					verbose,&cholmod_state);
+	                ndim,&nknots[0],dummy_knots.get(),&naxes[0],
+	                &coefficients[0],
+	                &order[0],penalty,(monodim==no_monodim?-1:(int)monodim),
+	                verbose,&cholmod_state);
 	//clean up
 	cholmod_l_free_sparse(&penalty, &cholmod_state);
 	cholmod_l_finish(&cholmod_state);
