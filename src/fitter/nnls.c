@@ -984,6 +984,7 @@ nnls_normal_block3(cholmod_sparse *AtA, cholmod_dense *Atb, int verbose,
                                             ((double*)(Atb->x))[F[i]];
         
                                 x_F = cholmod_l_solve(CHOLMOD_A, L, Atb_F, c);
+                                cholmod_l_free_dense(&Atb_F, c);
                         }
 
                         ++solves;
