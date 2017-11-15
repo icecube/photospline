@@ -1,0 +1,65 @@
+#!/bin/sh
+################################################################################
+# PhotoSpline configuration script
+#
+# This script can be used to set up the user environment when the PhotoSpline
+# software is installed to some central location.
+# $Id: $
+################################################################################
+
+# No argument: print help
+if [ $# -eq 0 ]; then
+  sh $0 --help
+  exit 1
+fi
+
+# Some useful variables
+prefix=@CMAKE_INSTALL_PREFIX@
+bindir=$prefix/@CMAKE_INSTALL_BINDIR@
+libdir=$prefix/@CMAKE_INSTALL_LIBDIR@
+incdir=$prefix/@CMAKE_INSTALL_INCLUDEDIR@
+
+# Usage function
+usage()
+{
+    cat <<EOF 1>&2
+
+Photospline software configuration tool.
+
+Usage: $0 [options]
+
+Options:
+    --prefix      show PhotoSpline installation prefix
+    --libs        print library linking information
+    --cflags      print pre-processor and compiler flags
+    --help        print this help message and exit
+    --version     output version information
+
+EOF
+    exit $1
+}
+
+for opt; do
+  case $opt in
+    --help)
+      usage 0
+      ;;
+    --prefix)
+      echo $prefix
+      ;;
+    --version)
+      echo "@photospline_VERSION_MAJOR@.@photospline_VERSION_MINOR@.@photospline_VERSION_PATCH@"
+      ;;
+    --cflags)
+      echo "@CONFIG_CFLAGS@ -I$incdir"
+      ;;
+    --libs)
+      echo "-L$libdir @CONFIG_LDFLAGS@"
+      ;;
+    *)
+      echo "Unknown option $opt " 2>&1
+      usage 1
+      ;;
+  esac
+done
+

@@ -190,6 +190,48 @@ ELSEIF(NOT PYTHON_FOUND)
 ENDIF(PYTHON_FOUND)
 
 # -----------------------------------------------------------------------------
+# Create a script for configuring the user environment
+# -----------------------------------------------------------------------------
+MESSAGE ("-- Creating photospline-config script")
+#these may not actually be suitable for users
+#get_target_property(CONFIG_COMPILE_OPTIONS_RAW photospline COMPILE_OPTIONS)
+#foreach(flag IN LISTS CONFIG_COMPILE_OPTIONS_RAW)
+#  SET(CONFIG_COMPILE_OPTIONS "${CONFIG_COMPILE_OPTIONS} ${flag}")
+#endforeach(flag)
+GET_TARGET_PROPERTY(CONFIG_COMPILE_DEFINITIONS_RAW photospline COMPILE_DEFINITIONS)
+FOREACH(def IN LISTS CONFIG_COMPILE_DEFINITIONS_RAW)
+  SET(CONFIG_COMPILE_DEFINITIONS "${CONFIG_COMPILE_DEFINITIONS} -D${def}")
+ENDFOREACH(def)
+SET(CONFIG_CFLAGS "${CONFIG_COMPILE_DEFINITIONS}")
+SET(CONFIG_LDFLAGS "-lphotospline")
+GET_TARGET_PROPERTY(CONFIG_LINK_LIBRARIES_RAW photospline LINK_LIBRARIES)
+FOREACH(lib IN LISTS CONFIG_LINK_LIBRARIES_RAW)
+  IF("${lib}" MATCHES ".*lib.*\.(a|so|dylib)$")
+    SET(CONFIG_LDFLAGS "${CONFIG_LDFLAGS} ${lib}")
+  ELSEIF("${lib}" MATCHES ".*\.framework")
+    #ignore
+  ELSE()
+    SET(CONFIG_LDFLAGS "${CONFIG_LDFLAGS} -l${lib}")
+  ENDIF()
+ENDFOREACH(lib)
+IF(BUILD_SPGLAM)
+  GET_TARGET_PROPERTY(CONFIG_LINK_LIBRARIES_RAW spglam LINK_LIBRARIES)
+  FOREACH(lib IN LISTS CONFIG_LINK_LIBRARIES_RAW)
+    IF("${lib}" MATCHES ".*lib.*\.(a|so|dylib)$")
+	  SET(CONFIG_LDFLAGS "${CONFIG_LDFLAGS} ${lib}")
+	ELSEIF("${lib}" MATCHES ".*\.framework")
+	  #ignore
+	ELSE()
+	  SET(CONFIG_LDFLAGS "${CONFIG_LDFLAGS} -l${lib}")
+	ENDIF()
+  ENDFOREACH(lib)
+ENDIF(BUILD_SPGLAM)
+CONFIGURE_FILE (${CMAKE_SOURCE_DIR}/cmake/photospline-config.in
+  ${CMAKE_BINARY_DIR}/photospline-config
+  @ONLY)
+INSTALL (PROGRAMS ${CMAKE_BINARY_DIR}/photospline-config DESTINATION bin)
+
+# -----------------------------------------------------------------------------
 # Export targets for use in downstream CMake projects
 # -----------------------------------------------------------------------------
 include(CMakePackageConfigHelpers)
