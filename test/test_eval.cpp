@@ -159,12 +159,15 @@ TEST(bsplvb_simple_vs_bspline){
 	
 	// Generate a random knot field.
 	{
+		//insert dummy knots in anticipation of what would otherwise be out-of-bounds accesses
+		knotvec.insert(knotvec.end(),order,0.); 
 		std::uniform_real_distribution<> uniform(0,1);
 		for (size_t i = 0; i < n_knots; i++)
 			knotvec.push_back(uniform(rng));
+		knotvec.insert(knotvec.end(),order,0.); //more dummy knots
 	}
-	std::sort(knotvec.begin(), knotvec.end());
-	knots = knotvec.data();
+	std::sort(knotvec.begin()+order, knotvec.begin()+order+n_knots);
+	knots = knotvec.data()+order; //offset past inital dummy knots
 	
 	// Before the first fully-supported knot.
 	for (size_t i = 0; i < order+1; i++) {
@@ -248,12 +251,15 @@ TEST(bspline_deriv_nonzero_vs_bspline_deriv){
 	
 	// Generate a random knot field.
 	{
+		//insert dummy knots in anticipation of what would otherwise be out-of-bounds accesses
+		knotvec.insert(knotvec.end(),order,0.); 
 		std::uniform_real_distribution<> uniform(0,1);
 		for (size_t i = 0; i < n_knots; i++)
 			knotvec.push_back(uniform(rng));
+		knotvec.insert(knotvec.end(),order,0.); //more dummy knots
 	}
-	std::sort(knotvec.begin(), knotvec.end());
-	knots = knotvec.data();
+	std::sort(knotvec.begin()+order, knotvec.begin()+order+n_knots);
+	knots = knotvec.data()+order; //offset past inital dummy knots
 	
 	// Before the first fully-supported knot.
 	for (size_t i = 0; i < order+1; i++) {
@@ -333,12 +339,15 @@ TEST(bspline_nonzero_vs_bspline){
 	
 	// Generate a random knot field.
 	{
+		//insert dummy knots in anticipation of what would otherwise be out-of-bounds accesses
+		knotvec.insert(knotvec.end(),order,0.); 
 		std::uniform_real_distribution<> uniform(0,1);
 		for (size_t i = 0; i < n_knots; i++)
 			knotvec.push_back(uniform(rng));
+		knotvec.insert(knotvec.end(),order,0.); //more dummy knots
 	}
-	std::sort(knotvec.begin(), knotvec.end());
-	knots = knotvec.data();
+	std::sort(knotvec.begin()+order, knotvec.begin()+order+n_knots);
+	knots = knotvec.data()+order; //offset past inital dummy knots
 	
 	// Before the first fully-supported knot.
 	for (size_t i = 0; i < order+1; i++) {
@@ -435,12 +444,15 @@ TEST(single_basis_vs_multi){
 	
 	// Generate a random knot field.
 	{
+		//insert dummy knots in anticipation of what would otherwise be out-of-bounds accesses
+		knotvec.insert(knotvec.end(),order,0.); 
 		std::uniform_real_distribution<> uniform(0,1);
 		for (size_t i = 0; i < n_knots; i++)
 			knotvec.push_back(uniform(rng));
+		knotvec.insert(knotvec.end(),order,0.); //more dummy knots
 	}
-	std::sort(knotvec.begin(), knotvec.end());
-	knots = knotvec.data();
+	std::sort(knotvec.begin()+order, knotvec.begin()+order+n_knots);
+	knots = knotvec.data()+order; //offset past inital dummy knots
 	
 	// Before the first fully-supported knot.
 	for (size_t i = 0; i < order+1; i++) {
