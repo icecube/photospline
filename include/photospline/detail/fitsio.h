@@ -219,7 +219,24 @@ bool splinetable<Alloc>::read_fits_core(fitsfile* fits, const std::string& fileP
 				aux[i][0] = allocate<char>(keylen);
 				aux[i][1] = allocate<char>(valuelen);
 				std::copy(key,key+keylen,aux[i][0]);
-				std::copy(value,value+valuelen,aux[i][1]);
+				//remove stupid quotes mandated by FITS, but not removed by cfitsio on reading
+				//Note that we do not attempt to remove whitespace, because we cannot 
+				//distinguish whitespace included by the user and whitespace pointlessly
+				//added by FITS.
+				if(valuelen>1 && value[0]=='\''){
+					if(valuelen>2 && value[valuelen-2]=='\''){ //remove a trailing quote also
+						std::copy(value+1,value+valuelen-2,aux[i][1]);
+						aux[i][1][valuelen-3]='\0';
+					}
+					else{ //just remove an opening quote
+						std::copy(value+1,value+valuelen-1,aux[i][1]);
+						aux[i][1][valuelen-2]='\0';
+					}
+				}
+				else{
+					std::copy(value,value+valuelen,aux[i][1]);
+					aux[i][1][valuelen-1]='\0';
+				}
 				i++;
 			}
 		} else {

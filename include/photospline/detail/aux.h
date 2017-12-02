@@ -6,8 +6,8 @@
 namespace photospline{
 
 template<typename Alloc>
-const char* splinetable<Alloc>::get_aux_value(const char* key) const{
-	char* value=NULL;
+typename splinetable<Alloc>::const_char_ptr splinetable<Alloc>::get_aux_value(const char* key) const{
+	const_char_ptr value=nullptr;
 	for (uint32_t i=0; i < naux; i++) {
 		// NB: aux[i][0] may be a smart pointer
 		if (strcmp(key, &*aux[i][0]) == 0) {
@@ -61,12 +61,21 @@ bool splinetable<Alloc>::remove_key(const char* key){
 template<typename Alloc>
 template<typename T>
 bool splinetable<Alloc>::read_key(const char* key, T& result) const{
-	const char *value = get_aux_value(key);
+	const_char_ptr value = get_aux_value(key);
 	if(!value)
 		return (false);
-	std::istringstream ss(value);
+	std::istringstream ss(&*value);
 	ss >> result;
 	return (!ss.fail());
+}
+	
+template<typename Alloc>
+bool splinetable<Alloc>::read_key(const char* key, std::string& result) const{
+	const_char_ptr value = get_aux_value(key);
+	if(!value)
+		return (false);
+	result=&*value;
+	return (true);
 }
 	
 template<typename Alloc>
@@ -75,22 +84,58 @@ bool splinetable<Alloc>::write_key(const char* key, const T& value){
 	//check if the key is allowed
 	if (reservedFitsKeyword(key))
 		throw std::runtime_error("Cannot set key with reserved name "+std::string(key));
+	size_t keylen = strlen(key) + 1;
+	size_t maxdatalen=68; //valid for short keys
+	if(keylen<=9){ //up to 8 bytes of data
+		for(size_t i=0; i<keylen-1; i++){
+			if(!(std::isupper(key[i]) || std::isdigit(key[i])) || key[i]=='-' || key[i]=='_')
+				throw std::runtime_error("Standard (short) FITS header keywords are forbidden "
+										 "to contain characters other than uppercase letters, "
+										 "digits, dashes, and underscores (key was '"+
+										 std::string(key)+"')");
+		}
+	}
+	else{
+		//it is unclear what the contraints on the format of long keyword names 
+		//are, since the 'HIERARCH Keyword Convention' document refers to "the 
+		//rules for free-format keywords, as defined in the FITS Standard 
+		//document", when no such rules appear to exist. If this was intended to 
+		//refer to section 4.1.2.1 then cfitsio's behavior of allowing long 
+		//keywords (not split by spaces or periods) at all is non-conforming anyway. 
+		for(size_t i=0; i<keylen-1; i++){
+			if(key[i]=='=')
+				throw std::runtime_error("Standard (short) FITS header keywords must not "
+										 "contain '=' characters (key was '"+
+										 std::string(key)+"')");
+		}
+		maxdatalen=80-(13+keylen-1); //14 characters for "HIERARCH ", "= '", and "'"
+	}
+	std::ostringstream ss;
+	ss << value;
+	if(ss.fail())
+		return(false);
+	std::string valuedata=ss.str();
+	size_t valuelen = valuedata.size() + 1;
+	//For normal (short) keys, we get up to 68 bytes of storage, but for longer keywords
+	//the 'HIERARCH Keyword Convention' kicks in and limits us further
+	if(valuelen-1>maxdatalen){
+		throw std::runtime_error("Value is too long to be stored as a FITS keyword ('"
+								 +valuedata+"' has length "+std::to_string(valuelen-1)
+								 +", but a maximum of "+std::to_string(maxdatalen)+
+								 " characters will fit with this key since continued "
+								 "string keywords are not currently implemented.)");
+	}
 	//check if the key already exists and we should update it
 	size_t i;
 	for (i=0; i < naux; i++) {
 		if (strcmp(key, &*aux[i][0]) == 0)
 			break;
 	}
-	std::ostringstream ss;
-	ss << value;
-	if(ss.fail())
-		return(false);
-	size_t valuelen = ss.str().size() + 1;
 	if (i!=naux) { //the key was found, so update it
 		//try to allocate the correct amount of space for the new value
 		try{
 			char_ptr new_value=allocate<char>(valuelen);
-			std::copy(ss.str().begin(),ss.str().end(),new_value);
+			std::copy(valuedata.begin(),valuedata.end(),new_value);
 			*(new_value+valuelen-1)=0;
 			deallocate(aux[i][1],strlen(&aux[i][1][0])+1);
 			aux[i][1]=new_value;
@@ -101,7 +146,6 @@ bool splinetable<Alloc>::write_key(const char* key, const T& value){
 	}
 	//otherwise, allocate more space and append
 	else {
-		size_t keylen = strlen(key) + 1;
 		//see if we can get space for the new data before we touch any existing things
 		char_ptr new_key=nullptr, new_value=nullptr;
 		char_ptr_ptr new_entry=nullptr;
@@ -125,7 +169,7 @@ bool splinetable<Alloc>::write_key(const char* key, const T& value){
 		new_aux[naux][0] = new_key;
 		new_aux[naux][1] = new_value;
 		std::copy(key,key+keylen,new_aux[naux][0]);
-		std::copy(ss.str().begin(),ss.str().end(),new_value);
+		std::copy(valuedata.begin(),valuedata.end(),new_value);
 		*(new_value+valuelen-1)=0;
 		deallocate(aux,naux);
 		aux = new_aux;

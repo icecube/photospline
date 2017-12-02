@@ -33,7 +33,8 @@ bool reservedFitsKeyword(const char* key){
 	       strncmp("ORDER", key, 5) == 0 ||
 	       strncmp("NAXIS", key, 5) == 0 ||
 	       strncmp("PERIOD", key, 6) == 0 ||
-	       strncmp("EXTEND", key, 6) == 0);
+	       strncmp("EXTEND", key, 6) == 0 ||
+	       strncmp("COMMENT", key, 7) == 0);
 }
 
 uint32_t countAuxKeywords(fitsfile* fits){
