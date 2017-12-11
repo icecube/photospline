@@ -6,8 +6,8 @@
 namespace photospline{
 
 template<typename Alloc>
-typename splinetable<Alloc>::const_char_ptr splinetable<Alloc>::get_aux_value(const char* key) const{
-	const_char_ptr value=nullptr;
+const char* splinetable<Alloc>::get_aux_value(const char* key) const{
+	const char* value=nullptr;
 	for (uint32_t i=0; i < naux; i++) {
 		// NB: aux[i][0] may be a smart pointer
 		if (strcmp(key, &*aux[i][0]) == 0) {
@@ -61,7 +61,7 @@ bool splinetable<Alloc>::remove_key(const char* key){
 template<typename Alloc>
 template<typename T>
 bool splinetable<Alloc>::read_key(const char* key, T& result) const{
-	const_char_ptr value = get_aux_value(key);
+	const char* value = get_aux_value(key);
 	if(!value)
 		return (false);
 	std::istringstream ss(&*value);
@@ -71,7 +71,7 @@ bool splinetable<Alloc>::read_key(const char* key, T& result) const{
 	
 template<typename Alloc>
 bool splinetable<Alloc>::read_key(const char* key, std::string& result) const{
-	const_char_ptr value = get_aux_value(key);
+	const char* value = get_aux_value(key);
 	if(!value)
 		return (false);
 	result=&*value;

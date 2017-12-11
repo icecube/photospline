@@ -131,7 +131,6 @@ public:
 	typedef typename allocator_traits::template rebind_traits<double>::pointer double_ptr;
 	typedef typename allocator_traits::template rebind_traits<double_ptr>::pointer double_ptr_ptr;
 	typedef typename allocator_traits::template rebind_traits<char>::pointer char_ptr;
-	typedef typename allocator_traits::template rebind_traits<const char>::pointer const_char_ptr;
 	typedef typename allocator_traits::template rebind_traits<char_ptr>::pointer char_ptr_ptr;
 	typedef typename allocator_traits::template rebind_traits<char_ptr_ptr>::pointer char_ptr_ptr_ptr;
 	
@@ -277,11 +276,11 @@ public:
 	///Get the count of 'auxiliary' keys
 	size_t get_naux_values() const{ return(naux); }
 	///Directly get a particular auxiliary key
-	const_char_ptr get_aux_key(size_t i) const{ return(aux[i][0]); }
+	const char* get_aux_key(size_t i) const{ return(aux[i][0]); }
 	///Directly get a particular auxiliary value
 	///\param key the key whose value should be fetched
 	///\return the value if key exists, otherwise NULL
-	const_char_ptr get_aux_value(const char* key) const;
+	const char* get_aux_value(const char* key) const;
 	///Delete an auxiliary key and associated value
 	///\returns true if the key existed and was removed
 	bool remove_key(const char* key);
