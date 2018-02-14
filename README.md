@@ -1,4 +1,4 @@
-# DANGE FORK 
+# DANGER-FORK 
 
 This fork from the original photospline library is to try new things and
 to open the interface a bit to allow for hack-like usage. Note that all
