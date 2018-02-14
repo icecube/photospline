@@ -1,3 +1,10 @@
+# DANGE FORK 
+
+This fork from the original photospline library is to try new things and
+to open the interface a bit to allow for hack-like usage. Note that all
+the credit of the photospline should be given to their original authors
+and not to me; except for the bugs I may introduce in this fork. CA.
+
 # Photospline
 
 Detector response to a high-energy physics process is often estimated by Monte
