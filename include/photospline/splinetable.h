@@ -8,6 +8,7 @@
 #include <numeric>
 #include <sstream>
 #include <vector>
+#include <cstdlib>
 
 #include "photospline/bspline.h"
 #include "photospline/detail/simd.h"
@@ -149,7 +150,82 @@ public:
 	{
 		read_fits(filePath);
 	}
-	
+
+	///Construct a splinetable from stacking other splines.
+  ///\param splines the splines to stack
+  ///\param coordinates the coordiantes in the stacking dimension of the tables to be stacked
+  ///\param stackOrder the order of the spline in the stacking dimension
+  ///\details Original implementation by C. Weaver, PhD; modified by CA.
+	explicit splinetable(const std::vector<splinetable<Alloc>*>& tables, std::vector<double> coordinates, int stackOrder=2, allocator_type alloc=Alloc()):
+	ndim(0),order(NULL),knots(NULL),nknots(NULL),extents(NULL),periods(NULL),
+	coefficients(NULL),naxes(NULL),strides(NULL),naux(0),aux(NULL),allocator(alloc)
+	{
+    assert(!tables.empty());
+    assert(tables.size()==coordinates.size());
+    int inputDim=tables.front()->get_ndim();
+    for(auto table : tables){
+      assert(table->get_ndim() == inputDim);
+      for(unsigned int i=0; i<inputDim; i++)
+        assert(table->get_order(i) && tables.front()->get_order(i));
+    }
+
+    //set dimensions
+    ndim=inputDim+1;
+    //copy/set spline orders
+    order=allocate<int>(ndim);
+    std::copy_n(tables.front()->get_order(),inputDim,order);
+    order[inputDim]=stackOrder;
+
+    //copy/set knots
+    nknots=allocate<long>(ndim);
+    for(unsigned int i=0; i<inputDim; i++)
+      nknots[i] = tables.front()->get_nknots(i);
+    nknots[inputDim]=tables.size()+stackOrder+1;
+    knots=allocate<double*>(ndim);
+    //copy existing knots
+    for(unsigned int i=0; i<inputDim; i++){
+      knots[i]=allocate<double>(nknots[i]);
+      std::copy_n(tables.front()->get_knots(i),nknots[i],knots[i]);
+    }
+    //figure out knots for the new dimension
+    {
+      knots[inputDim]=allocate<double>(nknots[inputDim]);
+      double* lastKnots=knots[inputDim];
+      //copy input positions
+      std::copy_n(coordinates.begin(),tables.size(),lastKnots+stackOrder);
+
+      //shift knots
+      double knotShift=(stackOrder-1)*(lastKnots[stackOrder+tables.size()-1]-lastKnots[stackOrder])/(2*tables.size());
+      for(unsigned int i=0; i<tables.size(); i++)
+        lastKnots[stackOrder+i]+=knotShift;
+
+      //add stackOrder padding knots before
+      double knotStep=lastKnots[stackOrder+1]-lastKnots[stackOrder];
+      for(int i=0; i<stackOrder; i++)
+        lastKnots[i]=lastKnots[stackOrder]+(i-stackOrder)*knotStep;
+      //add one padding knot after
+      lastKnots[nknots[inputDim]-1]=2*lastKnots[nknots[inputDim]-2]-lastKnots[nknots[inputDim]-3];
+    }
+
+    //set naxes
+    naxes=allocate<long>(ndim);
+    for(unsigned int i=0; i<inputDim; i++)
+      naxes[i] = tables.front()->get_ncoeffs(i);
+    naxes[inputDim]=tables.size();
+
+    //copy coefficients
+    unsigned long nCoeffs=std::accumulate(naxes, naxes+ndim, 1UL, std::multiplies<unsigned long>());
+    unsigned long nInputCoeffs=std::accumulate(naxes, naxes+ndim-1, 1UL, std::multiplies<unsigned long>());
+    coefficients=allocate<float>(nCoeffs);
+    unsigned int step=naxes[ndim-1];
+    for(unsigned int i=0; i<tables.size(); i++){
+      for(unsigned int j=0; j<nInputCoeffs; j++)
+        coefficients[i+j*step]=tables[i]->get_coefficients(j);
+    }
+
+    //computeStrides();
+	}
+
 	splinetable(splinetable&& other):
 	ndim(other.ndim),order(std::move(other.order)),knots(std::move(other.knots)),
 	nknots(other.nknots),extents(std::move(other.extents)),
