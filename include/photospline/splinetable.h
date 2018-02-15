@@ -171,16 +171,17 @@ public:
 
     //set dimensions
     ndim=inputDim+1;
-    //copy/set spline orders
-    order=allocate<int>(ndim);
-    std::copy_n(tables.front()->get_order(),inputDim,order);
-    order[inputDim]=stackOrder;
+    //copy/set spline orders and knots
+    order=allocate<unsigned int>(ndim);
+    nknots=allocate<uint64_t>(ndim);
 
-    //copy/set knots
-    nknots=allocate<long>(ndim);
-    for(unsigned int i=0; i<inputDim; i++)
+    for(unsigned int i=0; i<inputDim; i++){
+      order[i] = tables.front()->get_order(i);
       nknots[i] = tables.front()->get_nknots(i);
+    }
+    order[inputDim]=stackOrder;
     nknots[inputDim]=tables.size()+stackOrder+1;
+
     knots=allocate<double*>(ndim);
     //copy existing knots
     for(unsigned int i=0; i<inputDim; i++){
@@ -208,7 +209,7 @@ public:
     }
 
     //set naxes
-    naxes=allocate<long>(ndim);
+    naxes=allocate<uint64_t>(ndim);
     for(unsigned int i=0; i<inputDim; i++)
       naxes[i] = tables.front()->get_ncoeffs(i);
     naxes[inputDim]=tables.size();
@@ -220,7 +221,7 @@ public:
     unsigned int step=naxes[ndim-1];
     for(unsigned int i=0; i<tables.size(); i++){
       for(unsigned int j=0; j<nInputCoeffs; j++)
-        coefficients[i+j*step]=tables[i]->get_coefficients(j);
+        coefficients[i+j*step]=tables[i]->get_coefficients()[j];
     }
 
     //computeStrides();
