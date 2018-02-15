@@ -224,7 +224,15 @@ public:
         coefficients[i+j*step]=tables[i]->get_coefficients()[j];
     }
 
-    //computeStrides();
+    //set strides
+    strides = allocate<uint64_t>(ndim);
+    uint64_t arraysize;
+    strides[ndim-1] = arraysize = 1;
+    for(int i=ndim-1; i >= 0; i--){
+      arraysize *= naxes[i];
+      if(i>0)
+        strides[i-1] = arraysize;
+    }
 	}
 
 	splinetable(splinetable&& other):
