@@ -169,6 +169,40 @@ public:
         assert(table->get_order(i) && tables.front()->get_order(i));
     }
 
+    // add padding dimensions
+    {
+      auto extrapolateSpline=[](const splinetable<Alloc>* s1, const splinetable<Alloc>* s2)->splinetable<Alloc>*{
+        splinetable<Alloc>* snew = new splinetable<Alloc>();
+
+        snew->ndim = s2->ndim;
+        snew->order = s2->order;
+        snew->knots = s2->knots;
+        snew->nknots = s2->nknots;
+        snew->extents = s2->extents;
+        snew->periods = s2->periods;
+        snew->coefficients = s2->coefficients;
+        snew->naxes = s2->naxes;
+        snew->strides = s2->strides;
+        snew->naux = s2->naux;
+        snew->aux = s2->aux;
+
+        unsigned long nCoeffs=snew->get_ncoeffs();
+        //unsigned long nCoeffs=std::accumulate(snew->data.naxes, snew->data.naxes+snew->data.ndim, 1UL, std::multiplies<unsigned long>());
+        for(unsigned long i=0; i<nCoeffs; i++){
+          auto c1=s1->get_coefficients()[i];
+          auto c2=s2->get_coefficients()[i];
+          snew->get_coefficients()[i]=2*c2-c1;
+        }
+        return(snew);
+      };
+
+      tables.insert(tables.begin(),extrapolateSpline(tables[1],tables[0]));
+      coordinates.insert(coordinates.begin(),2*coordinates[0]-coordinates[1]);
+
+      tables.push_back(extrapolateSpline(tables[tables.size()-2],tables[tables.size()-1]));
+      coordinates.push_back(2*coordinates[coordinates.size()-1]-coordinates[coordinates.size()-2]);
+    }
+
     //set dimensions
     ndim=inputDim+1;
     //copy/set spline orders and knots
