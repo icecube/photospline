@@ -172,7 +172,7 @@ public:
     //set dimensions
     ndim=inputDim+1;
     //copy/set spline orders and knots
-    order=allocate<unsigned int>(ndim);
+    order=allocate<uint32_t>(ndim);
     nknots=allocate<uint64_t>(ndim);
 
     for(unsigned int i=0; i<inputDim; i++){
@@ -182,16 +182,16 @@ public:
     order[inputDim]=stackOrder;
     nknots[inputDim]=tables.size()+stackOrder+1;
 
-    knots=allocate<double*>(ndim);
+    knots=allocate<double_ptr>(ndim);
     //copy existing knots
     for(unsigned int i=0; i<inputDim; i++){
-      knots[i]=allocate<double>(nknots[i]);
+      knots[i]=allocate<double>(nknots[i]+2*order[i]) + order[i];
       std::copy_n(tables.front()->get_knots(i),nknots[i],knots[i]);
     }
     //figure out knots for the new dimension
     {
-      knots[inputDim]=allocate<double>(nknots[inputDim]);
-      double* lastKnots=knots[inputDim];
+      knots[inputDim]=allocate<double>(nknots[inputDim]+2*order[inputDim]) + order[inputDim];
+      double_ptr lastKnots=knots[inputDim];
       //copy input positions
       std::copy_n(coordinates.begin(),tables.size(),lastKnots+stackOrder);
 
@@ -215,8 +215,8 @@ public:
     naxes[inputDim]=tables.size();
 
     //copy coefficients
-    unsigned long nCoeffs=std::accumulate(naxes, naxes+ndim, 1UL, std::multiplies<unsigned long>());
-    unsigned long nInputCoeffs=std::accumulate(naxes, naxes+ndim-1, 1UL, std::multiplies<unsigned long>());
+    unsigned long nCoeffs=std::accumulate(naxes, naxes+ndim, 1UL, std::multiplies<uint64_t>());
+    unsigned long nInputCoeffs=std::accumulate(naxes, naxes+ndim-1, 1UL, std::multiplies<uint64_t>());
     coefficients=allocate<float>(nCoeffs);
     unsigned int step=naxes[ndim-1];
     for(unsigned int i=0; i<tables.size(); i++){
