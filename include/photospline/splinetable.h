@@ -187,6 +187,7 @@ public:
         snew->knots = snew->allocate<double_ptr>(s2->ndim);
         for(unsigned int i=0; i<s2->ndim; i++){
           snew->knots[i] = snew->allocate<double>(s2->nknots[i]+2*s2->order[i]) + s2->order[i];
+          std::copy_n(s2->knots[i],s2->nknots[i],snew->knots[i]);
         }
 
         snew->naxes = snew->allocate<uint64_t>(s2->ndim);
@@ -195,12 +196,20 @@ public:
         snew->strides = snew->allocate<uint64_t>(s2->ndim);
         std::copy_n(s2->strides,s2->ndim,snew->strides);
 
-        /* complete me please
-        snew->extents = s2->extents;
-        snew->periods = s2->periods;
-        snew->naux = s2->naux;
-        snew->aux = s2->aux;
-        */
+        snew->extents = snew->allocate<double_ptr>(s2->ndim);
+        snew->extents[0] = snew->allocate<double>(2*s2->ndim);
+        for(unsigned int i=0;i<s2->ndim; i++){
+          snew->extents[i] = &snew->extents[0][2*i];
+        }
+
+        for(unsigned int i=0; i<s2->ndim; i++){
+          snew->extents[i][0] = s2->extents[i][0];
+          snew->extents[i][1] = s2->extents[i][1];
+        }
+
+        snew->periods = NULL;
+        snew->naxus = 0;
+        snew->axus = NULL;
 
         unsigned long nCoeffs=snew->get_ncoeffs();
         snew->coefficients=snew->allocate<float>(nCoeffs);
