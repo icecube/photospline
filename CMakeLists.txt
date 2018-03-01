@@ -56,7 +56,7 @@ target_compile_features (photospline
 )
 target_compile_options (photospline PUBLIC -O3)
 IF (CMAKE_SYSTEM_PROCESSOR MATCHES "^(i.86|x86_64)$")
-  target_compile_options (photospline PUBLIC -msse2 -msse3 -msse4 -msse4.1 -msse4.2 -mavx -march=native)
+  target_compile_options (photospline PUBLIC -msse2 -mfpmath=sse)
 ELSEIF (CMAKE_SYSTEM_PROCESSOR MATCHES "^(powerpc|ppc)")
   target_compile_options (photospline PUBLIC -maltivec)
 ELSEIF (CMAKE_SYSTEM_PROCESSOR MATCHES "^sparc")
@@ -135,6 +135,8 @@ IF (BUILD_SPGLAM)
 
   if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
     target_link_libraries(spglam PUBLIC pthread rt)
+  elseif(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+    target_link_libraries(spglam PUBLIC c++)
   endif(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
   # Assume that if TBB can be found, we need to link
   # against it to use SuiteSparse
