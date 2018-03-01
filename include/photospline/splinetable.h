@@ -156,7 +156,7 @@ public:
   ///\param coordinates the coordiantes in the stacking dimension of the tables to be stacked
   ///\param stackOrder the order of the spline in the stacking dimension
   ///\details Original implementation by C. Weaver, PhD; modified by CA.
-	explicit splinetable(const std::vector<splinetable<Alloc>*>& tables, std::vector<double> coordinates, int stackOrder=2, allocator_type alloc=Alloc()):
+	explicit splinetable(std::vector<splinetable<Alloc>*> tables, std::vector<double> coordinates, int stackOrder=2, allocator_type alloc=Alloc()):
 	ndim(0),order(NULL),knots(NULL),nknots(NULL),extents(NULL),periods(NULL),
 	coefficients(NULL),naxes(NULL),strides(NULL),naux(0),aux(NULL),allocator(alloc)
 	{
@@ -165,8 +165,10 @@ public:
     int inputDim=tables.front()->get_ndim();
     for(auto table : tables){
       assert(table->get_ndim() == inputDim);
-      for(unsigned int i=0; i<inputDim; i++)
+      assert(table->get_ncoeffs() && tables.front()->get_ncoeffs());
+      for(unsigned int i=0; i<inputDim; i++){
         assert(table->get_order(i) && tables.front()->get_order(i));
+      }
     }
 
     // add padding dimensions
@@ -175,24 +177,39 @@ public:
         splinetable<Alloc>* snew = new splinetable<Alloc>();
 
         snew->ndim = s2->ndim;
-        snew->order = s2->order;
-        snew->knots = s2->knots;
-        snew->nknots = s2->nknots;
+
+        snew->order = snew->allocate<uint32_t>(s2->ndim);
+        std::copy_n(s2->order,s2->ndim,snew->order);
+
+        snew->nknots = snew->allocate<uint64_t>(s2->ndim);
+        std::copy_n(s2->nknots,s2->ndim,snew->nknots);
+
+        snew->knots = snew->allocate<double_ptr>(s2->ndim);
+        for(unsigned int i=0; i<s2->ndim; i++){
+          snew->knots[i] = snew->allocate<double>(s2->nknots[i]+2*s2->order[i]) + s2->order[i];
+        }
+
+        snew->naxes = snew->allocate<uint64_t>(s2->ndim);
+        std::copy_n(s2->naxes,s2->ndim,snew->naxes);
+
+        snew->strides = snew->allocate<uint64_t>(s2->ndim);
+        std::copy_n(s2->strides,s2->ndim,snew->strides);
+
+        /* complete me please
         snew->extents = s2->extents;
         snew->periods = s2->periods;
-        snew->coefficients = s2->coefficients;
-        snew->naxes = s2->naxes;
-        snew->strides = s2->strides;
         snew->naux = s2->naux;
         snew->aux = s2->aux;
+        */
 
         unsigned long nCoeffs=snew->get_ncoeffs();
-        //unsigned long nCoeffs=std::accumulate(snew->data.naxes, snew->data.naxes+snew->data.ndim, 1UL, std::multiplies<unsigned long>());
+        snew->coefficients=snew->allocate<float>(nCoeffs);
         for(unsigned long i=0; i<nCoeffs; i++){
           auto c1=s1->get_coefficients()[i];
           auto c2=s2->get_coefficients()[i];
           snew->get_coefficients()[i]=2*c2-c1;
         }
+
         return(snew);
       };
 
