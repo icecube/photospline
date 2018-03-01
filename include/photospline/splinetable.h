@@ -8,6 +8,7 @@
 #include <numeric>
 #include <sstream>
 #include <vector>
+#include <cstdlib>
 
 #include "photospline/bspline.h"
 #include "photospline/detail/simd.h"
@@ -149,7 +150,150 @@ public:
 	{
 		read_fits(filePath);
 	}
-	
+
+	///Construct a splinetable from stacking other splines.
+	///\param splines the splines to stack
+	///\param coordinates the coordiantes in the stacking dimension of the tables to be stacked
+	///\param stackOrder the order of the spline in the stacking dimension
+	explicit splinetable(std::vector<splinetable<Alloc>*> tables, std::vector<double> coordinates, int stackOrder=2, allocator_type alloc=Alloc()):
+	ndim(0),order(NULL),knots(NULL),nknots(NULL),extents(NULL),periods(NULL),
+	coefficients(NULL),naxes(NULL),strides(NULL),naux(0),aux(NULL),allocator(alloc)
+	{
+    assert(!tables.empty());
+    assert(tables.size()==coordinates.size());
+    int inputDim=tables.front()->get_ndim();
+    for(auto table : tables){
+      assert(table->get_ndim() == inputDim);
+      assert(table->get_ncoeffs() && tables.front()->get_ncoeffs());
+      for(unsigned int i=0; i<inputDim; i++){
+        assert(table->get_order(i) && tables.front()->get_order(i));
+      }
+    }
+
+    // add padding dimensions
+    {
+      auto extrapolateSpline=[](const splinetable<Alloc>* s1, const splinetable<Alloc>* s2)->splinetable<Alloc>*{
+        splinetable<Alloc>* snew = new splinetable<Alloc>();
+
+        snew->ndim = s2->ndim;
+
+        snew->order = snew->allocate<uint32_t>(s2->ndim);
+        std::copy_n(s2->order,s2->ndim,snew->order);
+
+        snew->nknots = snew->allocate<uint64_t>(s2->ndim);
+        std::copy_n(s2->nknots,s2->ndim,snew->nknots);
+
+        snew->knots = snew->allocate<double_ptr>(s2->ndim);
+        for(unsigned int i=0; i<s2->ndim; i++){
+          snew->knots[i] = snew->allocate<double>(s2->nknots[i]+2*s2->order[i]) + s2->order[i];
+          std::copy_n(s2->knots[i],s2->nknots[i],snew->knots[i]);
+        }
+
+        snew->naxes = snew->allocate<uint64_t>(s2->ndim);
+        std::copy_n(s2->naxes,s2->ndim,snew->naxes);
+
+        snew->strides = snew->allocate<uint64_t>(s2->ndim);
+        std::copy_n(s2->strides,s2->ndim,snew->strides);
+
+        snew->extents = snew->allocate<double_ptr>(s2->ndim);
+        snew->extents[0] = snew->allocate<double>(2*s2->ndim);
+        for(unsigned int i=0;i<s2->ndim; i++){
+          snew->extents[i] = &snew->extents[0][2*i];
+        }
+
+        for(unsigned int i=0; i<s2->ndim; i++){
+          snew->extents[i][0] = s2->extents[i][0];
+          snew->extents[i][1] = s2->extents[i][1];
+        }
+
+        snew->periods = NULL;
+        snew->naux = 0;
+        snew->aux = NULL;
+
+        unsigned long nCoeffs=snew->get_ncoeffs();
+        snew->coefficients=snew->allocate<float>(nCoeffs);
+        for(unsigned long i=0; i<nCoeffs; i++){
+          auto c1=s1->get_coefficients()[i];
+          auto c2=s2->get_coefficients()[i];
+          snew->get_coefficients()[i]=2*c2-c1;
+        }
+
+        return(snew);
+      };
+
+      tables.insert(tables.begin(),extrapolateSpline(tables[1],tables[0]));
+      coordinates.insert(coordinates.begin(),2*coordinates[0]-coordinates[1]);
+
+      tables.push_back(extrapolateSpline(tables[tables.size()-2],tables[tables.size()-1]));
+      coordinates.push_back(2*coordinates[coordinates.size()-1]-coordinates[coordinates.size()-2]);
+    }
+
+    //set dimensions
+    ndim=inputDim+1;
+    //copy/set spline orders and knots
+    order=allocate<uint32_t>(ndim);
+    nknots=allocate<uint64_t>(ndim);
+
+    for(unsigned int i=0; i<inputDim; i++){
+      order[i] = tables.front()->get_order(i);
+      nknots[i] = tables.front()->get_nknots(i);
+    }
+    order[inputDim]=stackOrder;
+    nknots[inputDim]=tables.size()+stackOrder+1;
+
+    knots=allocate<double_ptr>(ndim);
+    //copy existing knots
+    for(unsigned int i=0; i<inputDim; i++){
+      knots[i]=allocate<double>(nknots[i]+2*order[i]) + order[i];
+      std::copy_n(tables.front()->get_knots(i),nknots[i],knots[i]);
+    }
+    //figure out knots for the new dimension
+    {
+      knots[inputDim]=allocate<double>(nknots[inputDim]+2*order[inputDim]) + order[inputDim];
+      double_ptr lastKnots=knots[inputDim];
+      //copy input positions
+      std::copy_n(coordinates.begin(),tables.size(),lastKnots+stackOrder);
+
+      //shift knots
+      double knotShift=(stackOrder-1)*(lastKnots[stackOrder+tables.size()-1]-lastKnots[stackOrder])/(2*tables.size());
+      for(unsigned int i=0; i<tables.size(); i++)
+        lastKnots[stackOrder+i]+=knotShift;
+
+      //add stackOrder padding knots before
+      double knotStep=lastKnots[stackOrder+1]-lastKnots[stackOrder];
+      for(int i=0; i<stackOrder; i++)
+        lastKnots[i]=lastKnots[stackOrder]+(i-stackOrder)*knotStep;
+      //add one padding knot after
+      lastKnots[nknots[inputDim]-1]=2*lastKnots[nknots[inputDim]-2]-lastKnots[nknots[inputDim]-3];
+    }
+
+    //set naxes
+    naxes=allocate<uint64_t>(ndim);
+    for(unsigned int i=0; i<inputDim; i++)
+      naxes[i] = tables.front()->get_ncoeffs(i);
+    naxes[inputDim]=tables.size();
+
+    //copy coefficients
+    unsigned long nCoeffs=std::accumulate(naxes, naxes+ndim, 1UL, std::multiplies<uint64_t>());
+    unsigned long nInputCoeffs=std::accumulate(naxes, naxes+ndim-1, 1UL, std::multiplies<uint64_t>());
+    coefficients=allocate<float>(nCoeffs);
+    unsigned int step=naxes[ndim-1];
+    for(unsigned int i=0; i<tables.size(); i++){
+      for(unsigned int j=0; j<nInputCoeffs; j++)
+        coefficients[i+j*step]=tables[i]->get_coefficients()[j];
+    }
+
+    //set strides
+    strides = allocate<uint64_t>(ndim);
+    uint64_t arraysize;
+    strides[ndim-1] = arraysize = 1;
+    for(int i=ndim-1; i >= 0; i--){
+      arraysize *= naxes[i];
+      if(i>0)
+        strides[i-1] = arraysize;
+    }
+	}
+
 	splinetable(splinetable&& other):
 	ndim(other.ndim),order(std::move(other.order)),knots(std::move(other.knots)),
 	nknots(other.nknots),extents(std::move(other.extents)),
