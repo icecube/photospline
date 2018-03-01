@@ -208,8 +208,8 @@ public:
         }
 
         snew->periods = NULL;
-        snew->naxus = 0;
-        snew->axus = NULL;
+        snew->naux = 0;
+        snew->aux = NULL;
 
         unsigned long nCoeffs=snew->get_ncoeffs();
         snew->coefficients=snew->allocate<float>(nCoeffs);
