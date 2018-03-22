@@ -21,7 +21,8 @@ IF (NOT METIS_FOUND)
   FOREACH (_lib ${METIS_REQUIRED_LIBS})
     FIND_LIBRARY (my_${_lib}
       NAMES ${_lib}
-      PATHS $ENV{METISROOT}/lib)
+      PATHS $ENV{METISROOT}/lib
+      NO_DEFAULT_PATH)
     FIND_LIBRARY (my_${_lib}
       NAMES ${_lib})
     LIST (APPEND METIS_LIBRARIES ${my_${_lib}})

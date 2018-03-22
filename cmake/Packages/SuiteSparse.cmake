@@ -29,7 +29,8 @@ IF (NOT SUITESPARSE_FOUND)
   # Search user environment for headers, then default paths; extract version
   FIND_PATH (SUITESPARSE_INCLUDE_DIR cholmod.h
     PATHS $ENV{SUITESPARSEROOT}/include $ENV{SUITESPARSEROOT}/include/suitesparse
-    )
+    NO_DEFAULT_PATH)
+  FIND_PATH (SUITESPARSE_INCLUDE_DIR cholmod.h)
   IF( NOT SUITESPARSE_INCLUDE_DIR )
     FIND_PATH (SUITESPARSE_INCLUDE_DIR suitesparse/cholmod.h)
     IF (SUITESPARSE_INCLUDE_DIR)
