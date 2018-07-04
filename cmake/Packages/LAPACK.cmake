@@ -16,6 +16,7 @@ LIST (APPEND _blas_vendors "OpenBLAS" "Goto" "ATLAS" "Apple" "Generic")
 
 # old CMake doesn't know that OpenBLAS is a BLAS
 IF (${CMAKE_VERSION} VERSION_LESS 3.6)
+  FIND_PACKAGE (LAPACK QUIET)
   IF (NOT LAPACK_FOUND)
     set(_vendor OpenBLAS)
     FIND_PACKAGE(${_vendor} QUIET)
