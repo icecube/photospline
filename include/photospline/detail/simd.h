@@ -20,44 +20,17 @@ namespace photospline { namespace detail {
 
 template <typename Float>
 struct simd_vector {
-	// typedef Float type __attribute__((vector_size(PHOTOSPLINE_VECTOR_SIZE*sizeof(Float))));
+#ifdef __clang__
 	typedef Float type __attribute__((ext_vector_type(PHOTOSPLINE_VECTOR_SIZE)));
-	
+#else
+	typedef Float type __attribute__((vector_size(PHOTOSPLINE_VECTOR_SIZE*sizeof(Float))));
+#endif
+
 	static void init(type &a, Float b)
 	{
-		a = b - (type){};
+		a = b - type{};
 	}
 };
-
-#if 0
-template <>
-struct simd_vector<float> {
-#if __GNUC__ == 3
-#if PHOTOSPLINE_VECTOR_SIZE != 4
-	#error On GCC 3, PHOTOSPLINE_VECTOR_SIZE must be 4!
-#endif
-	typedef float type __attribute__(( mode(V4SF) ));
-#else
-	typedef float type __attribute__((vector_size(PHOTOSPLINE_VECTOR_SIZE*sizeof(float))));
-#endif
-	static void init(type &a, float b)
-	{
-#if defined(__i386__) || defined (__x86_64__)
-		a = _mm_set1_ps(b);
-#elif defined(__powerpc__)
-#ifdef vec_splats
-		a = vec_splats(b);
-#else
-		float b_tmp __aligned(16) = b;
-		a = vec_splat(*((v4sf *)(&b_tmp)), 0);
-#endif
-#else
-		for (int i=0; i<PHOTOSPLINE_VECTOR_SIZE; i++)
-			((float *)(&a))[i] = b;
-#endif
-	}
-};
-#endif
 
 }}
 
