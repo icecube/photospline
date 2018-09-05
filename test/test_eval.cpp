@@ -537,13 +537,18 @@ TEST(single_basis_vs_multi){
 TEST(evaluation_benchmark){
 	for(size_t dim=1; dim<6; dim++){
 		photospline::splinetable<> spline("test_data/test_spline_"+std::to_string(dim)+"d.fits");
-		std::cout << "Dimension " << spline.get_ndim() << " spline:" << std::endl;
-		spline.benchmark_evaluation((unsigned int)(8.e6*exp(-(double)dim/1.4427)),true);
+		std::cout << "Dimension " << spline.get_ndim() << " spline (single precision):" << std::endl;
+		spline.benchmark_evaluation<float>((unsigned int)(8.e6*exp(-(double)dim/1.4427)),true);
+		std::cout << "Dimension " << spline.get_ndim() << " spline (double precision):" << std::endl;
+		spline.benchmark_evaluation<double>((unsigned int)(8.e6*exp(-(double)dim/1.4427)),true);
+		
 	}
 	for(size_t dim=1; dim<6; dim++){
 		photospline::splinetable<> spline("test_data/test_spline_"+std::to_string(dim)+"d_nco.fits");
-		std::cout << "Dimension " << spline.get_ndim() << " (variable order) spline:" << std::endl;
-		spline.benchmark_evaluation((unsigned int)(8.e6*exp(-(double)dim/1.4427)),true);
+		std::cout << "Dimension " << spline.get_ndim() << " (variable order) spline (single precision):" << std::endl;
+		spline.benchmark_evaluation<float>((unsigned int)(8.e6*exp(-(double)dim/1.4427)),true);
+		std::cout << "Dimension " << spline.get_ndim() << " (variable order) spline (double precision):" << std::endl;
+		spline.benchmark_evaluation<double>((unsigned int)(8.e6*exp(-(double)dim/1.4427)),true);
 	}
 }
 
