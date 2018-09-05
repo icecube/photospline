@@ -4,12 +4,7 @@
 #include "photospline/detail/simd.h"
 
 namespace photospline{
-	
-void
-bspline_nonzero(const double* knots, const unsigned nknots,
-                const double x, int left, const int n,
-                float* values, float* derivs);
-	
+
 template <typename Alloc>
 template <typename Float>
 void splinetable<Alloc>::ndsplineeval_multibasis_core(const int *centers, const typename detail::simd_vector<Float>::type*** localbasis, typename detail::simd_vector<Float>::type* result) const{

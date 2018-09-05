@@ -45,6 +45,24 @@ TEST(ndssplineeval_vs_ndssplineeval_gradient){
 			ENSURE_DISTANCE(gradient[j], evaluate_with_gradient[j+1],std::abs(1e-4*gradient[j]),
 							"ndsplineeval() and ndssplineeval_gradient() yield identical derivatives");
 		}
+		
+		// and again in double precision
+		evaluate=spline.ndsplineeval<double>(coords.data(), centers.data(), 0);
+		for(uint32_t i=0; i<ndim; i++)
+			gradient[i]=spline.ndsplineeval<double>(coords.data(), centers.data(), 1u<<i);
+		
+		spline.ndsplineeval_gradient<double>(coords.data(), centers.data(), evaluate_with_gradient.data());
+		
+		ENSURE_EQUAL(evaluate, evaluate_with_gradient[0],
+					 "ndsplineeval() and ndssplineeval_gradient() yield identical evaluates");
+		ENSURE_DISTANCE(evaluate, evaluate_with_gradient[0],std::abs(1e-4*evaluate),
+						"ndsplineeval() and ndssplineeval_gradient() yield identical evaluates");
+		for (int j=0; j < ndim; j++) {
+			ENSURE_EQUAL(gradient[j], evaluate_with_gradient[j+1],
+						 "ndsplineeval() and ndssplineeval_gradient() yield identical derivatives");
+			ENSURE_DISTANCE(gradient[j], evaluate_with_gradient[j+1],std::abs(1e-4*gradient[j]),
+							"ndsplineeval() and ndssplineeval_gradient() yield identical derivatives");
+		}
 	}
 }
 

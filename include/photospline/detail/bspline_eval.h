@@ -305,11 +305,12 @@ Float splinetable<Alloc>::ndsplineeval_core_KnownOrder(const int* centers, int m
 }
 
 template<typename Alloc>
-double splinetable<Alloc>::ndsplineeval(const double* x, const int* centers, int derivatives) const
+template<typename Float>
+Float splinetable<Alloc>::ndsplineeval(const double* x, const int* centers, int derivatives) const
 {
 	uint32_t maxdegree = *std::max_element(order,order+ndim) + 1;
-	float localbasis_store[ndim*maxdegree];
-	detail::buffer2d<float> localbasis{localbasis_store,maxdegree};
+	Float localbasis_store[ndim*maxdegree];
+	detail::buffer2d<Float> localbasis{localbasis_store,maxdegree};
 	
 	for (uint32_t n = 0; n < ndim; n++) {
 		if (derivatives & (1 << n)) {
@@ -581,13 +582,14 @@ Float splinetable<Alloc>::evaluator<Float>::ndsplineeval_deriv(const double* x, 
 }
 	
 template<typename Alloc>
+template<typename Float>
 typename splinetable<Alloc>::benchmark_results
 splinetable<Alloc>::benchmark_evaluation(size_t trialCount, bool verbose){
 	std::default_random_engine rng;
 	
 	volatile double dummy;
 	benchmark_results result;
-	evaluator<> eval=get_evaluator();
+	evaluator<Float> eval=get_evaluator<Float>();
 	
 	std::vector<std::uniform_real_distribution<>> dists;
 	for(size_t i=0; i<ndim; i++)

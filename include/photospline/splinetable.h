@@ -520,7 +520,8 @@ public:
 	///       should be differentiated rather than directly evaluated. Mixed
 	///       partial derivatives are supported.
 	///\return the spline value or derivative value
-	double ndsplineeval(const double* x, const int* centers, int derivatives) const;
+	template <typename Float=float>
+	Float ndsplineeval(const double* x, const int* centers, int derivatives) const;
 	
 	///Evaluate the spline hypersurface.
 	///This convenience interface for evaluation simply performs searchcenters
@@ -568,6 +569,7 @@ public:
 	///\param trialCountthe number of times each type of evaluation should be
 	///       performed. This should be large enough to get a stable result.
 	///\param verbose whether the results should be printed to stdout.
+	template <typename Float=float>
 	benchmark_results benchmark_evaluation(size_t trialCount=1e4, bool verbose=false);
 	
 	///Convolve a single dimension of this spline with another spline.

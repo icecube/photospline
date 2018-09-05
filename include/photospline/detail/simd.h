@@ -19,8 +19,17 @@
 namespace photospline { namespace detail {
 
 template <typename Float>
-struct simd_vector;
+struct simd_vector {
+	// typedef Float type __attribute__((vector_size(PHOTOSPLINE_VECTOR_SIZE*sizeof(Float))));
+	typedef Float type __attribute__((ext_vector_type(PHOTOSPLINE_VECTOR_SIZE)));
+	
+	static void init(type &a, Float b)
+	{
+		a = b - (type){};
+	}
+};
 
+#if 0
 template <>
 struct simd_vector<float> {
 #if __GNUC__ == 3
@@ -48,6 +57,7 @@ struct simd_vector<float> {
 #endif
 	}
 };
+#endif
 
 }}
 
