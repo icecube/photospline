@@ -80,7 +80,7 @@ TEST(ndssplineeval_vs_call_operator){
 void test_evaluator_interface(const std::string& splinePath){
 	std::cout << "Testing evaluation of " << splinePath << std::endl;
 	photospline::splinetable<> spline(splinePath);
-	photospline::splinetable<>::evaluator evaluator=spline.get_evaluator();
+	photospline::splinetable<>::evaluator<> evaluator=spline.get_evaluator();
 	const int ndim = spline.get_ndim();
 	ENSURE(ndim < 6);
 	
@@ -533,11 +533,11 @@ TEST(permutation){
 	const std::string splinePath="test_data/test_spline_4d_nco.fits";
 	
 	photospline::splinetable<> spline(splinePath);
-	photospline::splinetable<>::evaluator evaluator=spline.get_evaluator();
+	photospline::splinetable<>::evaluator<> evaluator=spline.get_evaluator();
 	
 	photospline::splinetable<> splineP(splinePath);
 	splineP.permuteDimensions(std::vector<size_t>{2,3,0,1});
-	photospline::splinetable<>::evaluator evaluatorP=splineP.get_evaluator();
+	photospline::splinetable<>::evaluator<> evaluatorP=splineP.get_evaluator();
 	
 	std::mt19937 rng;
 	rng.seed(93);
