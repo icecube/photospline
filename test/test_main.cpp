@@ -1,6 +1,7 @@
 #include <iostream>
 #include <stdexcept>
 #include <unistd.h>
+#include <vector>
 
 #include "test.h"
 
@@ -28,6 +29,7 @@ test_registry()
 }
 
 int main(int argc, char* argv[]){
+	std::vector<std::string> test_filters;
 	for(int i=1; i<argc; i++){
 		std::string arg=argv[i];
 		if(arg=="WORKING_DIRECTORY"){
@@ -40,6 +42,13 @@ int main(int argc, char* argv[]){
 				return(1);
 			}
 			i++;
+		} else if (arg=="-k"){
+			if(i+1>=argc){
+				std::cerr << "-k requires an argument" << std::endl;
+				return(1);
+			}
+			test_filters.push_back(argv[i+1]);
+			i++;
 		}
 	}
 	
@@ -48,6 +57,17 @@ int main(int argc, char* argv[]){
 	size_t passes=0, failures=0;
 	for(std::map<std::string,void(*)()>::const_iterator test=test_registry().begin();
 		test!=test_registry().end(); test++){
+		if (!test_filters.empty()) {
+			bool target=false;
+			for(auto &f : test_filters) {
+				if (test->first.find(f) != std::string::npos) {
+					target=true;
+					break;
+				}
+			}
+			if (!target)
+				continue;
+		}
 		bool pass=false;
 		std::cout << test->first << ": ";
 		std::cout.flush();
