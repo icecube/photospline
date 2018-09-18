@@ -1,5 +1,6 @@
 find_package(PythonInterp)
 find_package(PythonLibs)
+set(PYTHON_FOUND PYTHONLIBS_FOUND AND PYTHONINTERP_FOUND)
 
 IF(PYTHON_FOUND)
     # Search for numpy
