@@ -381,6 +381,18 @@ public:
 			return false;
 		if (!std::equal(coefficients,coefficients+get_ncoeffs(),other.coefficients))
 			return false;
+		return true;
+	}
+	
+	///Compare splines for inequality.
+	///Splines are considered equal if evaluation would return the same result
+	///at all possible coordinate values. Auxiliary FITS header entries are not
+	///considered.
+	bool operator!=(const splinetable& other) const{
+		//there doesn't appear to be any particular performance disadvantage to 
+		//doing this, we mostly just supply this operator for greater user 
+		//convenience.
+		return(!operator==(other));
 	}
 
 	///Estimate the memory needed to load an existing spline.

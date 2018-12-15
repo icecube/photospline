@@ -313,6 +313,7 @@ ADD_EXECUTABLE(photospline-test
   test/test_main.cpp
   test/test_fitsio.cpp
   test/test_eval.cpp
+  test/test_operators.cpp
 )
 TARGET_LINK_LIBRARIES(photospline-test
   photospline
