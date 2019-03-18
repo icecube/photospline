@@ -181,7 +181,7 @@ IF(PYTHON_FOUND)
     SET_TARGET_PROPERTIES(pyphotospline PROPERTIES LINK_FLAGS "-undefined dynamic_lookup")
   endif(APPLE)
   EXECUTE_PROCESS (COMMAND ${PYTHON_EXECUTABLE} -c
-    "from distutils.sysconfig import get_python_lib; print get_python_lib(prefix='')"
+    "from distutils.sysconfig import get_python_lib; print(get_python_lib(prefix=''))"
     OUTPUT_VARIABLE PYTHON_MODULE_DIR
     OUTPUT_STRIP_TRAILING_WHITESPACE)
   INSTALL(TARGETS pyphotospline LIBRARY DESTINATION ${PYTHON_MODULE_DIR})
