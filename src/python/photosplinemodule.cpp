@@ -621,10 +621,14 @@ pysplinetable_evaluate_simple(pysplinetable* self, PyObject* args, PyObject* kwd
 	//optimized case for numpy arrays (or things that can be converted to them)
 	{
 		PyArrayObject* arrays[ndim+1];
+		for(unsigned int i=0; i!=ndim+1; i++)
+			arrays[i]=NULL;
 		npy_uint32 flags = 0;
 		npy_uint32 op_flags[ndim+1];
 		for(unsigned int i=0; i!=ndim; i++){
-			arrays[i] = (PyArrayObject*)PyArray_ContiguousFromAny(PySequence_GetItem(pyx,i), NPY_DOUBLE, 0, INT_MAX);
+			PyObject* item=PySequence_GetItem(pyx,i);
+			arrays[i] = (PyArrayObject*)PyArray_ContiguousFromAny(item, NPY_DOUBLE, 0, INT_MAX);
+			Py_DECREF(item);
 			op_flags[i] = NPY_ITER_READONLY;
 			if (arrays[i] == NULL) {
 				for (unsigned int j=0; j<i; j++)
@@ -632,12 +636,18 @@ pysplinetable_evaluate_simple(pysplinetable* self, PyObject* args, PyObject* kwd
 				return NULL;
 			}
 		}
+		
 		// allocate the output array automatically
 		arrays[ndim] = NULL;
 		op_flags[ndim] = NPY_ITER_WRITEONLY | NPY_ITER_ALLOCATE;
 		NpyIter *iter = NpyIter_MultiNew(ndim+1, arrays, flags, NPY_KEEPORDER, NPY_NO_CASTING, op_flags, NULL);
-		if (iter == NULL)
+		if (iter == NULL){
+			for (auto ptr : arrays){
+				if(ptr)
+					Py_DECREF(ptr);
+			}
 			return NULL;
+		}
 		char** data_ptr = NpyIter_GetDataPtrArray(iter);
 		NpyIter_IterNextFunc* iternext = NpyIter_GetIterNext(iter, NULL);
 		
@@ -658,8 +668,10 @@ pysplinetable_evaluate_simple(pysplinetable* self, PyObject* args, PyObject* kwd
 		Py_INCREF(out);
 		
 		// clean up
-		for (auto ptr : arrays)
-			Py_DECREF(arrays);
+		for (auto ptr : arrays){
+			if(ptr)
+				Py_DECREF(ptr);
+		}
 		if (NpyIter_Deallocate(iter) != NPY_SUCCEED) {
 			Py_DECREF(out);
 			return NULL;
