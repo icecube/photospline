@@ -49,7 +49,12 @@ void compare_splines(const photospline::splinetable<>& spline1,
 TEST(write_fits_spline){
 	photospline::splinetable<> spline("test_data/test_spline_4d.fits");
 	spline.write_key("SHORTKEY",123);
-	spline.write_key("ALongerKey","a string of text");
+	try {
+		// lowercased names should throw
+		spline.write_key("ALongerKey", "a string of text");
+		throw std::logic_error("Should have thrown");
+	} catch (std::runtime_error &) {}
+	spline.write_key("ALONGERKEY","a string of text");
 	
 	spline.write_fits("write_test_spline.fits");
 	photospline::splinetable<> spline2("write_test_spline.fits");
@@ -60,7 +65,7 @@ TEST(write_fits_spline){
 	ENSURE(spline2.read_key("SHORTKEY",extra_key));
 	ENSURE_EQUAL(extra_key,123,"Additional keys must survive FITS serialization");
 	std::string extra_key2;
-	ENSURE(spline2.read_key("ALongerKey",extra_key2));
+	ENSURE(spline2.read_key("ALONGERKEY",extra_key2));
 	ENSURE_EQUAL(extra_key2,"a string of text","Additional keys must survive FITS serialization");
 	
 	unlink("write_test_spline.fits");
@@ -69,7 +74,7 @@ TEST(write_fits_spline){
 TEST(fits_mem_spline){
 	photospline::splinetable<> spline("test_data/test_spline_4d.fits");
 	spline.write_key("SHORTKEY",123);
-	spline.write_key("ALongerKey","a string of text");
+	spline.write_key("ALONGERKEY","a string of text");
 	
 	auto buffer=spline.write_fits_mem();
 	std::unique_ptr<void,void(*)(void*)> data(buffer.first,&free);
@@ -83,6 +88,6 @@ TEST(fits_mem_spline){
 	ENSURE(spline2.read_key("SHORTKEY",extra_key));
 	ENSURE_EQUAL(extra_key,123,"Additional keys must survive FITS serialization");
 	std::string extra_key2;
-	ENSURE(spline2.read_key("ALongerKey",extra_key2));
+	ENSURE(spline2.read_key("ALONGERKEY",extra_key2));
 	ENSURE_EQUAL(extra_key2,"a string of text","Additional keys must survive FITS serialization");
 }

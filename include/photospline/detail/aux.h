@@ -107,6 +107,12 @@ bool splinetable<Alloc>::write_key(const char* key, const T& value){
 				throw std::runtime_error("Standard (short) FITS header keywords must not "
 										 "contain '=' characters (key was '"+
 										 std::string(key)+"')");
+			// cfitsio 3.38 started uppercasing HIERARCH keywords, too. Forbid
+			// these, as we can't guarantee they will be preserved.
+			if(std::islower(key[i]))
+				throw std::runtime_error("Long (HIERARCH) FITS header keywords must not "
+										 "contain lowercase characters (key was '"+
+										 std::string(key)+"')");
 		}
 		maxdatalen=80-(13+keylen-1); //14 characters for "HIERARCH ", "= '", and "'"
 	}
