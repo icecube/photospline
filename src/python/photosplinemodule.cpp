@@ -1,8 +1,7 @@
 #include <Python.h>
 #ifdef HAVE_NUMPY
-	// TODO: turn this on once 1.6 API actually disappears from new releases
-	// #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
-	#include <numpy/ndarrayobject.h>
+#define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
+#include <numpy/ndarrayobject.h>
 #endif
 #include <stdio.h>
 #include <limits.h>
@@ -391,8 +390,8 @@ pysplinetable_getknots(pysplinetable *self, void *closure)
 		npy_intp stride = sizeof(double);
 		PyObject* knots = PyArray_New(&PyArray_Type, 1,  &nknots, NPY_DOUBLE, &stride,
 		    (void*)self->table->get_knots(dim), sizeof(double),
-		    NPY_CARRAY_RO, NULL);
-		((PyArrayObject*)knots)->base=(PyObject*)self;
+		    NPY_ARRAY_CARRAY_RO, NULL);
+		PyArray_SetBaseObject((PyArrayObject*)knots, (PyObject*)self);
 		Py_INCREF(self);
 		PyTuple_SetItem(list, dim, knots);
 	}
@@ -436,8 +435,8 @@ pysplinetable_getcoeffcients(pysplinetable* self, void *closure){
 	}
 	PyObject* arr=PyArray_New(&PyArray_Type, ndim, dims, NPY_FLOAT, strides,
 	    (void*)self->table->get_coefficients(), sizeof(float),
-	    NPY_CARRAY_RO, (PyObject*)self);
-	((PyArrayObject*)arr)->base=(PyObject*)self;
+	    NPY_ARRAY_CARRAY_RO, (PyObject*)self);
+	PyArray_SetBaseObject((PyArrayObject*)arr, (PyObject*)self);
 	Py_INCREF(self);
 	return arr;
 }
@@ -1211,9 +1210,9 @@ pyphotospline_glam_fit(PyObject* self, PyObject* args, PyObject* kwds){
 	//correct type and does not have funny layout.
 #define compatible_numpy_array(obj,element_type) (\
 	PyArray_Check(obj) \
-	&& PyArray_EquivTypenums(PyArray_DESCR(obj)->type_num,element_type) \
-	&& (PyArray_FLAGS(obj)&NPY_C_CONTIGUOUS) \
-	&& (PyArray_FLAGS(obj)&NPY_ALIGNED) \
+	&& PyArray_EquivTypenums(PyArray_DESCR((PyArrayObject*)obj)->type_num,element_type) \
+	&& (PyArray_FLAGS((PyArrayObject*)obj)&NPY_ARRAY_C_CONTIGUOUS) \
+	&& (PyArray_FLAGS((PyArrayObject*)obj)&NPY_ARRAY_ALIGNED) \
 	)
 	
 	//Extract inputs
@@ -1221,7 +1220,7 @@ pyphotospline_glam_fit(PyObject* self, PyObject* args, PyObject* kwds){
 	// extract weights
 #ifdef HAVE_NUMPY
 	if(compatible_numpy_array(pyweights,NPY_DOUBLE))
-		weights.reset((double*)PyArray_DATA(pyweights),data.rows);
+		weights.reset((double*)PyArray_DATA((PyArrayObject*)pyweights),data.rows);
 	else //note sneaky line break across #endif
 #endif
 	{ //have to copy
@@ -1243,7 +1242,7 @@ pyphotospline_glam_fit(PyObject* self, PyObject* args, PyObject* kwds){
 		
 #ifdef HAVE_NUMPY
 		if(compatible_numpy_array(pycoordinates_i,NPY_DOUBLE))
-			coordinates[j].reset((double*)PyArray_DATA(pycoordinates_i),ncoordinates);
+			coordinates[j].reset((double*)PyArray_DATA((PyArrayObject*)pycoordinates_i),ncoordinates);
 		else //note sneaky line break across #endif
 #endif
 		{ //have to copy
@@ -1264,7 +1263,7 @@ pyphotospline_glam_fit(PyObject* self, PyObject* args, PyObject* kwds){
 #ifdef HAVE_NUMPY
 	//TODO: Numpy's UInt may not be the same as uint32_t
 	if(compatible_numpy_array(pyorder,NPY_UINT))
-		order.reset((uint32_t*)PyArray_DATA(pyorder),data.ndim);
+		order.reset((uint32_t*)PyArray_DATA((PyArrayObject*)pyorder),data.ndim);
 	else //note sneaky line break across #endif
 #endif
 	{ //have to copy
@@ -1286,7 +1285,7 @@ pyphotospline_glam_fit(PyObject* self, PyObject* args, PyObject* kwds){
 		
 #ifdef HAVE_NUMPY
 		if(compatible_numpy_array(pyknots_i,NPY_DOUBLE))
-			knots[j].reset((double*)PyArray_DATA(pyknots_i),nknots);
+			knots[j].reset((double*)PyArray_DATA((PyArrayObject*)pyknots_i),nknots);
 		else //note sneaky line break across #endif
 #endif
 		{ //have to copy
@@ -1306,7 +1305,7 @@ pyphotospline_glam_fit(PyObject* self, PyObject* args, PyObject* kwds){
 	// extract smoothing
 #ifdef HAVE_NUMPY
 	if(compatible_numpy_array(pysmoothing,NPY_DOUBLE))
-		smoothing.reset((double*)PyArray_DATA(pysmoothing),data.ndim);
+		smoothing.reset((double*)PyArray_DATA((PyArrayObject*)pysmoothing),data.ndim);
 	else //note sneaky line break across #endif
 #endif
 	{ //have to copy
@@ -1323,7 +1322,7 @@ pyphotospline_glam_fit(PyObject* self, PyObject* args, PyObject* kwds){
 #ifdef HAVE_NUMPY
 	//TODO: Numpy's UInt may not be the same as uint32_t
 	if(compatible_numpy_array(pyporder,NPY_UINT))
-		porder.reset((uint32_t*)PyArray_DATA(pyporder),data.ndim);
+		porder.reset((uint32_t*)PyArray_DATA((PyArrayObject*)pyporder),data.ndim);
 	else //note sneaky line break across #endif
 #endif
 	{ //have to copy
