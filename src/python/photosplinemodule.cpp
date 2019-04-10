@@ -1420,6 +1420,7 @@ pysplinetable_grideval(pysplinetable* self, PyObject* args, PyObject* kwds){
 	if (PySequence_Length(coords) != spline.get_ndim()) {
 		PyErr_SetString(PyExc_ValueError,
 			"Must have one coordinate array for every dimension");
+		return NULL;
 	}
 	
 	using photospline::detail::array_view;
@@ -1427,9 +1428,12 @@ pysplinetable_grideval(pysplinetable* self, PyObject* args, PyObject* kwds){
 	std::vector<pyarray> coord_arrays;
 
 	for (unsigned i=0; i<spline.get_ndim(); i++) {
+		PyObject *item = PySequence_GetItem(coords, i);
 		coord_arrays.emplace_back((PyArrayObject *)PyArray_ContiguousFromObject(
-		    PySequence_GetItem(coords, i),
-		    NPY_DOUBLE, 1, 1), deleter);
+		    item, NPY_DOUBLE, 0, 1), deleter);
+		if (!coord_arrays.back()) {
+			return NULL;
+		}
 		coordinates[i].reset((double*)PyArray_DATA(coord_arrays[i].get()), PyArray_SIZE(coord_arrays[i].get()));
 	}
 	
