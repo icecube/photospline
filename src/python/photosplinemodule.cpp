@@ -210,6 +210,11 @@ pyndsparse_sparse_data(pyndsparse* self, PyObject* args, PyObject* kwds){
 	pyarray weights(w == NULL ? 
 	    (PyArrayObject*)PyArray_SimpleNew(PyArray_NDIM(values.get()), PyArray_DIMS(values.get()), NPY_DOUBLE)
 	    : (PyArrayObject *)PyArray_ContiguousFromObject(w, NPY_DOUBLE, 1,INT_MAX), deleter);
+	// Fill with ones if no weights provided
+	if (w == NULL) {
+		double *weight_data = (double *)PyArray_DATA(weights.get());
+		std::fill(weight_data, weight_data+PyArray_SIZE(weights.get()), 1.);
+	}
 	if (weights == NULL || !PyArray_SAMESHAPE(values.get(), weights.get())) {
 		PyErr_SetString(PyExc_ValueError, "values and weights must have the same shape");
 		return NULL;
