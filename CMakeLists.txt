@@ -312,11 +312,19 @@ endif(BUILD_SPGLAM)
 # Tests
 # -----------------------------------------------------------------------------
 ENABLE_TESTING()
-ADD_EXECUTABLE(photospline-test
+LIST(APPEND TEST_SOURCES
   test/test_main.cpp
   test/test_fitsio.cpp
   test/test_eval.cpp
-  test/test_operators.cpp
+)
+if(BUILD_SPGLAM)
+  LIST(APPEND TEST_SOURCES
+    test/test_operators.cpp
+  )
+endif(BUILD_SPGLAM)
+
+ADD_EXECUTABLE(photospline-test
+  ${TEST_SOURCES}
 )
 TARGET_LINK_LIBRARIES(photospline-test
   photospline
@@ -326,9 +334,7 @@ ADD_TEST(photospline-test photospline-test
  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/test
 )
 ADD_EXECUTABLE(photospline-test-templated
-  test/test_main.cpp
-  test/test_fitsio.cpp
-  test/test_eval.cpp
+  ${TEST_SOURCES}
 )
 TARGET_LINK_LIBRARIES(photospline-test-templated
   photospline
