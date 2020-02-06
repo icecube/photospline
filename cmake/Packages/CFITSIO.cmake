@@ -28,7 +28,7 @@ IF (NOT CFITSIO_FOUND)
     FIND_PATH (CFITSIO_INCLUDE_DIR cfitsio/fitsio.h
       PATHS $ENV{CFITSIOROOT}/include
       )
-    SET(CFITSIO_INCLUDE_DIR "${CFITSIO_INCLUDE_DIR}/cfitsio")
+    SET(CFITSIO_INCLUDE_DIR "${CFITSIO_INCLUDE_DIR}/cfitsio" CACHE PATH "Path to cfitsio headers" FORCE)
   endif()
 
   SET (CFITSIO_VERSION 0)
