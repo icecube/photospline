@@ -32,7 +32,7 @@ typedef float v4sf __attribute__((vector_size(PHOTOSPLINE_VECTOR_SIZE*sizeof(flo
 #ifdef vec_splats
 #define v4sf_init(a, b) a = vec_splats(b)
 #else
-#define v4sf_init(a, b) { float b_tmp __aligned(16) = b; \
+#define v4sf_init(a, b) { float b_tmp __attribute__ ((aligned(16))) = b; \
 	a = vec_splat(*((v4sf *)(&b_tmp)), 0); }
 #endif
 #else
