@@ -64,10 +64,10 @@ jobs:
             apt-get update -q -y
             apt-get install -q -y cmake clang libsuitesparse-dev libbtbb-dev liblapack-dev libcfitsio-dev libmetis-dev libgsl-dev python3-dev python3-numpy
           run: |
-            cmake -DPython_EXECUTABLE=$(which python) .
+            cmake -DPython_EXECUTABLE=$(which python3) .
             make
             make install
-            python -c "import photospline"
+            python3 -c "import photospline"
             ctest --output-on-failure
 
 
