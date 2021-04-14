@@ -21,6 +21,6 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - run: pip install numpy
       - run: sudo apt-get install libsuitesparse-dev libbtbb-dev liblapack-dev libcfitsio-dev libmetis-dev libgsl-dev
-      - run: cmake . && make && sudo make install
+      - run: cmake -DPython_EXECUTABLE=$(which python) . && make && sudo make install
       - run: python -c "import photospline"
       - run: ctest --output-on-failure
