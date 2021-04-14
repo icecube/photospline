@@ -68,6 +68,6 @@ jobs:
             make
             make install
             python3 -c "import photospline"
-            ctest --output-on-failure
+            # ctest --output-on-failure
 
 
