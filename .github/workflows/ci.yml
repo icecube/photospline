@@ -19,7 +19,8 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python-version }}
+      - run: pip install numpy
       - run: sudo apt-get install libsuitesparse-dev libbtbb-dev liblapack-dev libcfitsio-dev libmetis-dev libgsl-dev
-      - run: cmake . && make install
+      - run: cmake . && make && sudo make install
       - run: python -c "import photospline"
       - run: ctest --output-on-failure
