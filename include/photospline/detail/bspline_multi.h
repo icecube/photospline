@@ -32,7 +32,7 @@ void splinetable<Alloc>::ndsplineeval_multibasis_core(const int *centers, const 
 	}
 	
 	for (uint32_t k = 0; k < PHOTOSPLINE_NVECS; k++) {
-		v4sf_init(basis_tree[0][k], 1);
+		v4sf_init(basis_tree[0][k], 1.f);
 		for (uint32_t n = 0; n < ndim; n++)
 			basis_tree[n+1][k] = basis_tree[n][k]*localbasis[n][0][k];
 	}
@@ -105,7 +105,7 @@ void splinetable<Alloc>::ndsplineeval_multibasis_coreD(const int *centers, const
 	}
 	
 	for (uint32_t k = 0; k < VC; k++) {
-		v4sf_init(basis_tree[0][k], 1);
+		v4sf_init(basis_tree[0][k], 1.f);
 		for (uint32_t n = 0; n < D; n++)
 			basis_tree[n+1][k] = basis_tree[n][k]*localbasis[n][0][k];
 	}
@@ -173,7 +173,7 @@ void splinetable<Alloc>::ndsplineeval_multibasis_coreD_FixedOrder(const int *cen
 	}
 	
 	for (uint32_t k = 0; k < VC; k++) {
-		v4sf_init(basis_tree[0][k], 1);
+		v4sf_init(basis_tree[0][k], 1.f);
 		for (uint32_t n = 0; n < D; n++)
 			basis_tree[n+1][k] = basis_tree[n][k]*localbasis[n][0][k];
 	}
@@ -245,7 +245,7 @@ void splinetable<Alloc>::ndsplineeval_multibasis_core_KnownOrder(const int *cent
 	}
 	
 	for (uint32_t k = 0; k < VC; k++) {
-		v4sf_init(basis_tree[0][k], 1);
+		v4sf_init(basis_tree[0][k], 1.f);
 		for (uint32_t n = 0; n < D; n++)
 			basis_tree[n+1][k] = basis_tree[n][k]*localbasis[n][0][k];
 	}
