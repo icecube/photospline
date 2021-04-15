@@ -1,7 +1,7 @@
 cmake_minimum_required (VERSION 3.1.0 FATAL_ERROR)
 cmake_policy(VERSION 3.1.0)
 
-project (photospline VERSION 2.0.5 LANGUAGES C CXX)
+project (photospline VERSION 2.0.6 LANGUAGES C CXX)
 
 SET(CMAKE_CXX_STANDARD 11)
 SET(CMAKE_C_STANDARD 99)
@@ -172,7 +172,7 @@ IF(PYTHON_FOUND)
   add_library (pyphotospline SHARED ${python_SOURCES})
   set_target_properties(pyphotospline PROPERTIES LINKER_LANGUAGE C OUTPUT_NAME "photospline" PREFIX "" SUFFIX ".so")
   target_include_directories (pyphotospline PRIVATE ${PYTHON_INCLUDE_DIRS})
-  target_link_libraries (pyphotospline PUBLIC ${PYTHON_LIBRARIES} PRIVATE photospline)
+  target_link_libraries (pyphotospline PUBLIC PRIVATE photospline)
   IF(NUMPY_FOUND)
     target_include_directories (pyphotospline PRIVATE ${NUMPY_INCLUDE_DIR})
     target_compile_definitions (pyphotospline PRIVATE HAVE_NUMPY)
