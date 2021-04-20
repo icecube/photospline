@@ -1,7 +1,7 @@
 cmake_minimum_required (VERSION 3.1.0 FATAL_ERROR)
 cmake_policy(VERSION 3.1.0)
 
-project (photospline VERSION 2.0.6 LANGUAGES C CXX)
+project (photospline VERSION 2.0.7 LANGUAGES C CXX)
 
 SET(CMAKE_CXX_STANDARD 11)
 SET(CMAKE_C_STANDARD 99)
@@ -129,6 +129,7 @@ IF (BUILD_SPGLAM)
   target_link_libraries(spglam
     PUBLIC
       ${SUITESPARSE_LIBRARIES}
+    PRIVATE
       ${BLAS_LIBRARIES}
       ${LAPACK_LIBRARIES}
   )
@@ -139,12 +140,12 @@ IF (BUILD_SPGLAM)
   # Assume that if TBB can be found, we need to link
   # against it to use SuiteSparse
   IF (TBB_FOUND)
-    target_link_libraries(spglam PUBLIC ${TBB_LIBRARIES})
+    target_link_libraries(spglam PRIVATE ${TBB_LIBRARIES})
   ENDIF (TBB_FOUND)
   # Likewise assume that if METIS is found we need it as well, 
   # even if we never use it. 
   IF (METIS_FOUND)
-    target_link_libraries(spglam PUBLIC ${METIS_LIBRARIES})
+    target_link_libraries(spglam PRIVATE ${METIS_LIBRARIES})
   ENDIF (METIS_FOUND)
   INSTALL (TARGETS spglam EXPORT ${PROJECT_NAME}Config LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
   
