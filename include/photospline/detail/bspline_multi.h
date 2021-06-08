@@ -346,7 +346,7 @@ splinetable<Alloc>::ndsplineeval_gradient(const double* x, const int* centers, d
 
 template<typename Alloc>
 template<typename Float>
-void splinetable<Alloc>::evaluator<Float>::ndsplineeval_gradient(const double* x, const int* centers, double* evaluates) const{
+void splinetable<Alloc>::evaluator_type<Float>::ndsplineeval_gradient(const double* x, const int* centers, double* evaluates) const{
 	uint32_t maxdegree = *std::max_element(table.order,table.order+table.ndim) + 1;
 	uint32_t nbases = table.ndim + 1;
 	typename detail::simd_vector<Float>::type acc[PHOTOSPLINE_NVECS];

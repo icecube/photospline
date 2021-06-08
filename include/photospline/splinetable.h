@@ -476,13 +476,13 @@ public:
 	///which is want obtained it must be considered invalidated if that table is
 	///altered or destroyed.
 	template <typename Float=float>
-	struct evaluator{
+	struct evaluator_type{
 	private:
 		const splinetable<Alloc>& table;
 		Float (splinetable::*eval_ptr)(const int*, int, detail::buffer2d<Float>) const;
 		void (splinetable::*v_eval_ptr)(const int*, const typename detail::simd_vector<Float>::type***, typename detail::simd_vector<Float>::type*) const;
 		friend class splinetable<Alloc>;
-		evaluator(const splinetable<Alloc>& table):table(table){}
+		evaluator_type(const splinetable<Alloc>& table):table(table){}
 	public:
 		///\brief Get the underlying splinetable
 		const splinetable<Alloc>& get_table() const{ return(table); }
@@ -497,14 +497,16 @@ public:
 		///\brief same as splinetable::ndsplineeval_deriv
 		Float ndsplineeval_deriv(const double* x, const int* centers, const unsigned int *derivatives) const;
 	};
-	template <typename Float> friend struct evaluator;
+	template <typename Float> friend struct evaluator_type;
 	
 	///Constructs an optimized evaluator object which will use the best
-	///available internal routines to perform evaulations. The evaluator holds
-	///a reference to this splinetable, so it must be considered invalidated if
-	///this table altered or destroyed.
+	///available internal routines to perform evaulations, at the requested
+	///precision. The evaluator holds a reference to this splinetable, so it
+	///must be considered invalidated if this table altered or destroyed.
 	template <typename Float=float>
-	evaluator<Float> get_evaluator() const;
+	evaluator_type<Float> get_evaluator() const;
+
+	typedef evaluator_type<float> evaluator;
 	
 	/*
 	 * Spline table based hypersurface evaluation. ndsplineeval() takes a spline

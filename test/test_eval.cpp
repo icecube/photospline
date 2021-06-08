@@ -95,10 +95,10 @@ TEST(ndssplineeval_vs_call_operator){
 	}
 }
 
-void test_evaluator_interface(const std::string& splinePath){
+void test_evaluator_type_interface(const std::string& splinePath){
 	std::cout << "Testing evaluation of " << splinePath << std::endl;
 	photospline::splinetable<> spline(splinePath);
-	photospline::splinetable<>::evaluator<> evaluator=spline.get_evaluator();
+	photospline::splinetable<>::evaluator_type<> evaluator_type=spline.get_evaluator();
 	const int ndim = spline.get_ndim();
 	ENSURE(ndim < 6);
 	
@@ -115,7 +115,7 @@ void test_evaluator_interface(const std::string& splinePath){
 	std::vector<double> gradient1(ndim), gradient2(ndim);
 	std::vector<double> evaluate_with_gradient1(ndim+1), evaluate_with_gradient2(ndim+1);
 	
-	//Evaluate the spline with and without the evaluator
+	//Evaluate the spline with and without the evaluator_type
 	for(size_t i=0; i<10000; i++) {
 		for(size_t j=0; j<ndim; j++)
 			coords[j]=dists[j](rng);
@@ -127,39 +127,39 @@ void test_evaluator_interface(const std::string& splinePath){
 		
 		spline.ndsplineeval_gradient(coords.data(), centers1.data(), evaluate_with_gradient1.data());
 		
-		ENSURE(evaluator.searchcenters(coords.data(), centers2.data()), "Center lookup should succeed");
-		double evaluate2=evaluator.ndsplineeval(coords.data(), centers2.data(), 0);
+		ENSURE(evaluator_type.searchcenters(coords.data(), centers2.data()), "Center lookup should succeed");
+		double evaluate2=evaluator_type.ndsplineeval(coords.data(), centers2.data(), 0);
 		for(uint32_t i=0; i<ndim; i++)
-			gradient2[i]=evaluator.ndsplineeval(coords.data(), centers2.data(), 1u<<i);
-		double evaluate2_c=evaluator(coords.data());
+			gradient2[i]=evaluator_type.ndsplineeval(coords.data(), centers2.data(), 1u<<i);
+		double evaluate2_c=evaluator_type(coords.data());
 		
-		evaluator.ndsplineeval_gradient(coords.data(), centers2.data(), evaluate_with_gradient2.data());
+		evaluator_type.ndsplineeval_gradient(coords.data(), centers2.data(), evaluate_with_gradient2.data());
 		
 		for (int j=0; j < ndim; j++) {
 			ENSURE_EQUAL(centers1[j],centers2[j],"Center lookups should yield same results");
 		}
 		ENSURE_EQUAL(evaluate1, evaluate2,
-		             "splinetable::ndsplineeval() and evaluator::ndsplineeval() yield identical evaluates");
+		             "splinetable::ndsplineeval() and evaluator_type::ndsplineeval() yield identical evaluates");
 		ENSURE_EQUAL(evaluate1, evaluate2_c,
-		             "splinetable::ndsplineeval() and evaluator::operator()() yield identical evaluates");
+		             "splinetable::ndsplineeval() and evaluator_type::operator()() yield identical evaluates");
 		ENSURE_EQUAL(evaluate_with_gradient1[0], evaluate_with_gradient2[0],
-		             "splinetable::ndssplineeval_gradient() and evaluator::ndssplineeval_gradient() yield identical evaluates");
+		             "splinetable::ndssplineeval_gradient() and evaluator_type::ndssplineeval_gradient() yield identical evaluates");
 		for (int j=0; j < ndim; j++) {
 			ENSURE_EQUAL(gradient1[j], gradient2[j],
-						 "splinetable::ndsplineeval() and evaluator::ndsplineeval() yield identical derivatives");
+						 "splinetable::ndsplineeval() and evaluator_type::ndsplineeval() yield identical derivatives");
 			ENSURE_EQUAL(evaluate_with_gradient1[j+1], evaluate_with_gradient2[j+1],
-						 "splinetable::ndssplineeval_gradient() and evaluator::ndssplineeval_gradient() yield identical derivatives");
+						 "splinetable::ndssplineeval_gradient() and evaluator_type::ndssplineeval_gradient() yield identical derivatives");
 		}
 	}
 }
 
-TEST(evaluator_interface){
-	test_evaluator_interface("test_data/test_spline_2d.fits");
-	test_evaluator_interface("test_data/test_spline_2d_nco.fits");
-	test_evaluator_interface("test_data/test_spline_3d.fits");
-	test_evaluator_interface("test_data/test_spline_3d_nco.fits");
-	test_evaluator_interface("test_data/test_spline_4d.fits");
-	test_evaluator_interface("test_data/test_spline_4d_nco.fits");
+TEST(evaluator_type_interface){
+	test_evaluator_type_interface("test_data/test_spline_2d.fits");
+	test_evaluator_type_interface("test_data/test_spline_2d_nco.fits");
+	test_evaluator_type_interface("test_data/test_spline_3d.fits");
+	test_evaluator_type_interface("test_data/test_spline_3d_nco.fits");
+	test_evaluator_type_interface("test_data/test_spline_4d.fits");
+	test_evaluator_type_interface("test_data/test_spline_4d_nco.fits");
 }
 
 TEST(bsplvb_simple_vs_bspline){
@@ -556,11 +556,11 @@ TEST(permutation){
 	const std::string splinePath="test_data/test_spline_4d_nco.fits";
 	
 	photospline::splinetable<> spline(splinePath);
-	photospline::splinetable<>::evaluator<> evaluator=spline.get_evaluator();
+	photospline::splinetable<>::evaluator_type<> evaluator_type=spline.get_evaluator();
 	
 	photospline::splinetable<> splineP(splinePath);
 	splineP.permuteDimensions(std::vector<size_t>{2,3,0,1});
-	photospline::splinetable<>::evaluator<> evaluatorP=splineP.get_evaluator();
+	photospline::splinetable<>::evaluator_type<> evaluator_typeP=splineP.get_evaluator();
 	
 	std::mt19937 rng;
 	rng.seed(93);
@@ -580,11 +580,11 @@ TEST(permutation){
 		coordsP[2]=coords[0];
 		coordsP[3]=coords[1];
 		
-		ENSURE(evaluator.searchcenters(coords.data(), centers.data()), "Center lookup should succeed");
-		ENSURE(evaluatorP.searchcenters(coordsP.data(), centersP.data()), "Center lookup should succeed");
+		ENSURE(evaluator_type.searchcenters(coords.data(), centers.data()), "Center lookup should succeed");
+		ENSURE(evaluator_typeP.searchcenters(coordsP.data(), centersP.data()), "Center lookup should succeed");
 		
-		double evaluate=evaluator.ndsplineeval(coords.data(), centers.data(), 0);
-		double evaluateP=evaluatorP.ndsplineeval(coordsP.data(), centersP.data(), 0);
+		double evaluate=evaluator_type.ndsplineeval(coords.data(), centers.data(), 0);
+		double evaluateP=evaluator_typeP.ndsplineeval(coordsP.data(), centersP.data(), 0);
 		
 		//Reordering the dimensions changes how the calculation rounds off during
 		//intermediate steps, so fairly generour error tolerances are needed here.

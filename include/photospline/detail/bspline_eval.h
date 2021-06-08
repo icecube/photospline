@@ -365,9 +365,9 @@ double splinetable<Alloc>::ndsplineeval_deriv(const double* x, const int* center
 	
 template<typename Alloc>
 template<typename Float>
-typename splinetable<Alloc>::template evaluator<Float>
+typename splinetable<Alloc>::template evaluator_type<Float>
 splinetable<Alloc>::get_evaluator() const{
-	evaluator<Float> eval(*this);
+	evaluator_type<Float> eval(*this);
 	
 	uint32_t constOrder = order[0];
 	for (unsigned int j = 1; j < ndim; j++) {
@@ -517,13 +517,13 @@ splinetable<Alloc>::get_evaluator() const{
 
 template<typename Alloc>
 template<typename Float>
-bool splinetable<Alloc>::evaluator<Float>::searchcenters(const double* x, int* centers) const{
+bool splinetable<Alloc>::evaluator_type<Float>::searchcenters(const double* x, int* centers) const{
 	return(table.searchcenters(x,centers));
 }
 	
 template<typename Alloc>
 template<typename Float>
-Float splinetable<Alloc>::evaluator<Float>::ndsplineeval(const double* x, const int* centers, int derivatives) const{
+Float splinetable<Alloc>::evaluator_type<Float>::ndsplineeval(const double* x, const int* centers, int derivatives) const{
 	uint32_t maxdegree = *std::max_element(table.order,table.order+table.ndim) + 1;
 	Float localbasis_store[table.ndim*maxdegree];
 	detail::buffer2d<Float> localbasis{localbasis_store,maxdegree};
@@ -545,7 +545,7 @@ Float splinetable<Alloc>::evaluator<Float>::ndsplineeval(const double* x, const 
 	
 template<typename Alloc>
 template<typename Float>
-Float splinetable<Alloc>::evaluator<Float>::operator()(const double* x, int derivatives) const{
+Float splinetable<Alloc>::evaluator_type<Float>::operator()(const double* x, int derivatives) const{
 	int centers[table.ndim];
 	if(!table.searchcenters(x,centers))
 		return(0);
@@ -554,7 +554,7 @@ Float splinetable<Alloc>::evaluator<Float>::operator()(const double* x, int deri
 	
 template<typename Alloc>
 template<typename Float>
-Float splinetable<Alloc>::evaluator<Float>::ndsplineeval_deriv(const double* x, const int* centers, const unsigned int *derivatives) const
+Float splinetable<Alloc>::evaluator_type<Float>::ndsplineeval_deriv(const double* x, const int* centers, const unsigned int *derivatives) const
 {
 	uint32_t maxdegree = *std::max_element(table.order,table.order+table.ndim) + 1;
 	Float localbasis_store[table.ndim*maxdegree];
@@ -589,7 +589,7 @@ splinetable<Alloc>::benchmark_evaluation(size_t trialCount, bool verbose){
 	
 	volatile double dummy;
 	benchmark_results result;
-	evaluator<Float> eval=get_evaluator<Float>();
+	evaluator_type<Float> eval=get_evaluator<Float>();
 	
 	std::vector<std::uniform_real_distribution<>> dists;
 	for(size_t i=0; i<ndim; i++)
