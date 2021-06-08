@@ -86,7 +86,9 @@ void splinetable<Alloc>::ndsplineeval_multibasis_coreD(const int *centers, const
 	 * Work around GCC ABI-compliance issue with SSE on x86 by
 	 * forcibly realigning the stack to a 16-byte boundary.
 	 */
+
 	volatile register unsigned long sp __asm("esp");
+	__asm("" : "=r"(sp));
 	if (__builtin_expect(sp & 15UL, 0))
 		(void)alloca(16 - (sp & 15UL));
 #endif
@@ -154,7 +156,9 @@ void splinetable<Alloc>::ndsplineeval_multibasis_coreD_FixedOrder(const int *cen
 	 * Work around GCC ABI-compliance issue with SSE on x86 by
 	 * forcibly realigning the stack to a 16-byte boundary.
 	 */
+
 	volatile register unsigned long sp __asm("esp");
+	__asm("" : "=r"(sp));
 	if (__builtin_expect(sp & 15UL, 0))
 		(void)alloca(16 - (sp & 15UL));
 #endif
@@ -226,6 +230,7 @@ void splinetable<Alloc>::ndsplineeval_multibasis_core_KnownOrder(const int *cent
 	 * forcibly realigning the stack to a 16-byte boundary.
 	 */
 	volatile register unsigned long sp __asm("esp");
+	__asm("" : "=r"(sp));
 	if (__builtin_expect(sp & 15UL, 0))
 		(void)alloca(16 - (sp & 15UL));
 #endif
