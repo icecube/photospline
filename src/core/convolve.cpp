@@ -9,6 +9,7 @@
 #include <float.h>
 #include <string.h>
 #include <stdio.h>
+#include <vector>
 
 #include "photospline/bspline.h"
 
@@ -54,8 +55,9 @@ double
 convoluted_blossom(const double* x, size_t nx, const double* y, size_t ny, double z,
     const double* bags, size_t nbags)
 {
-	double scale, fun_x[nx], fun_y[ny];
-	int i, j, k;
+	double scale;
+	std::vector<double> fun_x(nx), fun_y(ny);
+	unsigned i, j, k;
 	
 	/*
 	 * If the supports of the source and target spline do not overlap, the
@@ -78,9 +80,9 @@ convoluted_blossom(const double* x, size_t nx, const double* y, size_t ny, doubl
 				fun_y[j] = 0.0;
 			}
 		}
-		fun_x[i] = divdiff(y, fun_y, ny);
+		fun_x[i] = divdiff(y, fun_y.data(), ny);
 	}
-	return (scale*divdiff(x, fun_x, nx));
+	return (scale*divdiff(x, fun_x.data(), nx));
 }
 
 } //namespace photospline

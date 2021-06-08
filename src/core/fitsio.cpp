@@ -11,7 +11,7 @@ std::vector<uint32_t> readOrder(fitsfile* fits, uint32_t ndim){
 		error = 0;
 		
 		//There is not, so look for a separate order in each dimension
-		for (int i = 0; i < ndim; i++) {
+		for (uint32_t i = 0; i < ndim; i++) {
 			std::ostringstream ss;
 			ss << "ORDER" << i;
 			fits_read_key(fits, TUINT, ss.str().c_str(), &order[i], NULL, &error);
@@ -43,7 +43,6 @@ uint32_t countAuxKeywords(fitsfile* fits){
 	if (nkeys == 0)
 		return (0);
 	char key[FLEN_KEYWORD], value[FLEN_VALUE];
-	int keylen, valuelen;
 	
 	// figure out how many generic keys there are
 	uint32_t naux = 0;

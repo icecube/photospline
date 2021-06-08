@@ -48,8 +48,8 @@ void bsplvb_simple(const double* knots, const unsigned nknots,
 	if (left == degree-1)
 		while (left >= 0 && x < knots[left])
 			left--;
-	else if (left == nknots-degree-1)
-		while (left < nknots-1 && x > knots[left+1])
+	else if (left == int(nknots)-degree-1)
+		while (left < int(nknots)-1 && x > knots[left+1])
 			left++;	
 	
 	/* 
@@ -135,12 +135,12 @@ void bspline_nonzero(const double* knots, const unsigned nknots,
 	 * Handle the (rare) cases where x is outside the full
 	 * support of the spline surface.
 	 */
-	assert(left >= n && left <= nknots-n-2);
+	assert(left >= n && left <= int(nknots)-n-2);
 	if (left == n)
 		while (left >= 0 && x < knots[left])
 			left--;
-	else if (left == nknots-n-2)
-		while (left < nknots-1 && x > knots[left+1])
+	else if (left == int(nknots)-n-2)
+		while (left < int(nknots)-1 && x > knots[left+1])
 			left++;
 	
 	double delta_r[n+1], delta_l[n+1];
@@ -216,8 +216,8 @@ void bspline_deriv_nonzero(const double* knots, const unsigned nknots,
 	if (left == n)
 		while (left >= 0 && x < knots[left])
 			left--;
-	else if (left == nknots-n-2)
-		while (left < nknots-1 && x > knots[left+1])
+	else if (left == int(nknots)-n-2)
+		while (left < int(nknots)-1 && x > knots[left+1])
 			left++;
 	
 	/* Get the non-zero n-1th order B-splines at x */

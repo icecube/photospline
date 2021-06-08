@@ -19,7 +19,7 @@ void splinetable<Alloc>::ndsplineeval_multibasis_core(const int *centers, const 
 		(void)alloca(16 - (sp & 15UL));
 #endif
 	typename detail::simd_vector<Float>::type basis_tree[ndim+1][PHOTOSPLINE_NVECS];
-	int decomposedposition[ndim];
+	unsigned decomposedposition[ndim];
 	
 	int64_t tablepos = 0;
 	for (uint32_t n = 0; n < ndim; n++) {
@@ -92,7 +92,7 @@ void splinetable<Alloc>::ndsplineeval_multibasis_coreD(const int *centers, const
 #endif
 	const unsigned int VC=vectorCountHelper<D>::VC;
 	typename detail::simd_vector<Float>::type basis_tree[D+1][VC];
-	int decomposedposition[D];
+	unsigned decomposedposition[D];
 	
 	int64_t tablepos = 0;
 	for (uint32_t n = 0; n < D; n++) {
@@ -160,7 +160,7 @@ void splinetable<Alloc>::ndsplineeval_multibasis_coreD_FixedOrder(const int *cen
 #endif
 	const unsigned int VC=vectorCountHelper<D>::VC;
 	typename detail::simd_vector<Float>::type basis_tree[D+1][VC];
-	int decomposedposition[D];
+	unsigned decomposedposition[D];
 	
 	int64_t tablepos = 0;
 	for (uint32_t n = 0; n < D; n++) {
@@ -232,7 +232,7 @@ void splinetable<Alloc>::ndsplineeval_multibasis_core_KnownOrder(const int *cent
 	constexpr unsigned int D = sizeof...(Orders);
 	const unsigned int VC=vectorCountHelper<D>::VC;
 	typename detail::simd_vector<Float>::type basis_tree[D+1][VC];
-	int decomposedposition[D];
+	unsigned decomposedposition[D];
 	
 	int64_t tablepos = 0;
 	for (uint32_t n = 0; n < D; n++) {

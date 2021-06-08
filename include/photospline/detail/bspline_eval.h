@@ -46,7 +46,7 @@ bool splinetable<Alloc>::searchcenters(const double* x, int* centers) const
 		 * left to get the limit of the sum without evaluating
 		 * absent basis functions.
 		 */
-		if (centers[i] == naxes[i])
+		if (unsigned(centers[i]) == naxes[i])
 			centers[i]--;
 	}
 	
@@ -55,11 +55,11 @@ bool splinetable<Alloc>::searchcenters(const double* x, int* centers) const
 
 template<typename Alloc>
 template<typename Float>
-Float splinetable<Alloc>::ndsplineeval_core(const int* centers, int maxdegree, detail::buffer2d<Float> localbasis) const
+Float splinetable<Alloc>::ndsplineeval_core(const int* centers, int maxdegree __attribute__((unused)), detail::buffer2d<Float> localbasis) const
 {
 	uint32_t n;
 	Float basis_tree[ndim+1];
-	int decomposedposition[ndim];
+	unsigned decomposedposition[ndim];
 	
 	int64_t tablepos = 0;
 	for (n = 0; n < ndim; n++) {
@@ -108,7 +108,7 @@ Float splinetable<Alloc>::ndsplineeval_coreD(const int* centers, int maxdegree, 
 {
 	uint32_t n;
 	Float basis_tree[D+1];
-	int decomposedposition[D];
+	unsigned decomposedposition[D];
 	
 	int64_t tablepos = 0;
 	for (n = 0; n < D; n++) {
@@ -160,7 +160,7 @@ Float splinetable<Alloc>::ndsplineeval_coreD_FixedOrder(const int* centers, int 
 {
 	uint32_t n;
 	Float basis_tree[D+1];
-	int decomposedposition[D];
+	unsigned decomposedposition[D];
 	
 	int64_t tablepos = 0;
 	for (n = 0; n < D; n++) {
@@ -257,7 +257,7 @@ Float splinetable<Alloc>::ndsplineeval_core_KnownOrder(const int* centers, int m
 	constexpr unsigned int D = sizeof...(Orders);
 	uint32_t n;
 	Float basis_tree[D+1];
-	int decomposedposition[D];
+	unsigned decomposedposition[D];
 	
 	// 
 	int64_t tablepos = 0;
@@ -352,7 +352,7 @@ double splinetable<Alloc>::ndsplineeval_deriv(const double* x, const int* center
 						  x[n], centers[n], order[n],
 						  localbasis[n]);
 		} else {
-			for (int32_t i = 0; i <= order[n]; i++)
+			for (uint32_t i = 0; i <= order[n]; i++)
 				localbasis[n][i] = bspline_deriv(
 												   &knots[n][0], x[n],
 												   centers[n] - order[n] + i, 
@@ -570,7 +570,7 @@ Float splinetable<Alloc>::evaluator_type<Float>::ndsplineeval_deriv(const double
 						  x[n], centers[n], table.order[n],
 						  localbasis[n]);
 		} else {
-			for (int32_t i = 0; i <= table.order[n]; i++)
+			for (uint32_t i = 0; i <= table.order[n]; i++)
 				localbasis[n][i] = bspline_deriv(
 												   &table.knots[n][0], x[n],
 												   centers[n] - table.order[n] + i, 
