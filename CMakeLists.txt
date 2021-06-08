@@ -1,7 +1,7 @@
 cmake_minimum_required (VERSION 3.1.0 FATAL_ERROR)
 cmake_policy(VERSION 3.1.0)
 
-project (photospline VERSION 2.0.1 LANGUAGES C CXX)
+project (photospline VERSION 2.0.7 LANGUAGES C CXX)
 
 SET(CMAKE_CXX_STANDARD 11)
 SET(CMAKE_C_STANDARD 99)
@@ -129,6 +129,7 @@ IF (BUILD_SPGLAM)
   target_link_libraries(spglam
     PUBLIC
       ${SUITESPARSE_LIBRARIES}
+    PRIVATE
       ${BLAS_LIBRARIES}
       ${LAPACK_LIBRARIES}
   )
@@ -139,17 +140,18 @@ IF (BUILD_SPGLAM)
   # Assume that if TBB can be found, we need to link
   # against it to use SuiteSparse
   IF (TBB_FOUND)
-    target_link_libraries(spglam PUBLIC ${TBB_LIBRARIES})
+    target_link_libraries(spglam PRIVATE ${TBB_LIBRARIES})
   ENDIF (TBB_FOUND)
   # Likewise assume that if METIS is found we need it as well, 
   # even if we never use it. 
   IF (METIS_FOUND)
-    target_link_libraries(spglam PUBLIC ${METIS_LIBRARIES})
+    target_link_libraries(spglam PRIVATE ${METIS_LIBRARIES})
   ENDIF (METIS_FOUND)
   INSTALL (TARGETS spglam EXPORT ${PROJECT_NAME}Config LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
   
   target_compile_definitions(photospline PUBLIC PHOTOSPLINE_INCLUDES_SPGLAM)
   target_link_libraries(photospline PUBLIC spglam)
+  target_include_directories(photospline INTERFACE ${SUITESPARSE_INCLUDE_DIR})
 
 ELSEIF(NOT BLAS_FOUND)
   MESSAGE("No BLAS library found, skipping build of fitter")
@@ -170,18 +172,21 @@ IF(PYTHON_FOUND)
 
   add_library (pyphotospline SHARED ${python_SOURCES})
   set_target_properties(pyphotospline PROPERTIES LINKER_LANGUAGE C OUTPUT_NAME "photospline" PREFIX "" SUFFIX ".so")
-  target_include_directories (pyphotospline PRIVATE ${PYTHON_INCLUDE_DIR})
-  target_link_libraries (pyphotospline PRIVATE photospline)
+  target_include_directories (pyphotospline PRIVATE ${PYTHON_INCLUDE_DIRS})
+  target_link_libraries (pyphotospline PUBLIC PRIVATE photospline)
   IF(NUMPY_FOUND)
     target_include_directories (pyphotospline PRIVATE ${NUMPY_INCLUDE_DIR})
     target_compile_definitions (pyphotospline PRIVATE HAVE_NUMPY)
+    target_compile_definitions (pyphotospline PRIVATE NUMPY_VERSION_MAJOR=${NUMPY_VERSION_MAJOR})
+    target_compile_definitions (pyphotospline PRIVATE NUMPY_VERSION_MINOR=${NUMPY_VERSION_MINOR})
+    target_compile_definitions (pyphotospline PRIVATE NUMPY_VERSION_PATCH=${NUMPY_VERSION_PATCH})
   ENDIF(NUMPY_FOUND)
   # Assume that undef symbols (e.g. from libpython) will be present at runtime
   if(APPLE)
     SET_TARGET_PROPERTIES(pyphotospline PROPERTIES LINK_FLAGS "-undefined dynamic_lookup")
   endif(APPLE)
   EXECUTE_PROCESS (COMMAND ${PYTHON_EXECUTABLE} -c
-    "from distutils.sysconfig import get_python_lib; print get_python_lib(prefix='')"
+    "from distutils.sysconfig import get_python_lib; print(get_python_lib(prefix=''))"
     OUTPUT_VARIABLE PYTHON_MODULE_DIR
     OUTPUT_STRIP_TRAILING_WHITESPACE)
   INSTALL(TARGETS pyphotospline LIBRARY DESTINATION ${PYTHON_MODULE_DIR})
@@ -202,7 +207,7 @@ GET_TARGET_PROPERTY(CONFIG_COMPILE_DEFINITIONS_RAW photospline COMPILE_DEFINITIO
 FOREACH(def IN LISTS CONFIG_COMPILE_DEFINITIONS_RAW)
   SET(CONFIG_COMPILE_DEFINITIONS "${CONFIG_COMPILE_DEFINITIONS} -D${def}")
 ENDFOREACH(def)
-SET(CONFIG_CFLAGS "${CONFIG_COMPILE_DEFINITIONS}")
+SET(CONFIG_CFLAGS "${CONFIG_COMPILE_DEFINITIONS} -I${CFITSIO_INCLUDE_DIR}")
 SET(CONFIG_LDFLAGS "-lphotospline")
 GET_TARGET_PROPERTY(CONFIG_LINK_LIBRARIES_RAW photospline LINK_LIBRARIES)
 FOREACH(lib IN LISTS CONFIG_LINK_LIBRARIES_RAW)
@@ -215,6 +220,7 @@ FOREACH(lib IN LISTS CONFIG_LINK_LIBRARIES_RAW)
   ENDIF()
 ENDFOREACH(lib)
 IF(BUILD_SPGLAM)
+  SET(CONFIG_CFLAGS "${CONFIG_CFLAGS} -I${SUITESPARSE_INCLUDE_DIR}")
   GET_TARGET_PROPERTY(CONFIG_LINK_LIBRARIES_RAW spglam LINK_LIBRARIES)
   FOREACH(lib IN LISTS CONFIG_LINK_LIBRARIES_RAW)
     IF("${lib}" MATCHES ".*lib.*\.(a|so|dylib)$")
@@ -309,10 +315,19 @@ endif(BUILD_SPGLAM)
 # Tests
 # -----------------------------------------------------------------------------
 ENABLE_TESTING()
-ADD_EXECUTABLE(photospline-test
+LIST(APPEND TEST_SOURCES
   test/test_main.cpp
   test/test_fitsio.cpp
   test/test_eval.cpp
+)
+if(BUILD_SPGLAM)
+  LIST(APPEND TEST_SOURCES
+    test/test_operators.cpp
+  )
+endif(BUILD_SPGLAM)
+
+ADD_EXECUTABLE(photospline-test
+  ${TEST_SOURCES}
 )
 TARGET_LINK_LIBRARIES(photospline-test
   photospline
@@ -322,9 +337,7 @@ ADD_TEST(photospline-test photospline-test
  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/test
 )
 ADD_EXECUTABLE(photospline-test-templated
-  test/test_main.cpp
-  test/test_fitsio.cpp
-  test/test_eval.cpp
+  ${TEST_SOURCES}
 )
 TARGET_LINK_LIBRARIES(photospline-test-templated
   photospline

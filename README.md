@@ -11,6 +11,12 @@ tables.
 
 ## Installing
 
+### Packages
+
+Photospline is packaged [on conda-forge](https://anaconda.org/conda-forge/photospline). Install with `conda install -c conda-forge photospline`.
+
+### From source
+
 To build the core photospline libraries, you will need:
 
 * [CMake](https://cmake.org) >= 3.1

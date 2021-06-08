@@ -28,7 +28,7 @@ void splinetable<Alloc>::ndsplineeval_multibasis_core(const int *centers, const 
 	}
 	
 	for (uint32_t k = 0; k < PHOTOSPLINE_NVECS; k++) {
-		detail::simd_vector<Float>::init(basis_tree[0][k], 1);
+		detail::simd_vector<Float>::init(basis_tree[0][k], 1.);
 		for (uint32_t n = 0; n < ndim; n++)
 			basis_tree[n+1][k] = basis_tree[n][k]*localbasis[n][0][k];
 	}

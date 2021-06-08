@@ -1,14 +1,43 @@
 #include <Python.h>
+
 #ifdef HAVE_NUMPY
-	// TODO: turn this on once 1.6 API actually disappears from new releases
-	// #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
+	#if NUMPY_VERSION_MAJOR==1 && NUMPY_VERSION_MINOR<=6
+		#define NUMPY_API_GEN 0
+	#endif
+	#if NUMPY_VERSION_MAJOR>1 || (NUMPY_VERSION_MAJOR==1 && NUMPY_VERSION_MINOR>6)
+		#define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
+		#define NUMPY_API_GEN 1
+	#endif
+	#ifndef NUMPY_API_GEN
+		#error NUMPY_API_GEN not defined
+	#endif
 	#include <numpy/ndarrayobject.h>
 #endif
+
 #include <stdio.h>
 #include <limits.h>
 
 #include <photospline/splinetable.h>
 #include <photospline/bspline.h>
+
+#if PY_MAJOR_VERSION >= 3
+	#define ExtractLong(obj) PyLong_AsLong(obj)
+	#define MakeLong(val) PyLong_FromLong(val)
+	#define ExtractSsize_t(obj) PyLong_AsSsize_t(obj)
+	#define ExtractUnsignedLongMask(obj) PyLong_AsUnsignedLongMask(obj)
+#else
+	#define ExtractLong(obj) PyInt_AsLong(obj)
+	#define MakeLong(val) PyInt_FromLong(val)
+	#define ExtractSsize_t(obj) PyInt_AsSsize_t(obj)
+	#define ExtractUnsignedLongMask(obj) PyInt_AsUnsignedLongMask(obj)
+#endif
+
+#if NUMPY_API_GEN == 0 //numpy < 1.7
+	#define ExtractPyArrayDataPtr(obj) PyArray_DATA(obj)
+#endif
+#if NUMPY_API_GEN == 1 //numpy >= 1.7
+	#define ExtractPyArrayDataPtr(obj) PyArray_DATA((PyArrayObject*)(obj))
+#endif
 
 #ifdef PHOTOSPLINE_INCLUDES_SPGLAM
 typedef struct{
@@ -64,8 +93,10 @@ pyndsparse_init(pyndsparse* self, PyObject* args, PyObject* kwds){
     return 0;
 }
 
+#ifdef HAVE_NUMPY
 static PyObject*
 pyndsparse_sparse_data(pyndsparse* self, PyObject* args, PyObject* kwds);
+#endif
 
 static int
 pyndsparse_print(pyndsparse* self, FILE* fp, int flags){
@@ -109,7 +140,7 @@ pyndsparse_insert(pyndsparse* self, PyObject* args, PyObject* kwds){
 	unsigned int indices[self->data->ndim];
 	for(unsigned int i=0; i!=self->data->ndim; i++){
 		PyObject* idx=PySequence_GetItem(pyindices,i);
-		indices[i]=PyInt_AsLong(idx);
+		indices[i]=ExtractLong(idx);
 		Py_DECREF(idx); //done with this
 	}
 	self->data->insertEntry(value,indices);
@@ -119,13 +150,15 @@ pyndsparse_insert(pyndsparse* self, PyObject* args, PyObject* kwds){
 }
 
 static PyMethodDef pyndsparse_methods[] = {
-	{"from_data", (PyCFunction)pyndsparse_sparse_data, METH_KEYWORDS | METH_CLASS,
+#ifdef HAVE_NUMPY
+	{"from_data", (PyCFunction)pyndsparse_sparse_data, METH_VARARGS | METH_KEYWORDS | METH_CLASS,
 		"Create a sparse representation of data, omitting points where `weights==0`\n\n"
 		":param values: an ndarray\n"
 		":param weights: an ndarray of the same shape as `values`\n"
 		":returns: a tuple (sparse_data, weights) suitable as arguments to func:`glam_fit`"
 	},
-	{"insert", (PyCFunction)pyndsparse_insert, METH_KEYWORDS,
+#endif
+	{"insert", (PyCFunction)pyndsparse_insert, METH_VARARGS | METH_KEYWORDS,
 		"Insert a data point\n\n"
 		":param value: value to insert\n"
 		":param indices: a sequence of length `ndim`"
@@ -134,8 +167,7 @@ static PyMethodDef pyndsparse_methods[] = {
 };
 
 static PyTypeObject pyndsparseType = {
-	PyObject_HEAD_INIT(NULL)
-	0,                         /*ob_size*/
+	PyVarObject_HEAD_INIT(NULL, 0)
 	"pyphotospline.ndsparse", /*tp_name*/
 	sizeof(pyndsparse),     /*tp_basicsize*/
 	0,                         /*tp_itemsize*/
@@ -175,6 +207,7 @@ static PyTypeObject pyndsparseType = {
     pyndsparse_new,         /* tp_new */
 };
 
+#ifdef HAVE_NUMPY
 static PyObject*
 pyndsparse_sparse_data(pyndsparse* self, PyObject* args, PyObject* kwds){
 	static const char* kwlist[] = {"values", "weights", NULL};
@@ -195,6 +228,11 @@ pyndsparse_sparse_data(pyndsparse* self, PyObject* args, PyObject* kwds){
 	pyarray weights(w == NULL ? 
 	    (PyArrayObject*)PyArray_SimpleNew(PyArray_NDIM(values.get()), PyArray_DIMS(values.get()), NPY_DOUBLE)
 	    : (PyArrayObject *)PyArray_ContiguousFromObject(w, NPY_DOUBLE, 1,INT_MAX), deleter);
+	// Fill with ones if no weights provided
+	if (w == NULL) {
+		double *weight_data = (double *)PyArray_DATA(weights.get());
+		std::fill(weight_data, weight_data+PyArray_SIZE(weights.get()), 1.);
+	}
 	if (weights == NULL || !PyArray_SAMESHAPE(values.get(), weights.get())) {
 		PyErr_SetString(PyExc_ValueError, "values and weights must have the same shape");
 		return NULL;
@@ -258,6 +296,7 @@ pyndsparse_sparse_data(pyndsparse* self, PyObject* args, PyObject* kwds){
 	
 	return PyTuple_Pack(2, self, weights.get());
 }
+#endif //HAVE_NUMPY
 
 #endif //#ifdef PHOTOSPLINE_INCLUDES_SPGLAM
 
@@ -374,8 +413,14 @@ pysplinetable_getknots(pysplinetable *self, void *closure)
 		npy_intp stride = sizeof(double);
 		PyObject* knots = PyArray_New(&PyArray_Type, 1,  &nknots, NPY_DOUBLE, &stride,
 		    (void*)self->table->get_knots(dim), sizeof(double),
+#if NUMPY_API_GEN == 0 //numpy < 1.7
 		    NPY_CARRAY_RO, NULL);
-		((PyArrayObject*)knots)->base=(PyObject*)self;
+		    ((PyArrayObject*)knots)->base=(PyObject*)self;
+#endif
+#if NUMPY_API_GEN == 1 //numpy >= 1.7
+			NPY_ARRAY_CARRAY_RO, NULL);
+			PyArray_SetBaseObject((PyArrayObject*)knots, (PyObject*)self);
+#endif
 		Py_INCREF(self);
 		PyTuple_SetItem(list, dim, knots);
 	}
@@ -388,7 +433,7 @@ static PyObject*
 pysplinetable_getorder(pysplinetable* self, void *closure){
 	PyObject *list = PyTuple_New(self->table->get_ndim());
 	for (int dim = 0; dim < self->table->get_ndim(); dim++) {
-		PyTuple_SetItem(list, dim, PyInt_FromLong(self->table->get_order(dim)));
+		PyTuple_SetItem(list, dim, MakeLong(self->table->get_order(dim)));
 	}
 	
 	return list;
@@ -419,8 +464,14 @@ pysplinetable_getcoeffcients(pysplinetable* self, void *closure){
 	}
 	PyObject* arr=PyArray_New(&PyArray_Type, ndim, dims, NPY_FLOAT, strides,
 	    (void*)self->table->get_coefficients(), sizeof(float),
+#if NUMPY_API_GEN == 0 //numpy < 1.7
 	    NPY_CARRAY_RO, (PyObject*)self);
 	((PyArrayObject*)arr)->base=(PyObject*)self;
+#endif
+#if NUMPY_API_GEN == 1 //numpy >= 1.7
+	    NPY_ARRAY_CARRAY_RO, (PyObject*)self);
+	PyArray_SetBaseObject((PyArrayObject*)arr, (PyObject*)self);
+#endif
 	Py_INCREF(self);
 	return arr;
 }
@@ -428,7 +479,7 @@ pysplinetable_getcoeffcients(pysplinetable* self, void *closure){
 
 static PyObject*
 pysplinetable_getndim(pysplinetable* self, void *closure){
-	return PyInt_FromLong(self->table->get_ndim());
+	return MakeLong(self->table->get_ndim());
 }
 
 static PyObject*
@@ -539,7 +590,7 @@ pysplinetable_evaluate(pysplinetable* self, PyObject* args, PyObject* kwds){
 			x[i]=PyFloat_AsDouble(xi);
 			Py_DECREF(xi); //done with this
 			PyObject* centeri=PySequence_GetItem(pycenters,i);
-			centers[i]=PyInt_AsLong(centeri);
+			centers[i]=ExtractLong(centeri);
 			Py_DECREF(centeri); //done with this
 		}
 		
@@ -604,10 +655,14 @@ pysplinetable_evaluate_simple(pysplinetable* self, PyObject* args, PyObject* kwd
 	//optimized case for numpy arrays (or things that can be converted to them)
 	{
 		PyArrayObject* arrays[ndim+1];
+		for(unsigned int i=0; i!=ndim+1; i++)
+			arrays[i]=NULL;
 		npy_uint32 flags = 0;
 		npy_uint32 op_flags[ndim+1];
 		for(unsigned int i=0; i!=ndim; i++){
-			arrays[i] = (PyArrayObject*)PyArray_ContiguousFromAny(PySequence_GetItem(pyx,i), NPY_DOUBLE, 0, INT_MAX);
+			PyObject* item=PySequence_GetItem(pyx,i);
+			arrays[i] = (PyArrayObject*)PyArray_ContiguousFromAny(item, NPY_DOUBLE, 0, INT_MAX);
+			Py_DECREF(item);
 			op_flags[i] = NPY_ITER_READONLY;
 			if (arrays[i] == NULL) {
 				for (unsigned int j=0; j<i; j++)
@@ -615,12 +670,18 @@ pysplinetable_evaluate_simple(pysplinetable* self, PyObject* args, PyObject* kwd
 				return NULL;
 			}
 		}
+		
 		// allocate the output array automatically
 		arrays[ndim] = NULL;
 		op_flags[ndim] = NPY_ITER_WRITEONLY | NPY_ITER_ALLOCATE;
 		NpyIter *iter = NpyIter_MultiNew(ndim+1, arrays, flags, NPY_KEEPORDER, NPY_NO_CASTING, op_flags, NULL);
-		if (iter == NULL)
+		if (iter == NULL){
+			for (auto ptr : arrays){
+				if(ptr)
+					Py_DECREF(ptr);
+			}
 			return NULL;
+		}
 		char** data_ptr = NpyIter_GetDataPtrArray(iter);
 		NpyIter_IterNextFunc* iternext = NpyIter_GetIterNext(iter, NULL);
 		
@@ -641,8 +702,10 @@ pysplinetable_evaluate_simple(pysplinetable* self, PyObject* args, PyObject* kwd
 		Py_INCREF(out);
 		
 		// clean up
-		for (auto ptr : arrays)
-			Py_DECREF(arrays);
+		for (auto ptr : arrays){
+			if(ptr)
+				Py_DECREF(ptr);
+		}
 		if (NpyIter_Deallocate(iter) != NPY_SUCCEED) {
 			Py_DECREF(out);
 			return NULL;
@@ -707,7 +770,7 @@ pysplinetable_evaluate_gradient(pysplinetable* self, PyObject* args, PyObject* k
 			x[i]=PyFloat_AsDouble(xi);
 			Py_DECREF(xi); //done with this
 			PyObject* centeri=PySequence_GetItem(pycenters,i);
-			centers[i]=PyInt_AsLong(centeri);
+			centers[i]=ExtractLong(centeri);
 			Py_DECREF(centeri); //done with this
 		}
 		
@@ -774,15 +837,15 @@ pysplinetable_deriv(pysplinetable* self, PyObject* args, PyObject* kwds){
 			x[i]=PyFloat_AsDouble(xi);
 			Py_DECREF(xi); //done with this
 			PyObject* centeri=PySequence_GetItem(pycenters,i);
-			centers[i]=PyInt_AsLong(centeri);
+			centers[i]=ExtractLong(centeri);
 			Py_DECREF(centeri); //done with this
 			PyObject* derivi=PySequence_GetItem(derivatives,i);
-			if (PyInt_AsLong(derivi) < 0) {
+			if (ExtractLong(derivi) < 0) {
 				Py_DECREF(derivi);
 				PyErr_SetString(PyExc_ValueError, "Derivatives must be nonnegative integers");
 				return(NULL);
 			}
-			derivs[i] = PyInt_AsLong(derivi);
+			derivs[i] = ExtractLong(derivi);
 			Py_DECREF(derivi);
 		}
 		
@@ -795,8 +858,10 @@ pysplinetable_deriv(pysplinetable* self, PyObject* args, PyObject* kwds){
 static PyObject*
 pyphotospline_glam_fit(PyObject* self, PyObject* args, PyObject* kwds);
 
+#ifdef HAVE_NUMPY
 static PyObject*
 pysplinetable_grideval(pysplinetable* self, PyObject* args, PyObject* kwds);
+#endif
 #endif
 
 //TODO: sampling?
@@ -819,7 +884,7 @@ pysplinetable_permute(pysplinetable* self, PyObject* args, PyObject* kwds){
 		std::vector<size_t> permutation;
 		for(unsigned int i=0; i!=(unsigned)PySequence_Length(pypermutation); i++){
 			PyObject* idx=PySequence_GetItem(pypermutation,i);
-			permutation.push_back(PyInt_AsSsize_t(idx));
+			permutation.push_back(ExtractSsize_t(idx));
 			Py_DECREF(idx); //done with this
 		}
 		self->table->permuteDimensions(permutation);
@@ -890,34 +955,35 @@ static PyGetSetDef pysplinetable_properties[] = {
 };
 
 static PyMethodDef pysplinetable_methods[] = {
-	{"write", (PyCFunction)pysplinetable_write, METH_KEYWORDS,
+	{"write", (PyCFunction)pysplinetable_write, METH_VARARGS | METH_KEYWORDS,
 	 "Write the spline to a FITS file at the given path"},
-	{"aux_value", (PyCFunction)pysplinetable_get_aux_value, METH_KEYWORDS,
+	{"aux_value", (PyCFunction)pysplinetable_get_aux_value, METH_VARARGS | METH_KEYWORDS,
 	 "Get the value associated with an auxilliary key"},
-	{"search_centers", (PyCFunction)pysplinetable_searchcenters, METH_KEYWORDS,
+	{"search_centers", (PyCFunction)pysplinetable_searchcenters, METH_VARARGS | METH_KEYWORDS,
 	 "Look up the basis function indices corresponding to a set of coordinates"},
-	{"evaluate", (PyCFunction)pysplinetable_evaluate, METH_KEYWORDS,
+	{"evaluate", (PyCFunction)pysplinetable_evaluate, METH_VARARGS | METH_KEYWORDS,
 	 "Evaluate the spline at a set of coordinates or its derivatives in the given dimensions"},
-	{"evaluate_simple", (PyCFunction)pysplinetable_evaluate_simple, METH_KEYWORDS,
+	{"evaluate_simple", (PyCFunction)pysplinetable_evaluate_simple, METH_VARARGS | METH_KEYWORDS,
 	 "Evaluate the spline at a set of coordinates or its derivatives in the given dimensions"},
-	{"evaluate_gradient", (PyCFunction)pysplinetable_evaluate_gradient, METH_KEYWORDS,
+	{"evaluate_gradient", (PyCFunction)pysplinetable_evaluate_gradient, METH_VARARGS | METH_KEYWORDS,
 	 "Evaluate the spline and all of its derivatives at a set of coordinates"},
-	{"deriv", (PyCFunction)pysplinetable_deriv, METH_KEYWORDS,
+	{"deriv", (PyCFunction)pysplinetable_deriv, METH_VARARGS | METH_KEYWORDS,
 	 "Evaluate the given derivatives of the spline along each dimension"},
-	{"permute_dimensions", (PyCFunction)pysplinetable_permute, METH_KEYWORDS,
+	{"permute_dimensions", (PyCFunction)pysplinetable_permute, METH_VARARGS | METH_KEYWORDS,
 	 "Permute the dimensions of an existing spline table"},
 #ifdef PHOTOSPLINE_INCLUDES_SPGLAM
-	{"grideval", (PyCFunction)pysplinetable_grideval, METH_KEYWORDS,
+#ifdef HAVE_NUMPY
+	{"grideval", (PyCFunction)pysplinetable_grideval, METH_VARARGS | METH_KEYWORDS,
 	 "Evaluate the spline at a grid of points\n\n"
 	 ":param coords: coordinate vectors for each dimension\n"
 	 ":returns: an array of spline evaluates with size `len(coord[dim])` in each dimension"},
+#endif
 #endif
 	{NULL}  /* Sentinel */
 };
 
 static PyTypeObject pysplinetableType = {
-	PyObject_HEAD_INIT(NULL)
-	0,                         /*ob_size*/
+	PyVarObject_HEAD_INIT(NULL, 0)
 	"pyphotospline.Splinetable", /*tp_name*/
 	sizeof(pysplinetable),     /*tp_basicsize*/
 	0,                         /*tp_itemsize*/
@@ -959,10 +1025,10 @@ static PyTypeObject pysplinetableType = {
 
 static PyMethodDef photospline_methods[] = {
 #ifdef PHOTOSPLINE_INCLUDES_SPGLAM
-	{"glam_fit", (PyCFunction)pyphotospline_glam_fit, METH_KEYWORDS,
+	{"glam_fit", (PyCFunction)pyphotospline_glam_fit, METH_VARARGS | METH_KEYWORDS,
 	 "Fit a spline table to data"},
 #endif
-	{"bspline", (PyCFunction)pyphotospline_bspline, METH_KEYWORDS,
+	{"bspline", (PyCFunction)pyphotospline_bspline, METH_VARARGS | METH_KEYWORDS,
 	 "Evaluate the `i`th B-spline on knot vector `knots` at `x`\n\n"
 	 ":param knots: knot vector\n"
 	 ":param x: point at which to evaluate\n"
@@ -977,24 +1043,52 @@ static PyMethodDef photospline_methods[] = {
 #ifndef PyMODINIT_FUNC	/* declarations for DLL import/export */
 #define PyMODINIT_FUNC void
 #endif
+
+#if PY_MAJOR_VERSION >= 3
+static struct PyModuleDef moduledef = {
+	PyModuleDef_HEAD_INIT,
+	"photospline",
+	nullptr,
+	0,
+	photospline_methods,
+	nullptr,
+	nullptr,
+	nullptr,
+	nullptr,
+};
+
+	#define INITFAIL return nullptr
+#else //PY_MAJOR_VERSION < 3
+	#define INITFAIL return
+#endif
+
 PyMODINIT_FUNC
+#if PY_MAJOR_VERSION >= 3
+PyInit_photospline(void){
+#else
 initphotospline(void){
+#endif
 	PyObject* module;
 	
 	pysplinetableType.tp_new = PyType_GenericNew;
 	if (PyType_Ready(&pysplinetableType) < 0)
-		return;
+		INITFAIL;
 	
 #ifdef PHOTOSPLINE_INCLUDES_SPGLAM
 	pyndsparseType.tp_new = PyType_GenericNew;
 	if (PyType_Ready(&pyndsparseType) < 0)
-		return;
+		INITFAIL;
 #endif
-	
+
+#if PY_MAJOR_VERSION >= 3
+	module = PyModule_Create(&moduledef);
+	PyObject_SetAttrString(module, "__version__", PyUnicode_FromString(pp_str(PHOTOSPLINE_VERSION)));
+#else
 	module = Py_InitModule3("photospline", photospline_methods,
 	                   "A package for fitting gridded data to tensor-product "
 	                   "B-spline surfaces and evaluating those surfaces");
 	PyObject_SetAttrString(module, "__version__", PyString_FromString(pp_str(PHOTOSPLINE_VERSION)));
+#endif
 	
 	Py_INCREF(&pysplinetableType);
 	PyModule_AddObject(module, "SplineTable", (PyObject*)&pysplinetableType);
@@ -1005,6 +1099,10 @@ initphotospline(void){
 	
 #ifdef HAVE_NUMPY
 	import_array();
+#endif
+
+#if PY_MAJOR_VERSION >= 3
+	return module;
 #endif
 }
 
@@ -1145,19 +1243,28 @@ pyphotospline_glam_fit(PyObject* self, PyObject* args, PyObject* kwds){
 	
 	//We can avoid copying input data if it is in a numpy array which has the
 	//correct type and does not have funny layout.
+#if NUMPY_API_GEN == 0 //numpy < 1.7
 #define compatible_numpy_array(obj,element_type) (\
 	PyArray_Check(obj) \
 	&& PyArray_EquivTypenums(PyArray_DESCR(obj)->type_num,element_type) \
 	&& (PyArray_FLAGS(obj)&NPY_C_CONTIGUOUS) \
 	&& (PyArray_FLAGS(obj)&NPY_ALIGNED) \
 	)
-	
+#endif
+#if NUMPY_API_GEN == 1 //numpy >= 1.7
+#define compatible_numpy_array(obj,element_type) (\
+	PyArray_Check(obj) \
+	&& PyArray_EquivTypenums(PyArray_DESCR((PyArrayObject*)obj)->type_num,element_type) \
+	&& (PyArray_FLAGS((PyArrayObject*)obj)&NPY_ARRAY_C_CONTIGUOUS) \
+	&& (PyArray_FLAGS((PyArrayObject*)obj)&NPY_ARRAY_ALIGNED) \
+	)
+#endif	
 	//Extract inputs
 	
 	// extract weights
 #ifdef HAVE_NUMPY
 	if(compatible_numpy_array(pyweights,NPY_DOUBLE))
-		weights.reset((double*)PyArray_DATA(pyweights),data.rows);
+		weights.reset((double*)ExtractPyArrayDataPtr(pyweights),data.rows);
 	else //note sneaky line break across #endif
 #endif
 	{ //have to copy
@@ -1179,7 +1286,7 @@ pyphotospline_glam_fit(PyObject* self, PyObject* args, PyObject* kwds){
 		
 #ifdef HAVE_NUMPY
 		if(compatible_numpy_array(pycoordinates_i,NPY_DOUBLE))
-			coordinates[j].reset((double*)PyArray_DATA(pycoordinates_i),ncoordinates);
+			coordinates[j].reset((double*)ExtractPyArrayDataPtr(pycoordinates_i),ncoordinates);
 		else //note sneaky line break across #endif
 #endif
 		{ //have to copy
@@ -1200,14 +1307,14 @@ pyphotospline_glam_fit(PyObject* self, PyObject* args, PyObject* kwds){
 #ifdef HAVE_NUMPY
 	//TODO: Numpy's UInt may not be the same as uint32_t
 	if(compatible_numpy_array(pyorder,NPY_UINT))
-		order.reset((uint32_t*)PyArray_DATA(pyorder),data.ndim);
+		order.reset((uint32_t*)ExtractPyArrayDataPtr(pyorder),data.ndim);
 	else //note sneaky line break across #endif
 #endif
 	{ //have to copy
 		order_store.resize(data.ndim);
 		for(unsigned int i=0; i!=data.ndim; i++){
 			PyObject* pyorder_i=PySequence_GetItem(pyorder,i);
-			order_store[i]=PyInt_AsUnsignedLongMask(pyorder_i);
+			order_store[i]=ExtractUnsignedLongMask(pyorder_i);
 			Py_DECREF(pyorder_i); //done with this
 		}
 		order.reset(order_store.data(),data.ndim);
@@ -1222,7 +1329,7 @@ pyphotospline_glam_fit(PyObject* self, PyObject* args, PyObject* kwds){
 		
 #ifdef HAVE_NUMPY
 		if(compatible_numpy_array(pyknots_i,NPY_DOUBLE))
-			knots[j].reset((double*)PyArray_DATA(pyknots_i),nknots);
+			knots[j].reset((double*)ExtractPyArrayDataPtr(pyknots_i),nknots);
 		else //note sneaky line break across #endif
 #endif
 		{ //have to copy
@@ -1242,7 +1349,7 @@ pyphotospline_glam_fit(PyObject* self, PyObject* args, PyObject* kwds){
 	// extract smoothing
 #ifdef HAVE_NUMPY
 	if(compatible_numpy_array(pysmoothing,NPY_DOUBLE))
-		smoothing.reset((double*)PyArray_DATA(pysmoothing),data.ndim);
+		smoothing.reset((double*)ExtractPyArrayDataPtr(pysmoothing),data.ndim);
 	else //note sneaky line break across #endif
 #endif
 	{ //have to copy
@@ -1259,14 +1366,14 @@ pyphotospline_glam_fit(PyObject* self, PyObject* args, PyObject* kwds){
 #ifdef HAVE_NUMPY
 	//TODO: Numpy's UInt may not be the same as uint32_t
 	if(compatible_numpy_array(pyporder,NPY_UINT))
-		porder.reset((uint32_t*)PyArray_DATA(pyporder),data.ndim);
+		porder.reset((uint32_t*)ExtractPyArrayDataPtr(pyporder),data.ndim);
 	else //note sneaky line break across #endif
 #endif
 	{ //have to copy
 		porder_store.resize(data.ndim);
 		for(unsigned int i=0; i!=data.ndim; i++){
 			PyObject* pyporder_i=PySequence_GetItem(pyporder,i);
-			porder_store[i]=PyInt_AsUnsignedLongMask(pyporder_i);
+			porder_store[i]=ExtractUnsignedLongMask(pyporder_i);
 			Py_DECREF(pyporder_i); //done with this
 		}
 		porder.reset(porder_store.data(),data.ndim);
@@ -1352,6 +1459,7 @@ pysplinetable_grideval(pysplinetable* self, PyObject* args, PyObject* kwds){
 	if (PySequence_Length(coords) != spline.get_ndim()) {
 		PyErr_SetString(PyExc_ValueError,
 			"Must have one coordinate array for every dimension");
+		return NULL;
 	}
 	
 	using photospline::detail::array_view;
@@ -1359,9 +1467,12 @@ pysplinetable_grideval(pysplinetable* self, PyObject* args, PyObject* kwds){
 	std::vector<pyarray> coord_arrays;
 
 	for (unsigned i=0; i<spline.get_ndim(); i++) {
+		PyObject *item = PySequence_GetItem(coords, i);
 		coord_arrays.emplace_back((PyArrayObject *)PyArray_ContiguousFromObject(
-		    PySequence_GetItem(coords, i),
-		    NPY_DOUBLE, 1, 1), deleter);
+		    item, NPY_DOUBLE, 0, 1), deleter);
+		if (!coord_arrays.back()) {
+			return NULL;
+		}
 		coordinates[i].reset((double*)PyArray_DATA(coord_arrays[i].get()), PyArray_SIZE(coord_arrays[i].get()));
 	}
 	
