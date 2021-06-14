@@ -104,7 +104,7 @@ Float splinetable<Alloc>::ndsplineeval_core(const int* centers, int maxdegree __
 
 template<typename Alloc>
 template<typename Float, unsigned int D>
-Float splinetable<Alloc>::ndsplineeval_coreD(const int* centers, int maxdegree, detail::buffer2d<Float> localbasis) const
+Float splinetable<Alloc>::ndsplineeval_coreD(const int* centers, int maxdegree __attribute__((unused)), detail::buffer2d<Float> localbasis) const
 {
 	uint32_t n;
 	Float basis_tree[D+1];
@@ -156,7 +156,7 @@ Float splinetable<Alloc>::ndsplineeval_coreD(const int* centers, int maxdegree, 
 
 template<typename Alloc>
 template<typename Float, unsigned int D, unsigned int O>
-Float splinetable<Alloc>::ndsplineeval_coreD_FixedOrder(const int* centers, int maxdegree, detail::buffer2d<Float> localbasis) const
+Float splinetable<Alloc>::ndsplineeval_coreD_FixedOrder(const int* centers, int maxdegree __attribute__((unused)), detail::buffer2d<Float> localbasis) const
 {
 	uint32_t n;
 	Float basis_tree[D+1];
@@ -252,7 +252,7 @@ bool orders_are(const splinetable<Alloc> &spline, const std::initializer_list<un
 
 template<typename Alloc>
 template<typename Float, unsigned int ... Orders>
-Float splinetable<Alloc>::ndsplineeval_core_KnownOrder(const int* centers, int maxdegree, detail::buffer2d<Float> localbasis) const
+Float splinetable<Alloc>::ndsplineeval_core_KnownOrder(const int* centers, int maxdegree __attribute__((unused)), detail::buffer2d<Float> localbasis) const
 {
 	constexpr unsigned int D = sizeof...(Orders);
 	uint32_t n;

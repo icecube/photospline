@@ -125,7 +125,7 @@ std::vector<std::array<double,N>> splinetable<Alloc>::sample(
   int derivatives) const{
 	return sample(nresults, burnin, samplingDimensions,
 	    coordinates, distribution, rng, derivatives,
-	    [](const std::vector<double> &x, double pdf) { return pdf; });
+	    [](const std::vector<double> &x __attribute__((unused)), double pdf) { return pdf; });
 }
 
 } //namesapce photospline
