@@ -14,34 +14,24 @@
 
 #define PHOTOSPLINE_MAXDIM	    8
 #define PHOTOSPLINE_VECTOR_SIZE 4
-
-#if __GNUC__ == 3
-#if PHOTOSPLINE_VECTOR_SIZE != 4
-	#error On GCC 3, PHOTOSPLINE_VECTOR_SIZE must be 4!
-#endif
-typedef float v4sf __attribute__(( mode(V4SF) ));
-#else
-typedef float v4sf __attribute__((vector_size(PHOTOSPLINE_VECTOR_SIZE*sizeof(float))));
-#endif
-
 #define PHOTOSPLINE_NVECS PHOTOSPLINE_MAXDIM/PHOTOSPLINE_VECTOR_SIZE
 
-#if defined(__i386__) || defined (__x86_64__)
-#define v4sf_init(a, b) a = _mm_set1_ps(b)
-#elif defined(__powerpc__)
-#ifdef vec_splats
-#define v4sf_init(a, b) a = vec_splats(b)
+namespace photospline { namespace detail {
+
+template <typename Float>
+struct simd_vector {
+#ifdef __clang__
+	typedef Float type __attribute__((ext_vector_type(PHOTOSPLINE_VECTOR_SIZE)));
 #else
-#define v4sf_init(a, b) { float b_tmp __attribute__ ((aligned(16))) = b; \
-	a = vec_splat(*((v4sf *)(&b_tmp)), 0); }
+	typedef Float type __attribute__((vector_size(PHOTOSPLINE_VECTOR_SIZE*sizeof(Float))));
 #endif
-#else
-#define v4sf_init(a, b) { \
-	((float *)(&a))[0] = b; \
-	((float *)(&a))[1] = b; \
-	((float *)(&a))[2] = b; \
-	((float *)(&a))[3] = b; \
-}
-#endif
+
+	static void init(type &a, Float b)
+	{
+		a = b - type{};
+	}
+};
+
+}}
 
 #endif //PHOTOSPLINE_SIMD_H

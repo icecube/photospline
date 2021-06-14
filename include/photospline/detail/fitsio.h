@@ -71,7 +71,7 @@ size_t splinetable<Alloc>::estimateMemory(const std::string& filePath,
 			throw std::runtime_error("Error reading knot vector "+std::to_string(i));
 		}
 		
-		if (i == convolution_dimension){
+		if (unsigned(i) == convolution_dimension){
 			nknots *= n_convolution_knots;
 			naxes[i] = nknots - order[i] - 1;
 		}
@@ -204,7 +204,7 @@ bool splinetable<Alloc>::read_fits_core(fitsfile* fits, const std::string& fileP
 			aux = allocate<char_ptr_ptr>(naux);
 			std::fill(aux,aux+naux,nullptr);
 			
-			for (int i = 0, j = 1 ; (i < naux) && (j-1 < nkeys); j++) {
+			for (unsigned i = 0, j = 1 ; (i < naux) && (j-1 < unsigned(nkeys)); j++) {
 				error = 0;
 				fits_read_keyn(fits, j, key, value, NULL, &error);
 				if (error != 0)
@@ -253,7 +253,7 @@ bool splinetable<Alloc>::read_fits_core(fitsfile* fits, const std::string& fileP
 		error = 0;
 		
 		//There is not, so look for a separate order in each dimension
-		for (int i = 0; i < ndim; i++) {
+		for (unsigned i = 0; i < ndim; i++) {
 			std::ostringstream ss;
 			ss << "ORDER" << i;
 			fits_read_key(fits, TUINT, ss.str().c_str(), &order[i], NULL, &error);
@@ -270,7 +270,7 @@ bool splinetable<Alloc>::read_fits_core(fitsfile* fits, const std::string& fileP
 	
 	//read the table periods
 	periods = allocate<double>(ndim);
-	for (int i = 0; i < ndim; i++) {
+	for (unsigned i = 0; i < ndim; i++) {
 		std::ostringstream ss;
 		ss << "PERIOD" << i;
 		fits_read_key(fits, TDOUBLE, ss.str().c_str(), &periods[i], NULL, &error);
@@ -327,7 +327,7 @@ bool splinetable<Alloc>::read_fits_core(fitsfile* fits, const std::string& fileP
 	}
 	
 	//Read the knot vectors, which are stored one each in extension HDUs
-	for (int i = 0; i < ndim; i++) {
+	for (unsigned i = 0; i < ndim; i++) {
 		std::ostringstream hduname;
 		hduname << "KNOTS" << i;
 		fits_movnam_hdu(fits, IMAGE_HDU, const_cast<char*>(hduname.str().c_str()), 0, &error);
@@ -354,7 +354,7 @@ bool splinetable<Alloc>::read_fits_core(fitsfile* fits, const std::string& fileP
 	//Read the axes extents, stored in a single extension HDU.
 	{
 		//TODO: is this safe when in a shared memory/relocatable mode?
-		for (int i = 1; i < ndim; i++)
+		for (unsigned i = 1; i < ndim; i++)
 			extents[i] = &extents[0][2*i];
 		
 		long n_extents = 0;
@@ -366,7 +366,7 @@ bool splinetable<Alloc>::read_fits_core(fitsfile* fits, const std::string& fileP
 			ext_error = 1;
 		
 		if (ext_error != 0) { // No extents. Make up some reasonable ones.
-			for (int i = 0; i < ndim; i++) {
+			for (unsigned i = 0; i < ndim; i++) {
 				extents[i][0] = knots[i][order[i]];
 				extents[i][1] = knots[i][nknots[i] - order[i] - 1];
 			}
@@ -480,7 +480,7 @@ void splinetable<Alloc>::write_fits_core(fitsfile* fits) const{
 	// Write spline orders
 	for(uint32_t i=0; i<ndim; i++) {
 		int chars=snprintf(nameBuffer,sizeof(nameBuffer),"ORDER%d",i);
-		if (chars>=sizeof(nameBuffer))
+		if (chars < 0 || unsigned(chars)>=sizeof(nameBuffer))
 			throw std::runtime_error("ORDER key too long");
 		fits_write_key(fits, TINT, nameBuffer, &order[i], "B-Spline Order", &error);
 		if (error != 0)
@@ -491,7 +491,7 @@ void splinetable<Alloc>::write_fits_core(fitsfile* fits) const{
 	if (periods) {
 		for(uint32_t i=0; i<ndim; i++) {
 			int chars=snprintf(nameBuffer,sizeof(nameBuffer),"PERIOD%d",i);
-			if (chars>=sizeof(nameBuffer))
+			if (chars < 0 || unsigned(chars)>=sizeof(nameBuffer))
 				throw std::runtime_error("PERIOD key too long");
 			fits_write_key(fits, TDOUBLE, nameBuffer, &periods[i], NULL, &error);
 			if (error != 0)
@@ -518,7 +518,7 @@ void splinetable<Alloc>::write_fits_core(fitsfile* fits) const{
 			throw std::runtime_error("Failed to create FITS image for knot vector");
 		
 		int chars=snprintf(nameBuffer,sizeof(nameBuffer),"KNOTS%d",i);
-		if (chars>=sizeof(nameBuffer))
+		if (chars < 0 || unsigned(chars)>=sizeof(nameBuffer))
 			throw std::runtime_error("Knot vector name too long");
 		fits_update_key(fits, TSTRING, "EXTNAME", nameBuffer, NULL, &error);
 		if (error != 0)

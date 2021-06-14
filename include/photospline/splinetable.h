@@ -475,34 +475,38 @@ public:
 	///Since the evaluator holds a reference to the actual splinetable from
 	///which is want obtained it must be considered invalidated if that table is
 	///altered or destroyed.
-	struct evaluator{
+	template <typename Float=float>
+	struct evaluator_type{
 	private:
 		const splinetable<Alloc>& table;
-		double (splinetable::*eval_ptr)(const int*, int, detail::buffer2d<float>) const;
-		void (splinetable::*v_eval_ptr)(const int*, const v4sf***, v4sf*) const;
+		Float (splinetable::*eval_ptr)(const int*, int, detail::buffer2d<Float>) const;
+		void (splinetable::*v_eval_ptr)(const int*, const typename detail::simd_vector<Float>::type***, typename detail::simd_vector<Float>::type*) const;
 		friend class splinetable<Alloc>;
-		evaluator(const splinetable<Alloc>& table):table(table){}
+		evaluator_type(const splinetable<Alloc>& table):table(table){}
 	public:
 		///\brief Get the underlying splinetable
 		const splinetable<Alloc>& get_table() const{ return(table); }
 		///\brief same as splinetable::searchcenters
 		bool searchcenters(const double* x, int* centers) const;
 		///\brief same as splinetable::ndsplineeval
-		double ndsplineeval(const double* x, const int* centers, int derivatives=0) const;
+		Float ndsplineeval(const double* x, const int* centers, int derivatives=0) const;
 		///\brief Convenince short-cut for ndsplineeval
-		double operator()(const double* x, int derivatives=0) const;
+		Float operator()(const double* x, int derivatives=0) const;
 		///\brief same as splinetable::ndsplineeval_gradient
 		void ndsplineeval_gradient(const double* x, const int* centers, double* evaluates) const;
 		///\brief same as splinetable::ndsplineeval_deriv
-		double ndsplineeval_deriv(const double* x, const int* centers, const unsigned int *derivatives) const;
+		Float ndsplineeval_deriv(const double* x, const int* centers, const unsigned int *derivatives) const;
 	};
-	friend struct evaluator;
+	template <typename Float> friend struct evaluator_type;
 	
 	///Constructs an optimized evaluator object which will use the best
-	///available internal routines to perform evaulations. The evaluator holds
-	///a reference to this splinetable, so it must be considered invalidated if
-	///this table altered or destroyed.
-	evaluator get_evaluator() const;
+	///available internal routines to perform evaulations, at the requested
+	///precision. The evaluator holds a reference to this splinetable, so it
+	///must be considered invalidated if this table altered or destroyed.
+	template <typename Float=float>
+	evaluator_type<Float> get_evaluator() const;
+
+	typedef evaluator_type<float> evaluator;
 	
 	/*
 	 * Spline table based hypersurface evaluation. ndsplineeval() takes a spline
@@ -530,7 +534,8 @@ public:
 	///       should be differentiated rather than directly evaluated. Mixed
 	///       partial derivatives are supported.
 	///\return the spline value or derivative value
-	double ndsplineeval(const double* x, const int* centers, int derivatives) const;
+	template <typename Float=float>
+	Float ndsplineeval(const double* x, const int* centers, int derivatives) const;
 	
 	///Evaluate the spline hypersurface.
 	///This convenience interface for evaluation simply performs searchcenters
@@ -559,6 +564,7 @@ public:
 	///\param evaluates a vector which will be populated by this function with
 	///       the spline value, followed by the components of the gradient.
 	///\pre evaluates must have a length one greater than the dimension of the spline
+	template <typename Float=float>
 	void ndsplineeval_gradient(const double* x, const int* centers, double* evaluates) const;
 	
 	///A container for results obtained from benchmark_evaluation
@@ -577,6 +583,7 @@ public:
 	///\param trialCountthe number of times each type of evaluation should be
 	///       performed. This should be large enough to get a stable result.
 	///\param verbose whether the results should be printed to stdout.
+	template <typename Float=float>
 	benchmark_results benchmark_evaluation(size_t trialCount=1e4, bool verbose=false);
 	
 	///Convolve a single dimension of this spline with another spline.
@@ -784,21 +791,23 @@ private:
 	 *
 	 * x is the vector at which we will evaluate the space
 	 */
-	double ndsplineeval_core(const int* centers, int maxdegree, detail::buffer2d<float> localbasis) const;
-	template<unsigned int D>
-	double ndsplineeval_coreD(const int* centers, int maxdegree, detail::buffer2d<float> localbasis) const;
-	template<unsigned int D, unsigned int O>
-	double ndsplineeval_coreD_FixedOrder(const int* centers, int maxdegree, detail::buffer2d<float> localbasis) const;
-	template<unsigned int ... Orders>
-	double ndsplineeval_core_KnownOrder(const int* centers, int maxdegree, detail::buffer2d<float> localbasis) const;
+	template <typename Float>
+	Float ndsplineeval_core(const int* centers, int maxdegree, detail::buffer2d<Float> localbasis) const;
+	template<typename Float, unsigned int D>
+	Float ndsplineeval_coreD(const int* centers, int maxdegree, detail::buffer2d<Float> localbasis) const;
+	template<typename Float, unsigned int D, unsigned int O>
+	Float ndsplineeval_coreD_FixedOrder(const int* centers, int maxdegree, detail::buffer2d<Float> localbasis) const;
+	template<typename Float, unsigned int ... Orders>
+	Float ndsplineeval_core_KnownOrder(const int* centers, int maxdegree, detail::buffer2d<Float> localbasis) const;
 	
-	void ndsplineeval_multibasis_core(const int *centers, const v4sf*** localbasis, v4sf* result) const;
-	template<unsigned int D>
-	void ndsplineeval_multibasis_coreD(const int *centers, const v4sf*** localbasis, v4sf* result) const;
-	template<unsigned int D, unsigned int O>
-	void ndsplineeval_multibasis_coreD_FixedOrder(const int *centers, const v4sf*** localbasis, v4sf* result) const;
-	template<unsigned int ... Orders>
-	void ndsplineeval_multibasis_core_KnownOrder(const int *centers, const v4sf*** localbasis, v4sf* result) const;
+	template <typename Float>
+	void ndsplineeval_multibasis_core(const int *centers, const typename detail::simd_vector<Float>::type*** localbasis, typename detail::simd_vector<Float>::type* result) const;
+	template<typename Float, unsigned int D>
+	void ndsplineeval_multibasis_coreD(const int *centers, const typename detail::simd_vector<Float>::type*** localbasis, typename detail::simd_vector<Float>::type* result) const;
+	template<typename Float, unsigned int D, unsigned int O>
+	void ndsplineeval_multibasis_coreD_FixedOrder(const int *centers, const typename detail::simd_vector<Float>::type*** localbasis, typename detail::simd_vector<Float>::type* result) const;
+	template<typename Float, unsigned int ... Orders>
+	void ndsplineeval_multibasis_core_KnownOrder(const int *centers, const typename detail::simd_vector<Float>::type*** localbasis, typename detail::simd_vector<Float>::type* result) const;
 	
 	template<typename T>
 	typename allocator_traits::template rebind_traits<T>::pointer allocate(size_t n){
