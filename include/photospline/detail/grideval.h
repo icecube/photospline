@@ -64,7 +64,7 @@ std::unique_ptr<ndsparse> splinetable<Alloc>::grideval(const DoubleContCont& coo
 	
 	cholmod_l_finish(&cholmod_state);
 	
-	return std::move(nd);
+	return nd;
 }
 	
 }
