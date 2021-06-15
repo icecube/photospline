@@ -55,7 +55,7 @@ bool splinetable<Alloc>::searchcenters(const double* x, int* centers) const
 
 template<typename Alloc>
 template<typename Float>
-Float splinetable<Alloc>::ndsplineeval_core(const int* centers, int maxdegree __attribute__((unused)), detail::buffer2d<Float> localbasis) const
+double splinetable<Alloc>::ndsplineeval_core(const int* centers, int maxdegree __attribute__((unused)), detail::buffer2d<Float> localbasis) const
 {
 	uint32_t n;
 	Float basis_tree[ndim+1];
@@ -104,7 +104,7 @@ Float splinetable<Alloc>::ndsplineeval_core(const int* centers, int maxdegree __
 
 template<typename Alloc>
 template<typename Float, unsigned int D>
-Float splinetable<Alloc>::ndsplineeval_coreD(const int* centers, int maxdegree __attribute__((unused)), detail::buffer2d<Float> localbasis) const
+double splinetable<Alloc>::ndsplineeval_coreD(const int* centers, int maxdegree __attribute__((unused)), detail::buffer2d<Float> localbasis) const
 {
 	uint32_t n;
 	Float basis_tree[D+1];
@@ -156,7 +156,7 @@ Float splinetable<Alloc>::ndsplineeval_coreD(const int* centers, int maxdegree _
 
 template<typename Alloc>
 template<typename Float, unsigned int D, unsigned int O>
-Float splinetable<Alloc>::ndsplineeval_coreD_FixedOrder(const int* centers, int maxdegree __attribute__((unused)), detail::buffer2d<Float> localbasis) const
+double splinetable<Alloc>::ndsplineeval_coreD_FixedOrder(const int* centers, int maxdegree __attribute__((unused)), detail::buffer2d<Float> localbasis) const
 {
 	uint32_t n;
 	Float basis_tree[D+1];
@@ -252,7 +252,7 @@ bool orders_are(const splinetable<Alloc> &spline, const std::initializer_list<un
 
 template<typename Alloc>
 template<typename Float, unsigned int ... Orders>
-Float splinetable<Alloc>::ndsplineeval_core_KnownOrder(const int* centers, int maxdegree __attribute__((unused)), detail::buffer2d<Float> localbasis) const
+double splinetable<Alloc>::ndsplineeval_core_KnownOrder(const int* centers, int maxdegree __attribute__((unused)), detail::buffer2d<Float> localbasis) const
 {
 	constexpr unsigned int D = sizeof...(Orders);
 	uint32_t n;
@@ -306,7 +306,7 @@ Float splinetable<Alloc>::ndsplineeval_core_KnownOrder(const int* centers, int m
 
 template<typename Alloc>
 template<typename Float>
-Float splinetable<Alloc>::ndsplineeval(const double* x, const int* centers, int derivatives) const
+double splinetable<Alloc>::ndsplineeval(const double* x, const int* centers, int derivatives) const
 {
 	uint32_t maxdegree = *std::max_element(order,order+ndim) + 1;
 	Float localbasis_store[ndim*maxdegree];
@@ -523,7 +523,7 @@ bool splinetable<Alloc>::evaluator_type<Float>::searchcenters(const double* x, i
 	
 template<typename Alloc>
 template<typename Float>
-Float splinetable<Alloc>::evaluator_type<Float>::ndsplineeval(const double* x, const int* centers, int derivatives) const{
+double splinetable<Alloc>::evaluator_type<Float>::ndsplineeval(const double* x, const int* centers, int derivatives) const{
 	uint32_t maxdegree = *std::max_element(table.order,table.order+table.ndim) + 1;
 	Float localbasis_store[table.ndim*maxdegree];
 	detail::buffer2d<Float> localbasis{localbasis_store,maxdegree};
@@ -545,7 +545,7 @@ Float splinetable<Alloc>::evaluator_type<Float>::ndsplineeval(const double* x, c
 	
 template<typename Alloc>
 template<typename Float>
-Float splinetable<Alloc>::evaluator_type<Float>::operator()(const double* x, int derivatives) const{
+double splinetable<Alloc>::evaluator_type<Float>::operator()(const double* x, int derivatives) const{
 	int centers[table.ndim];
 	if(!table.searchcenters(x,centers))
 		return(0);
@@ -554,7 +554,7 @@ Float splinetable<Alloc>::evaluator_type<Float>::operator()(const double* x, int
 	
 template<typename Alloc>
 template<typename Float>
-Float splinetable<Alloc>::evaluator_type<Float>::ndsplineeval_deriv(const double* x, const int* centers, const unsigned int *derivatives) const
+double splinetable<Alloc>::evaluator_type<Float>::ndsplineeval_deriv(const double* x, const int* centers, const unsigned int *derivatives) const
 {
 	uint32_t maxdegree = *std::max_element(table.order,table.order+table.ndim) + 1;
 	Float localbasis_store[table.ndim*maxdegree];

@@ -479,7 +479,7 @@ public:
 	struct evaluator_type{
 	private:
 		const splinetable<Alloc>& table;
-		Float (splinetable::*eval_ptr)(const int*, int, detail::buffer2d<Float>) const;
+		double (splinetable::*eval_ptr)(const int*, int, detail::buffer2d<Float>) const;
 		void (splinetable::*v_eval_ptr)(const int*, const typename detail::simd_vector<Float>::type***, typename detail::simd_vector<Float>::type*) const;
 		friend class splinetable<Alloc>;
 		evaluator_type(const splinetable<Alloc>& table):table(table){}
@@ -489,13 +489,13 @@ public:
 		///\brief same as splinetable::searchcenters
 		bool searchcenters(const double* x, int* centers) const;
 		///\brief same as splinetable::ndsplineeval
-		Float ndsplineeval(const double* x, const int* centers, int derivatives=0) const;
+		double ndsplineeval(const double* x, const int* centers, int derivatives=0) const;
 		///\brief Convenince short-cut for ndsplineeval
-		Float operator()(const double* x, int derivatives=0) const;
+		double operator()(const double* x, int derivatives=0) const;
 		///\brief same as splinetable::ndsplineeval_gradient
 		void ndsplineeval_gradient(const double* x, const int* centers, double* evaluates) const;
 		///\brief same as splinetable::ndsplineeval_deriv
-		Float ndsplineeval_deriv(const double* x, const int* centers, const unsigned int *derivatives) const;
+		double ndsplineeval_deriv(const double* x, const int* centers, const unsigned int *derivatives) const;
 	};
 	template <typename Float> friend struct evaluator_type;
 	
@@ -535,7 +535,7 @@ public:
 	///       partial derivatives are supported.
 	///\return the spline value or derivative value
 	template <typename Float=float>
-	Float ndsplineeval(const double* x, const int* centers, int derivatives) const;
+	double ndsplineeval(const double* x, const int* centers, int derivatives) const;
 	
 	///Evaluate the spline hypersurface.
 	///This convenience interface for evaluation simply performs searchcenters
@@ -792,13 +792,13 @@ private:
 	 * x is the vector at which we will evaluate the space
 	 */
 	template <typename Float>
-	Float ndsplineeval_core(const int* centers, int maxdegree, detail::buffer2d<Float> localbasis) const;
+	double ndsplineeval_core(const int* centers, int maxdegree, detail::buffer2d<Float> localbasis) const;
 	template<typename Float, unsigned int D>
-	Float ndsplineeval_coreD(const int* centers, int maxdegree, detail::buffer2d<Float> localbasis) const;
+	double ndsplineeval_coreD(const int* centers, int maxdegree, detail::buffer2d<Float> localbasis) const;
 	template<typename Float, unsigned int D, unsigned int O>
-	Float ndsplineeval_coreD_FixedOrder(const int* centers, int maxdegree, detail::buffer2d<Float> localbasis) const;
+	double ndsplineeval_coreD_FixedOrder(const int* centers, int maxdegree, detail::buffer2d<Float> localbasis) const;
 	template<typename Float, unsigned int ... Orders>
-	Float ndsplineeval_core_KnownOrder(const int* centers, int maxdegree, detail::buffer2d<Float> localbasis) const;
+	double ndsplineeval_core_KnownOrder(const int* centers, int maxdegree, detail::buffer2d<Float> localbasis) const;
 	
 	template <typename Float>
 	void ndsplineeval_multibasis_core(const int *centers, const typename detail::simd_vector<Float>::type*** localbasis, typename detail::simd_vector<Float>::type* result) const;
