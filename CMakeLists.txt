@@ -55,7 +55,7 @@ target_compile_features (photospline
     cxx_constexpr
 )
 target_compile_options (photospline PUBLIC -O3)
-target_compile_options (photospline PRIVATE -Wall -Wextra -Werror)
+target_compile_options (photospline PRIVATE -Wall -Wextra)
 IF (CMAKE_SYSTEM_PROCESSOR MATCHES "^(i.86|x86_64)$")
   target_compile_options (photospline PUBLIC -msse2 -msse3 -msse4 -msse4.1 -msse4.2 -mno-avx)
 ELSEIF (CMAKE_SYSTEM_PROCESSOR MATCHES "^(powerpc|ppc)")
@@ -94,7 +94,7 @@ target_include_directories (cphotospline
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>
 )
-target_compile_options (cphotospline PRIVATE -Wall -Wextra -Werror)
+target_compile_options (cphotospline PRIVATE -Wall -Wextra)
 
 TARGET_LINK_LIBRARIES (cphotospline PUBLIC photospline)
 SET_TARGET_PROPERTIES(cphotospline PROPERTIES
@@ -335,7 +335,7 @@ TARGET_LINK_LIBRARIES(photospline-test
   photospline
 )
 target_compile_definitions(photospline-test PRIVATE PHOTOSPLINE_NO_EVAL_TEMPLATES)
-target_compile_options (photospline-test PRIVATE -Wsign-compare -Werror)
+target_compile_options (photospline-test PRIVATE -Wsign-compare)
 ADD_TEST(photospline-test photospline-test
  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/test
 )
@@ -345,7 +345,7 @@ ADD_EXECUTABLE(photospline-test-templated
 TARGET_LINK_LIBRARIES(photospline-test-templated
   photospline
 )
-target_compile_options (photospline-test-templated PRIVATE -Wsign-compare -Werror)
+target_compile_options (photospline-test-templated PRIVATE -Wsign-compare)
 ADD_TEST(photospline-test-templated photospline-test-templated
  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/test
 )
