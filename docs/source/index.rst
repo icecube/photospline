@@ -94,7 +94,7 @@ To see the result, we can plot it with `matplotlib`_::
 	xfine = numpy.linspace(knots[0][0], knots[0][-1], 10001)
 	splines = [numpy.array([bspline(knots[0], x, n, order) for x in xfine]) for n in range(0,len(knots[0])-2-1)]
 	for n in range(len(splines)):
-		pylab.plot(xfine, result.coefficients[n]*splines[n], color=c)
+		pylab.plot(xfine, spline.coefficients[n]*splines[n], color=c)
 	# Plot the spline surface (sum of all the basis functions)
 	pylab.plot(xfine, spline.grideval([xfine]), label='Spline fit', color='k')
 	pylab.scatter(x1, z, label='Data')
