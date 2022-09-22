@@ -55,15 +55,50 @@ target_compile_features (photospline
   PUBLIC
     cxx_constexpr
 )
-target_compile_options (photospline PUBLIC -O3)
+target_compile_options (photospline PUBLIC -O3 -fPIC)
 target_compile_options (photospline PRIVATE -Wall -Wextra)
-IF (CMAKE_SYSTEM_PROCESSOR MATCHES "^(i.86|x86_64)$")
-  target_compile_options (photospline PUBLIC -msse2 -msse3 -msse4 -msse4.1 -msse4.2 -mno-avx)
-ELSEIF (CMAKE_SYSTEM_PROCESSOR MATCHES "^(powerpc|ppc)")
-  target_compile_options (photospline PUBLIC -maltivec)
-ELSEIF (CMAKE_SYSTEM_PROCESSOR MATCHES "^sparc")
-  target_compile_options (photospline PUBLIC -mvis)
+
+# For newer compilers we would like to use 'target cloning'/'function multiversioning'
+# to cover different instruction sets portably (using preprocessor logic so that
+# downstream code picks it up 'for free'), but for old compilers which can't do that,
+# we still want to make sure that a reasonable baseline instruction set is used.
+# The logic here may be overridden by manually setting USE_TARGET_CLONING.
+IF (NOT DEFINED USE_TARGET_CLONING)
+  # This logic should mirror what is in include/photospline/detail/simd.h
+  IF (CMAKE_SYSTEM_PROCESSOR MATCHES "^(i.86|x86_64)$")
+    IF (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+      set(USE_TARGET_CLONING FALSE)
+    ELSEIF (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+      IF (CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 8.3)
+        set(USE_TARGET_CLONING TRUE)
+      ELSE ()
+        set(USE_TARGET_CLONING FALSE)
+      ENDIF ()
+    ELSE ()
+      # Assume other compilers do not support this
+      set(USE_TARGET_CLONING FALSE)
+    ENDIF ()
+  ELSE ()
+    # No detailed treatment of non-x86 architectures at this time
+    set(USE_TARGET_CLONING FALSE)
+  ENDIF()
+ENDIF (NOT DEFINED USE_TARGET_CLONING)
+
+IF (USE_TARGET_CLONING)
+  MESSAGE("-- Will assume use of target cloning for vector instruction sets")
+ELSE ()
+  MESSAGE("-- Will NOT assume use of target cloning for vector instruction sets")
+
+  IF (CMAKE_SYSTEM_PROCESSOR MATCHES "^(i.86|x86_64)$")
+    # explicitly disable AVX to avoid crashing on non-AVX-enabled machines
+    target_compile_options (photospline PUBLIC -msse2 -msse3 -msse4 -msse4.1 -msse4.2 -mno-avx)
+  ELSEIF (CMAKE_SYSTEM_PROCESSOR MATCHES "^(powerpc|ppc)")
+    target_compile_options (photospline PUBLIC -maltivec)
+  ELSEIF (CMAKE_SYSTEM_PROCESSOR MATCHES "^sparc")
+    target_compile_options (photospline PUBLIC -mvis)
+  ENDIF ()
 ENDIF ()
+
 target_link_libraries (photospline
   PUBLIC
     ${CFITSIO_LIBRARIES}

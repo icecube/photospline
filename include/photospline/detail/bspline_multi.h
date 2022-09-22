@@ -7,6 +7,7 @@ namespace photospline{
 
 template <typename Alloc>
 template <typename Float>
+PHOTOSPLINE_TARGET_CLONE
 void splinetable<Alloc>::ndsplineeval_multibasis_core(const int *centers, const typename detail::simd_vector<Float>::type*** localbasis, typename detail::simd_vector<Float>::type* result) const{
 #if (defined(__i386__) || defined (__x86_64__)) && defined(__ELF__)
 	/*
@@ -80,6 +81,7 @@ namespace{
 	
 template <typename Alloc>
 template <typename Float, unsigned int D>
+PHOTOSPLINE_TARGET_CLONE
 void splinetable<Alloc>::ndsplineeval_multibasis_coreD(const int *centers, const typename detail::simd_vector<Float>::type*** localbasis, typename detail::simd_vector<Float>::type* result) const{
 #if (defined(__i386__) || defined (__x86_64__)) && defined(__ELF__)
 	/*
@@ -150,6 +152,7 @@ void splinetable<Alloc>::ndsplineeval_multibasis_coreD(const int *centers, const
 
 template <typename Alloc>
 template <typename Float, unsigned int D, unsigned int Order>
+PHOTOSPLINE_TARGET_CLONE
 void splinetable<Alloc>::ndsplineeval_multibasis_coreD_FixedOrder(const int *centers, const typename detail::simd_vector<Float>::type*** localbasis, typename detail::simd_vector<Float>::type* result) const{
 #if (defined(__i386__) || defined (__x86_64__)) && defined(__ELF__)
 	/*
@@ -223,6 +226,7 @@ void splinetable<Alloc>::ndsplineeval_multibasis_coreD_FixedOrder(const int *cen
 
 template <typename Alloc>
 template<typename Float, unsigned int ... Orders>
+PHOTOSPLINE_TARGET_CLONE
 void splinetable<Alloc>::ndsplineeval_multibasis_core_KnownOrder(const int *centers, const typename detail::simd_vector<Float>::type*** localbasis, typename detail::simd_vector<Float>::type* result) const{
 #if (defined(__i386__) || defined (__x86_64__)) && defined(__ELF__)
 	/*
@@ -294,6 +298,7 @@ void splinetable<Alloc>::ndsplineeval_multibasis_core_KnownOrder(const int *cent
 
 template<typename Alloc>
 template<typename Float>
+PHOTOSPLINE_TARGET_CLONE
 void
 splinetable<Alloc>::ndsplineeval_gradient(const double* x, const int* centers, double* evaluates) const
 {
@@ -351,6 +356,7 @@ splinetable<Alloc>::ndsplineeval_gradient(const double* x, const int* centers, d
 
 template<typename Alloc>
 template<typename Float>
+PHOTOSPLINE_TARGET_CLONE
 void splinetable<Alloc>::evaluator_type<Float>::ndsplineeval_gradient(const double* x, const int* centers, double* evaluates) const
 {
 	uint32_t maxdegree = *std::max_element(table.order,table.order+table.ndim) + 1;
