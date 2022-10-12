@@ -1026,7 +1026,17 @@ static PyTypeObject pysplinetableType = {
 static PyMethodDef photospline_methods[] = {
 #ifdef PHOTOSPLINE_INCLUDES_SPGLAM
 	{"glam_fit", (PyCFunction)pyphotospline_glam_fit, METH_VARARGS | METH_KEYWORDS,
-	 "Fit a spline table to data"},
+	 "Fit a spline table to data.\n\n"
+	":param data: an ndsparse object (e.g. from `from_data()`)\n"
+	":param weights: least-squares (e.g. inverse-variance) weights of the same shape as `data`, e.g. from `from_data()`\n"
+	":param coordinates: a sequence of sequences giving the grid points along each axis at which `data` is sampled, e.g. [[1,2,3],[1,2,3]] for a 3x3 grid\n"
+	":param knots: a sequence of sequences giving the grid points along each axis at which the B-spline control points (knots) should be placed\n"
+	":param order: a scalar or sequence giving the order of the B-splines to be used in the fit. If a scalar, the same order will be used on all axes. If a sequence, can differ by axis.\n"
+	":param smoothing: a scalar or sequence giving the multiplier on the regularization term (lambda) in the fit. This is approximately the inverse square of the width of a Bayesian prior about zero on the derivative given in `penaltyOrder`\n"
+	":param penaltyOrder: a scalar or sequence giving the order of the Tikonoff regularization applied in the fit. This is more or less a constraint on the norm of the given derivative (e.g. 2 implies that the fitter will try to keep the second derivative of the fit small along the given axis)\n"
+	":param monodim: if specified, the fit function will be monotonic (strictly non-decreasing) along the given axis\n"
+	":param verbose: if True, will print status information to standard output while running\n"
+	":returns: a spline table object\n"},
 #endif
 	{"bspline", (PyCFunction)pyphotospline_bspline, METH_VARARGS | METH_KEYWORDS,
 	 "Evaluate the `i`th B-spline on knot vector `knots` at `x`\n\n"
