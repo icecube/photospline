@@ -1,0 +1,6 @@
+[submodule "eigen"]
+	path = eigen
+	url = https://gitlab.com/libeigen/eigen.git
+[submodule "tinyspline"]
+	path = tinyspline
+	url = https://github.com/msteinbeck/tinyspline.git
