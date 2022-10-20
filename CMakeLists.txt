@@ -39,6 +39,7 @@ endif(APPLE)
 # Core library
 LIST (APPEND core_SOURCES
   ${CMAKE_SOURCE_DIR}/src/core/bspline.cpp
+  ${CMAKE_SOURCE_DIR}/src/core/bivariatespline.cpp
   ${CMAKE_SOURCE_DIR}/src/core/bspline_multi.cpp
   ${CMAKE_SOURCE_DIR}/src/core/convolve.cpp
   ${CMAKE_SOURCE_DIR}/src/core/fitsio.cpp
@@ -94,6 +95,7 @@ target_include_directories (cphotospline
   PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>
+    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/eigen/Eigen>
 )
 target_compile_options (cphotospline PRIVATE -Wall -Wextra)
 
