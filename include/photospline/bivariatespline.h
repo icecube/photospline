@@ -33,7 +33,6 @@ namespace photospline{
 			Vector3f dim2;
 			Vector3f normal;
 			Vector3f point;
-			double Bsum;
 		}
 		std::vector<triangle> triangles;
 
