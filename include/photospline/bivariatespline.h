@@ -2,7 +2,7 @@
 #define PHOTOSPLINE_CORE_BIVARIATESPLINE_H
 
 #include <vector>
-#include "eigen/Eigen/Dense"
+#include "Eigen/Dense"
 
 namespace photospline{
 	enum splinetype{
