@@ -867,6 +867,38 @@ pysplinetable_grideval(pysplinetable* self, PyObject* args, PyObject* kwds);
 //TODO: sampling?
 
 static PyObject*
+pysplinetable_convolve(pysplinetable* self, PyObject* args, PyObject* kwds){
+	static const char* kwlist[] = {"dim", "knots", NULL};
+	
+	uint32_t dim;
+	PyObject* pyknots=NULL;
+	
+	if (!PyArg_ParseTupleAndKeywords(args, kwds, "iO", (char**)kwlist, &dim, &pyknots))
+		return(NULL);
+	
+	if(!PySequence_Check(pyknots)){
+		PyErr_SetString(PyExc_ValueError, "knots must be a sequence");
+		return(NULL);
+	}
+	
+	try{
+		std::vector<double> knots;
+		for(unsigned int i=0; i!=(unsigned)PySequence_Length(pyknots); i++){
+			PyObject* idx=PySequence_GetItem(pyknots,i);
+			knots.push_back(PyFloat_AsDouble(idx));
+			Py_DECREF(idx); //done with this
+		}
+		self->table->convolve(dim, &knots[0], knots.size());
+	}catch(std::exception& ex){
+		PyErr_SetString(PyExc_ValueError, ex.what());
+		return(NULL);
+	}
+	
+	Py_INCREF(Py_None);
+	return(Py_None);
+}
+
+static PyObject*
 pysplinetable_permute(pysplinetable* self, PyObject* args, PyObject* kwds){
 	static const char* kwlist[] = {"permutation", NULL};
 	
@@ -971,6 +1003,8 @@ static PyMethodDef pysplinetable_methods[] = {
 	 "Evaluate the given derivatives of the spline along each dimension"},
 	{"permute_dimensions", (PyCFunction)pysplinetable_permute, METH_VARARGS | METH_KEYWORDS,
 	 "Permute the dimensions of an existing spline table"},
+	{"convolve", (PyCFunction)pysplinetable_convolve, METH_VARARGS | METH_KEYWORDS,
+	 "Convolve a spline surface along the given dimension with another spline."},
 #ifdef PHOTOSPLINE_INCLUDES_SPGLAM
 #ifdef HAVE_NUMPY
 	{"grideval", (PyCFunction)pysplinetable_grideval, METH_VARARGS | METH_KEYWORDS,
