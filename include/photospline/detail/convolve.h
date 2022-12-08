@@ -63,9 +63,8 @@ void splinetable<Alloc>::convolve(const uint32_t dim, const double* conv_knots, 
 	const uint32_t k = order[dim] + 1;
 	const uint32_t q = n_conv_knots - 1;
 	
+	/* Norm is Stroem, Equation 13 */
 	double norm = ((double)(factorial(q)*factorial(k-1)))/((double)factorial(k+q-1));
-	if (k % 2 != 0)
-		norm *= -1;
 	
 	std::unique_ptr<float[]> coefficients(new float[arraysize]);
 	std::fill_n(coefficients.get(),arraysize,0.f);
