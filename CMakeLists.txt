@@ -189,12 +189,15 @@ IF(PYTHON_FOUND)
     SET_TARGET_PROPERTIES(pyphotospline PROPERTIES LINK_FLAGS "-undefined dynamic_lookup")
   endif(APPLE)
   EXECUTE_PROCESS (COMMAND ${PYTHON_EXECUTABLE} -c
-    "from sysconfig import get_path, get_preferred_scheme; \
-     from pathlib import PurePath; \
-     ps = get_preferred_scheme('prefix'); \
-     d  = PurePath(get_path('data', ps)); \
-     pl = PurePath(get_path('platlib', ps)); \
-     print(pl.relative_to(d))"
+"from sys import version_info;
+if version_info.major < 3 or (version_info.major == 3 and version_info.minor < 10):
+ from distutils.sysconfig import get_python_lib; print(get_python_lib(prefix='')); exit(0);
+from sysconfig import get_path, get_preferred_scheme;
+from pathlib import PurePath;
+ps = get_preferred_scheme('prefix');
+d  = PurePath(get_path('data', ps));
+pl = PurePath(get_path('platlib', ps));
+print(pl.relative_to(d))"
     OUTPUT_VARIABLE PYTHON_MODULE_DIR
     OUTPUT_STRIP_TRAILING_WHITESPACE)
   INSTALL(TARGETS pyphotospline LIBRARY DESTINATION ${PYTHON_MODULE_DIR})
