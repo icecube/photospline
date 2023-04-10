@@ -9,8 +9,8 @@ SET(CMAKE_C_STANDARD 99)
 # -----------------------------------------------------------------------------
 # Set up build paths and external packages
 # -----------------------------------------------------------------------------
-SET (CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake
-                       ${CMAKE_SOURCE_DIR}/cmake/Packages)
+SET (CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake
+                       ${PROJECT_SOURCE_DIR}/cmake/Packages)
 
 INCLUDE (CFITSIO)
 INCLUDE (LAPACK)
@@ -38,10 +38,10 @@ endif(APPLE)
 
 # Core library
 LIST (APPEND core_SOURCES
-  ${CMAKE_SOURCE_DIR}/src/core/bspline.cpp
-  ${CMAKE_SOURCE_DIR}/src/core/bspline_multi.cpp
-  ${CMAKE_SOURCE_DIR}/src/core/convolve.cpp
-  ${CMAKE_SOURCE_DIR}/src/core/fitsio.cpp
+  ${PROJECT_SOURCE_DIR}/src/core/bspline.cpp
+  ${PROJECT_SOURCE_DIR}/src/core/bspline_multi.cpp
+  ${PROJECT_SOURCE_DIR}/src/core/convolve.cpp
+  ${PROJECT_SOURCE_DIR}/src/core/fitsio.cpp
 )
 add_library (photospline SHARED ${core_SOURCES})
 target_include_directories (photospline
@@ -78,17 +78,17 @@ set_target_properties (photospline
     VERSION "${PROJECT_VERSION}"
 )
 install (TARGETS photospline EXPORT ${PROJECT_NAME}Config LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
-install (DIRECTORY ${CMAKE_SOURCE_DIR}/include/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+install (DIRECTORY ${PROJECT_SOURCE_DIR}/include/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
 # C interface
 LIST (APPEND c_HEADERS
-  ${CMAKE_SOURCE_DIR}/include/photospline/cinter/splinetable.h
+  ${PROJECT_SOURCE_DIR}/include/photospline/cinter/splinetable.h
 )
 LIST (APPEND c_SOURCES
-  ${CMAKE_SOURCE_DIR}/src/cinter/splinetable.cpp
+  ${PROJECT_SOURCE_DIR}/src/cinter/splinetable.cpp
 )
 add_library (cphotospline SHARED
-  ${CMAKE_SOURCE_DIR}/src/cinter/splinetable.cpp
+  ${PROJECT_SOURCE_DIR}/src/cinter/splinetable.cpp
 )
 target_include_directories (cphotospline
   PUBLIC
@@ -109,10 +109,10 @@ IF (BUILD_SPGLAM)
   MESSAGE("-- Will build the spglam fitting library")
  
   LIST (APPEND fitter_SOURCES
-    ${CMAKE_SOURCE_DIR}/src/fitter/cholesky_solve.c
-    ${CMAKE_SOURCE_DIR}/src/fitter/glam.c
-    ${CMAKE_SOURCE_DIR}/src/fitter/nnls.c
-    ${CMAKE_SOURCE_DIR}/src/fitter/splineutil.c
+    ${PROJECT_SOURCE_DIR}/src/fitter/cholesky_solve.c
+    ${PROJECT_SOURCE_DIR}/src/fitter/glam.c
+    ${PROJECT_SOURCE_DIR}/src/fitter/nnls.c
+    ${PROJECT_SOURCE_DIR}/src/fitter/splineutil.c
   )
 
   ADD_LIBRARY (spglam SHARED ${fitter_SOURCES})
@@ -170,7 +170,7 @@ IF(PYTHON_FOUND)
   MESSAGE("-- Will build the python module")
 
   LIST (APPEND python_SOURCES
-    ${CMAKE_SOURCE_DIR}/src/python/photosplinemodule.cpp
+    ${PROJECT_SOURCE_DIR}/src/python/photosplinemodule.cpp
   )
 
   add_library (pyphotospline SHARED ${python_SOURCES})
@@ -243,10 +243,10 @@ IF(BUILD_SPGLAM)
 	ENDIF()
   ENDFOREACH(lib)
 ENDIF(BUILD_SPGLAM)
-CONFIGURE_FILE (${CMAKE_SOURCE_DIR}/cmake/photospline-config.in
-  ${CMAKE_BINARY_DIR}/photospline-config
+CONFIGURE_FILE (${PROJECT_SOURCE_DIR}/cmake/photospline-config.in
+  ${PROJECT_BINARY_DIR}/photospline-config
   @ONLY)
-INSTALL (PROGRAMS ${CMAKE_BINARY_DIR}/photospline-config DESTINATION bin)
+INSTALL (PROGRAMS ${PROJECT_BINARY_DIR}/photospline-config DESTINATION bin)
 
 # -----------------------------------------------------------------------------
 # Export targets for use in downstream CMake projects
@@ -273,11 +273,11 @@ install(EXPORT ${PROJECT_NAME}Config
 # Add uninstall target for running "make uninstall" in the build directory
 # -----------------------------------------------------------------------------
 CONFIGURE_FILE (
-  "${CMAKE_SOURCE_DIR}/cmake/cmake_uninstall.cmake.in"
-  "${CMAKE_BINARY_DIR}/cmake/cmake_uninstall_cmake"
+  "${PROJECT_SOURCE_DIR}/cmake/cmake_uninstall.cmake.in"
+  "${PROJECT_BINARY_DIR}/cmake/cmake_uninstall_cmake"
   IMMEDIATE @ONLY)
 ADD_CUSTOM_TARGET (uninstall
-  "${CMAKE_COMMAND}" -P "${CMAKE_BINARY_DIR}/cmake/cmake_uninstall_cmake")
+  "${CMAKE_COMMAND}" -P "${PROJECT_BINARY_DIR}/cmake/cmake_uninstall_cmake")
 
 # -----------------------------------------------------------------------------
 # Tools
@@ -346,7 +346,7 @@ TARGET_LINK_LIBRARIES(photospline-test
 target_compile_definitions(photospline-test PRIVATE PHOTOSPLINE_NO_EVAL_TEMPLATES)
 target_compile_options (photospline-test PRIVATE -Wsign-compare)
 ADD_TEST(photospline-test photospline-test
- WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/test
+ WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/test
 )
 ADD_EXECUTABLE(photospline-test-templated
   ${TEST_SOURCES}
@@ -356,7 +356,7 @@ TARGET_LINK_LIBRARIES(photospline-test-templated
 )
 target_compile_options (photospline-test-templated PRIVATE -Wsign-compare)
 ADD_TEST(photospline-test-templated photospline-test-templated
- WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/test
+ WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/test
 )
 LIST (APPEND ALL_TESTS
   photospline-test
@@ -373,11 +373,11 @@ if(BUILD_SPGLAM)
     spglam
   )
   ADD_TEST(photospline-test-fit photospline-test-fit
-   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/test
+   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/test
   )
   LIST (APPEND ALL_TESTS photospline-test-fit)
   if(NUMPY_FOUND)
-    ADD_TEST(photospline-test-pyfit ${PYTHON_EXECUTABLE} ${CMAKE_SOURCE_DIR}/test/test_fit.py
+    ADD_TEST(photospline-test-pyfit ${PYTHON_EXECUTABLE} ${PROJECT_SOURCE_DIR}/test/test_fit.py
      WORKING_DIRECTORY ${CMAKE_BUILD_DIR}
     )
     LIST (APPEND ALL_TESTS photospline-test-pyfit)
