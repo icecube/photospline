@@ -836,7 +836,7 @@ private:
 
 #include "photospline/detail/bspline_eval.h"
 #include "photospline/detail/bspline_multi.h"
-#include "photospline/detail/aux.h"
+#include "photospline/detail/auxiliary.h"
 #include "photospline/detail/convolve.h"
 #include "photospline/detail/fitsio.h"
 #include "photospline/detail/sample.h"
