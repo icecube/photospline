@@ -665,6 +665,7 @@ splinetable<Alloc>::benchmark_evaluation(size_t trialCount, bool verbose){
 		printf("\t%.2le 'multiple' gradient evaluations/second\n",result.gradient_multi_eval_rate);
 		printf("\t(%zu trial evaluations)\n",trialCount);
 	}
+	(void)dummy;
 	
 	return(result);
 }
