@@ -605,14 +605,21 @@ pysplinetable_evaluate(pysplinetable* self, PyObject* args, PyObject* kwds){
 			arrays[i]=NULL;
 		npy_uint32 flags = 0;
 		npy_uint32 op_flags[2*ndim+1];
-		for(unsigned int i=0; i!=2*ndim; i++){
-			if (i < ndim){
-				PyObject* item=PySequence_GetItem(pyx,i);
-				arrays[i] = (PyArrayObject*)PyArray_ContiguousFromAny(item, NPY_DOUBLE, 0, INT_MAX);
-			} else {
-				PyObject* item=PySequence_GetItem(pycenters,i-ndim);
-				arrays[i] = (PyArrayObject*)PyArray_ContiguousFromAny(item, NPY_INT, 0, INT_MAX);
+		for(unsigned int i=0; i!=ndim; i++){
+			PyObject* item=PySequence_GetItem(pyx,i);
+			arrays[i] = (PyArrayObject*)PyArray_ContiguousFromAny(item, NPY_DOUBLE, 0, INT_MAX);
+			Py_DECREF(item);
+			op_flags[i] = NPY_ITER_READONLY;
+			if (arrays[i] == NULL) {
+				for (unsigned int j=0; j<i; j++)
+					Py_DECREF(arrays[i]);
+				return NULL;
 			}
+		}
+
+		for(unsigned int i=ndim; i!=2*ndim; i++){
+			PyObject* item=PySequence_GetItem(pycenters,i-ndim);
+			arrays[i] = (PyArrayObject*)PyArray_ContiguousFromAny(item, NPY_INT, 0, INT_MAX);
 			Py_DECREF(item);
 			op_flags[i] = NPY_ITER_READONLY;
 			if (arrays[i] == NULL) {
