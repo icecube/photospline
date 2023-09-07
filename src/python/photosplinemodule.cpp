@@ -619,7 +619,7 @@ pysplinetable_evaluate(pysplinetable* self, PyObject* args, PyObject* kwds){
 
 		for(unsigned int i=ndim; i!=2*ndim; i++){
 			PyObject* item=PySequence_GetItem(pycenters,i-ndim);
-			arrays[i] = (PyArrayObject*)PyArray_ContiguousFromAny(item, NPY_INT, 0, INT_MAX);
+			arrays[i] = (PyArrayObject*)PyArray_ContiguousFromAny(item, NPY_LONG, 0, INT_MAX);
 			Py_DECREF(item);
 			op_flags[i] = NPY_ITER_READONLY;
 			if (arrays[i] == NULL) {
