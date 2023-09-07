@@ -648,8 +648,8 @@ pysplinetable_evaluate(pysplinetable* self, PyObject* args, PyObject* kwds){
 		do {
 			for (unsigned dim=0; dim<ndim; dim++)
 				x[dim] = *reinterpret_cast<double*>(data_ptr[dim]);
-			for (unsigned dim=ndim; dim<2*ndim; dim++)
-				centers[dim] = *reinterpret_cast<int*>(data_ptr[dim]);
+			for (unsigned dim=0; dim<ndim; dim++)
+				centers[dim] = *reinterpret_cast<int*>(data_ptr[dim+ndim]);
 			// TODO: TK, we probably need an additional check here to return `0.`
 			// when centers are out of bounds?
 			*reinterpret_cast<double*>(data_ptr[2*ndim]) = self->table->ndsplineeval(x,centers,derivatives);
