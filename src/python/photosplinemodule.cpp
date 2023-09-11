@@ -563,10 +563,10 @@ pysplinetable_searchcenters(pysplinetable* self, PyObject* args, PyObject* kwds)
 			// create a new 1D array that shares data with the row
 			npy_intp dims[1] = {PyArray_DIM(array_out, 1)};  // length of the row
 
-			PyArrayObject* result = (PyArrayObject*)PyArray_SimpleNewFromData(1, dims, NPY_LONG, row_data);
-			arrays[ndim+i] = result;
+			PyArrayObject* row_array = (PyArrayObject*)PyArray_SimpleNewFromData(1, dims, NPY_LONG, row_data);
+			arrays[ndim+i] = row_array;
 
-			op_flags[ndim+i] = NPY_ITER_READWRITE;
+			op_flags[ndim+i] = NPY_ITER_WRITEONLY;
 		}
 		NpyIter *iter = NpyIter_MultiNew(2*ndim, arrays, flags, NPY_KEEPORDER, NPY_NO_CASTING, op_flags, NULL);
 		if (iter == NULL){
@@ -728,9 +728,7 @@ pysplinetable_evaluate(pysplinetable* self, PyObject* args, PyObject* kwds){
 			for (unsigned dim=0; dim<ndim; dim++)
 				x[dim] = *reinterpret_cast<double*>(data_ptr[dim]);
 			for (unsigned dim=0; dim<ndim; dim++)
-				centers[dim] = *reinterpret_cast<int*>(data_ptr[dim+ndim]);
-			// TODO: TK, we probably need an additional check here to return `0.`
-			// when centers are out of bounds?
+				centers[dim] = *reinterpret_cast<int*>(data_ptr[ndim+dim]);
 			*reinterpret_cast<double*>(data_ptr[2*ndim]) = self->table->ndsplineeval(x,centers,derivatives);
 		} while (iternext(iter));
 		
