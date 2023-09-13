@@ -582,15 +582,21 @@ pysplinetable_searchcenters(pysplinetable* self, PyObject* args, PyObject* kwds)
 		double x[ndim];
 		int centers[ndim];
 		do {
-			for (unsigned dim=0; dim<ndim; dim++)
+			for (unsigned int dim=0; dim!=ndim; dim++)
 				x[dim] = *reinterpret_cast<double*>(data_ptr[dim]);
 			if(!self->table->searchcenters(x,centers)){
 				PyErr_SetString(PyExc_ValueError, "tablesearchcenters failed");
-				return(NULL);
-			} else {
-				for(unsigned dim=0; dim!=ndim; dim++) {
-					*reinterpret_cast<long*>(data_ptr[ndim+dim]) = centers[dim];
+				// clean up
+				NpyIter_Deallocate(iter);
+				for (auto ptr : arrays){
+					if(ptr)
+						Py_DECREF(ptr);
 				}
+				Py_DECREF(array_out);
+				return(NULL);
+			}
+			for(unsigned int dim=0; dim!=ndim; dim++) {
+				*reinterpret_cast<long*>(data_ptr[ndim+dim]) = centers[dim];
 			}
 		} while (iternext(iter));
 		
@@ -709,7 +715,6 @@ pysplinetable_evaluate(pysplinetable* self, PyObject* args, PyObject* kwds){
 		}
 
 		// allocate the output array automatically
-		arrays[2*ndim] = NULL;
 		op_flags[2*ndim] = NPY_ITER_WRITEONLY | NPY_ITER_ALLOCATE;
 		NpyIter *iter = NpyIter_MultiNew(2*ndim+1, arrays, flags, NPY_KEEPORDER, NPY_NO_CASTING, op_flags, NULL);
 		if (iter == NULL){
@@ -725,10 +730,10 @@ pysplinetable_evaluate(pysplinetable* self, PyObject* args, PyObject* kwds){
 		double x[ndim];
 		int centers[ndim];
 		do {
-			for (unsigned dim=0; dim<ndim; dim++)
+			for (unsigned int dim=0; dim!=ndim; dim++) {
 				x[dim] = *reinterpret_cast<double*>(data_ptr[dim]);
-			for (unsigned dim=0; dim<ndim; dim++)
 				centers[dim] = *reinterpret_cast<int*>(data_ptr[ndim+dim]);
+			}
 			*reinterpret_cast<double*>(data_ptr[2*ndim]) = self->table->ndsplineeval(x,centers,derivatives);
 		} while (iternext(iter));
 		
