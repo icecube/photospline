@@ -505,7 +505,7 @@ pysplinetable_searchcenters(pysplinetable* self, PyObject* args, PyObject* kwds)
 	
 	//unpack x
 	//assume these are arbitrary sequences, not numpy arrays
-	//TODO: should be possible to make a more efficient case for numpy arrays
+#ifndef HAVE_NUMPY
 	{
 		//a small amount of evil
 		double x[ndim];
@@ -528,6 +528,91 @@ pysplinetable_searchcenters(pysplinetable* self, PyObject* args, PyObject* kwds)
 			PyTuple_SetItem(result,i,Py_BuildValue("i",centers[i]));
 		return(result);
 	}
+#else
+	//optimized case for numpy arrays (or things that can be converted to them)
+	{
+		PyArrayObject* arrays[2*ndim];
+		for(unsigned int i=0; i!=ndim; i++)
+			arrays[i]=NULL;
+		npy_uint32 flags = 0;
+		npy_uint32 op_flags[2*ndim];
+		for(unsigned int i=0; i!=ndim; i++){
+			PyObject* item=PySequence_GetItem(pyx,i);
+			arrays[i] = (PyArrayObject*)PyArray_ContiguousFromAny(item, NPY_DOUBLE, 0, INT_MAX);
+			Py_DECREF(item);
+			op_flags[i] = NPY_ITER_READONLY;
+			if (arrays[i] == NULL) {
+				for (unsigned int j=0; j<i; j++)
+					Py_DECREF(arrays[i]);
+				return NULL;
+			}
+		}
+		
+		// create output array instead of using `NPY_ITER_ALLOCATE` flag
+		// to be able to return it to python
+		int nd = 2; // output array is always 2 dimensional
+		npy_intp dims[nd];
+		dims[0] = ndim;
+		dims[1] = *PyArray_DIMS(arrays[0]);
+		PyArrayObject* array_out = (PyArrayObject*)PyArray_SimpleNew(nd, dims, NPY_LONG);
+
+		for(unsigned int i=0; i!=ndim; i++){
+			// get a pointer to the data of the row
+			double* row_data = (double*)PyArray_GETPTR1(array_out, i);
+
+			// create a new 1D array that shares data with the row
+			npy_intp dims[1] = {PyArray_DIM(array_out, 1)};  // length of the row
+
+			PyArrayObject* row_array = (PyArrayObject*)PyArray_SimpleNewFromData(1, dims, NPY_LONG, row_data);
+			arrays[ndim+i] = row_array;
+
+			op_flags[ndim+i] = NPY_ITER_WRITEONLY;
+		}
+		NpyIter *iter = NpyIter_MultiNew(2*ndim, arrays, flags, NPY_KEEPORDER, NPY_NO_CASTING, op_flags, NULL);
+		if (iter == NULL){
+			for (auto ptr : arrays){
+				if(ptr)
+					Py_DECREF(ptr);
+			}
+			return NULL;
+		}
+		char** data_ptr = NpyIter_GetDataPtrArray(iter);
+		NpyIter_IterNextFunc* iternext = NpyIter_GetIterNext(iter, NULL);
+		
+		double x[ndim];
+		int centers[ndim];
+		do {
+			for (unsigned int dim=0; dim!=ndim; dim++)
+				x[dim] = *reinterpret_cast<double*>(data_ptr[dim]);
+			if(!self->table->searchcenters(x,centers)){
+				PyErr_SetString(PyExc_ValueError, "tablesearchcenters failed");
+				// clean up
+				NpyIter_Deallocate(iter);
+				for (auto ptr : arrays){
+					if(ptr)
+						Py_DECREF(ptr);
+				}
+				Py_DECREF(array_out);
+				return(NULL);
+			}
+			for(unsigned int dim=0; dim!=ndim; dim++) {
+				*reinterpret_cast<long*>(data_ptr[ndim+dim]) = centers[dim];
+			}
+		} while (iternext(iter));
+		
+		// clean up
+		for (auto ptr : arrays){
+			if(ptr)
+				Py_DECREF(ptr);
+		}
+		if (NpyIter_Deallocate(iter) != NPY_SUCCEED) {
+			Py_DECREF(array_out);
+			return NULL;
+		}
+		
+		return PyArray_Return(array_out);
+	}
+#endif
 }
 
 static PyObject*
@@ -579,7 +664,7 @@ pysplinetable_evaluate(pysplinetable* self, PyObject* args, PyObject* kwds){
 	
 	//unpack x and centers
 	//assume these are arbitrary sequences, not numpy arrays
-	//TODO: should be possible to make a more efficient case for numpy arrays
+#ifndef HAVE_NUMPY
 	{
 		//a small amount of evil
 		double x[ndim];
@@ -597,6 +682,78 @@ pysplinetable_evaluate(pysplinetable* self, PyObject* args, PyObject* kwds){
 		double result=self->table->ndsplineeval(x,centers,derivatives);
 		return(Py_BuildValue("d",result));
 	}
+#else
+	//optimized case for numpy arrays (or things that can be converted to them)
+	{
+		PyArrayObject* arrays[2*ndim+1];
+		for(unsigned int i=0; i!=2*ndim+1; i++)
+			arrays[i]=NULL;
+		npy_uint32 flags = 0;
+		npy_uint32 op_flags[2*ndim+1];
+		for(unsigned int i=0; i!=ndim; i++){
+			PyObject* item=PySequence_GetItem(pyx,i);
+			arrays[i] = (PyArrayObject*)PyArray_ContiguousFromAny(item, NPY_DOUBLE, 0, INT_MAX);
+			Py_DECREF(item);
+			op_flags[i] = NPY_ITER_READONLY;
+			if (arrays[i] == NULL) {
+				for (unsigned int j=0; j<i; j++)
+					Py_DECREF(arrays[i]);
+				return NULL;
+			}
+		}
+
+		for(unsigned int i=ndim; i!=2*ndim; i++){
+			PyObject* item=PySequence_GetItem(pycenters,i-ndim);
+			arrays[i] = (PyArrayObject*)PyArray_ContiguousFromAny(item, NPY_LONG, 0, INT_MAX);
+			Py_DECREF(item);
+			op_flags[i] = NPY_ITER_READONLY;
+			if (arrays[i] == NULL) {
+				for (unsigned int j=0; j<i; j++)
+					Py_DECREF(arrays[i]);
+				return NULL;
+			}
+		}
+
+		// allocate the output array automatically
+		op_flags[2*ndim] = NPY_ITER_WRITEONLY | NPY_ITER_ALLOCATE;
+		NpyIter *iter = NpyIter_MultiNew(2*ndim+1, arrays, flags, NPY_KEEPORDER, NPY_NO_CASTING, op_flags, NULL);
+		if (iter == NULL){
+			for (auto ptr : arrays){
+				if(ptr)
+					Py_DECREF(ptr);
+			}
+			return NULL;
+		}
+		char** data_ptr = NpyIter_GetDataPtrArray(iter);
+		NpyIter_IterNextFunc* iternext = NpyIter_GetIterNext(iter, NULL);
+		
+		double x[ndim];
+		int centers[ndim];
+		do {
+			for (unsigned int dim=0; dim!=ndim; dim++) {
+				x[dim] = *reinterpret_cast<double*>(data_ptr[dim]);
+				centers[dim] = *reinterpret_cast<int*>(data_ptr[ndim+dim]);
+			}
+			*reinterpret_cast<double*>(data_ptr[2*ndim]) = self->table->ndsplineeval(x,centers,derivatives);
+		} while (iternext(iter));
+		
+		// retrieve output array
+		PyArrayObject *out = NpyIter_GetOperandArray(iter)[2*ndim];
+		Py_INCREF(out);
+		
+		// clean up
+		for (auto ptr : arrays){
+			if(ptr)
+				Py_DECREF(ptr);
+		}
+		if (NpyIter_Deallocate(iter) != NPY_SUCCEED) {
+			Py_DECREF(out);
+			return NULL;
+		}
+		
+		return PyArray_Return(out);
+	}
+#endif
 }
 
 //attempts to do search centers and ndsplineeval in one step
