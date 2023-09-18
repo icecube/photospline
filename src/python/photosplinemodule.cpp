@@ -354,6 +354,70 @@ pysplinetable_init(pysplinetable* self, PyObject* args, PyObject* kwds){
 }
 
 static int
+extract_splinetables(PyObject *arg, std::vector<photospline::splinetable<>*> *splines);
+
+
+static int
+extract_doubles(PyObject *arg, std::vector<double> *coordinates)
+{
+	if (!PySequence_Check(arg)) {
+		PyErr_Format(PyExc_TypeError, "coordinates must be a sequence, got %R", arg);
+		return 0;
+	}
+	int fail = 0;
+	PyObject *it = PyObject_GetIter(arg);
+	PyObject *item = NULL;
+	while ((item = PyIter_Next(it)) != NULL) {
+		if (!PyNumber_Check(item)) {
+			PyErr_Format(PyExc_TypeError, "elements must be float, got %R", item);
+			fail = 1;
+		} else {
+			PyObject *value = PyNumber_Float(item);
+			coordinates->push_back(PyFloat_AsDouble(value));
+			Py_DECREF(value);
+		}
+		Py_DECREF(item);
+		if (fail) {
+			break;
+		} 
+	}
+	Py_DECREF(it);
+	return !fail;
+}
+
+static PyObject*
+pysplinetable_stack(PyTypeObject* type, PyObject* args, PyObject* kwds){
+	pysplinetable* self;
+	static const char* kwlist[] = {"tables", "coordinates", "stackOrder", NULL};
+	std::vector<photospline::splinetable<>*> splines;
+	std::vector<double> coordinates;
+	int stackOrder = 2;
+	
+	if (!PyArg_ParseTupleAndKeywords(args, kwds, "O&O&|i", (char**)kwlist, &extract_splinetables, &splines, &extract_doubles, &coordinates, &stackOrder)) {
+		return NULL;
+	} else if (splines.size() != coordinates.size()) {
+		PyErr_Format(PyExc_ValueError, "number of splines (%zu) does not match number of coordinates (%zu)", splines.size(),  coordinates.size());
+		return NULL;
+	}
+
+	self = (pysplinetable*)type->tp_alloc(type, 0);
+	if(self){
+		try{
+			self->table=new photospline::splinetable<>(splines, coordinates, stackOrder);
+		}catch(std::exception& ex){
+			PyErr_SetString(PyExc_Exception,
+			                (std::string("Unable to allocate spline table: ")+ex.what()).c_str());
+			return(NULL);
+		}catch(...){
+			PyErr_SetString(PyExc_Exception, "Unable to allocate spline table");
+			return(NULL);
+		}
+	}
+
+	return (PyObject*)self;
+}
+
+static int
 pysplinetable_print(pysplinetable* self, FILE* fp, int flags){
 	uint32_t ndim=self->table->get_ndim();
 	fprintf(fp,"Splinetable with %u dimension",ndim);
@@ -1144,6 +1208,8 @@ static PyGetSetDef pysplinetable_properties[] = {
 };
 
 static PyMethodDef pysplinetable_methods[] = {
+	{"stack", (PyCFunction)pysplinetable_stack, METH_VARARGS | METH_KEYWORDS | METH_CLASS,
+	 "Stack splines along the given dimension"},
 	{"write", (PyCFunction)pysplinetable_write, METH_VARARGS | METH_KEYWORDS,
 	 "Write the spline to a FITS file at the given path"},
 	{"aux_value", (PyCFunction)pysplinetable_get_aux_value, METH_VARARGS | METH_KEYWORDS,
@@ -1684,3 +1750,33 @@ pysplinetable_grideval(pysplinetable* self, PyObject* args, PyObject* kwds){
 #endif
 
 #endif //PHOTOSPLINE_INCLUDES_SPGLAM
+
+static int
+extract_splinetables(PyObject *arg, std::vector<photospline::splinetable<>*> *splines)
+{
+	if (!PySequence_Check(arg)) {
+		PyErr_Format(PyExc_TypeError, "splines must be a sequence, got %R", arg);
+		return 0;
+	}
+	if (PySequence_Length(arg) < 1) {
+		PyErr_SetString(PyExc_ValueError, "need at least 1 spline to stack");
+		return 0;
+	}
+	int fail = 0;
+	PyObject *it = PyObject_GetIter(arg);
+	PyObject *item = NULL;
+	while ((item = PyIter_Next(it)) != NULL) {
+		if (!PyObject_IsInstance(item, (PyObject*)&pysplinetableType)) {
+			PyErr_Format(PyExc_TypeError, "elements must be SplineTable, got %R", item);
+			fail = 1;
+		} else {
+			splines->push_back(((pysplinetable*)item)->table);
+		}
+		Py_DECREF(item);
+		if (fail) {
+			break;
+		} 
+	}
+	Py_DECREF(it);
+	return !fail;
+}

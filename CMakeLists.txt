@@ -363,6 +363,11 @@ LIST (APPEND ALL_TESTS
   photospline-test-templated
 )
 
+if(PYTHON_FOUND AND NUMPY_FOUND)
+  ADD_TEST(photospline-test-pystack ${PYTHON_EXECUTABLE} ${PROJECT_SOURCE_DIR}/test/test_stack.py)
+  LIST (APPEND ALL_TESTS photospline-test-pystack)
+endif()
+
 if(BUILD_SPGLAM)
   ADD_EXECUTABLE(photospline-test-fit
     test/test_main.cpp
