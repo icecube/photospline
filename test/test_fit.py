@@ -27,8 +27,8 @@ knots = [pad_knots(numpy.linspace(-3, 3, 5))]*3
 order = [2,2,3]
 smooth = 1
 
-data, w = photospline.ndsparse.from_data(z, w)
-spline = photospline.glam_fit(data, w, centers, knots, order, [smooth]*3, [2]*3, monodim=2, verbose=False)
+data, ws = photospline.ndsparse.from_data(z, w)
+spline = photospline.glam_fit(data, ws, centers, knots, order, [smooth]*3, [2]*3, monodim=2, verbose=False)
 y = spline.grideval(centers)
 
 residual = ((z-y)**2).sum()
