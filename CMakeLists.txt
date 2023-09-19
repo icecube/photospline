@@ -201,6 +201,10 @@ print(pl.relative_to(d))"
     OUTPUT_VARIABLE PYTHON_MODULE_DIR
     OUTPUT_STRIP_TRAILING_WHITESPACE)
   INSTALL(TARGETS pyphotospline LIBRARY DESTINATION ${PYTHON_MODULE_DIR})
+  IF(${Python_VERSION} VERSION_GREATER_EQUAL "3.9")
+    MESSAGE("-- + typing stubs")
+    INSTALL(FILES typings/photospline.pyi DESTINATION ${PYTHON_MODULE_DIR})
+  ENDIF()
 ELSEIF(NOT PYTHON_FOUND)
   MESSAGE("-- Python not found, skipping build of python module")
 ENDIF(PYTHON_FOUND)
