@@ -18,7 +18,7 @@ class StackTest(unittest.TestCase):
             str(self.testdata / "test_spline_1d.fits")
         )
 
-    def testStack(self):
+    def testStack(self) -> None:
         spline = self.spline
         stack = photospline.SplineTable.stack([spline] * 3, [-1, 0, 1], stackOrder=2)
         self.assertEqual(spline.ndim, 1)
@@ -29,15 +29,15 @@ class StackTest(unittest.TestCase):
             stack.knots[1], [-3.6, -2.6, -1.6, -0.6, 0.4, 1.4, 2.4, 3.4]
         )
 
-    def testBadArgs(self):
+    def testBadArgs(self) -> None:
         with self.assertRaises(ValueError):
             photospline.SplineTable.stack([], [])
         with self.assertRaises(TypeError):
-            photospline.SplineTable.stack(range(3), [])
+            photospline.SplineTable.stack(range(3), []) # type: ignore[arg-type]
         with self.assertRaises(TypeError):
-            photospline.SplineTable.stack([self.spline], ["a"])
+            photospline.SplineTable.stack([self.spline], ["a"]) # type: ignore[list-item]
         with self.assertRaises(TypeError):
-            photospline.SplineTable.stack([self.spline, None], [])
+            photospline.SplineTable.stack([self.spline, None], []) # type: ignore[list-item]
         with self.assertRaises(ValueError):
             photospline.SplineTable.stack([self.spline] * 2, [1])
 

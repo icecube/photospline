@@ -6,8 +6,22 @@ on:
       - master
 
 jobs:
+  mypy:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: "3.11"
+    - run: pip install numpy mypy
+    - run: sudo apt-get install libsuitesparse-dev libbtbb-dev liblapack-dev libcfitsio-dev libmetis-dev libgsl-dev
+    # NB: force install to provisioned Python's PYTHONPATH
+    - run: cmake -DPython_EXECUTABLE=$(which python) -DCMAKE_INSTALL_PREFIX=$(dirname $(dirname $(which pip))) && make pyphotospline && sudo make install
+    - run: mypy test/*.py
   linux:
     runs-on: ubuntu-latest
+    needs: mypy
     strategy:
       fail-fast: false
       matrix:
@@ -26,6 +40,7 @@ jobs:
       - run: ctest --output-on-failure
   macos:
     runs-on: macos-latest
+    needs: linux
     strategy:
       fail-fast: false
       matrix:
@@ -45,6 +60,7 @@ jobs:
       - run: ctest --output-on-failure
   architecture-zoo:
     runs-on: ubuntu-latest
+    needs: linux
     strategy:
       matrix:
         include:
