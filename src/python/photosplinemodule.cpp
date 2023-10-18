@@ -312,7 +312,11 @@ pysplinetable_dealloc(pysplinetable* self){
 
 typedef std::unique_ptr<PyObject, void(*)(PyObject*)> handle;
 
-static handle new_reference(PyObject *ptr) { return handle(ptr, Py_XDECREF); }
+static inline handle new_reference(PyObject *ptr)
+{
+	auto deleter = [](PyObject* ptr){ Py_XDECREF(ptr); };
+	return handle(ptr, deleter);
+}
 
 static PyObject*
 pysplinetable_new(PyTypeObject* type, PyObject* args, PyObject* kwds){
