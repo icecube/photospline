@@ -1,5 +1,4 @@
 
-from typing import reveal_type
 import unittest
 import photospline
 
