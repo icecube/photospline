@@ -1,4 +1,4 @@
-from typing import Sequence
+from os import PathLike
 import numpy as np
 import numpy.typing as npt
 
@@ -10,7 +10,7 @@ class SplineTable:
     order: tuple[int, ...]
     def aux_value(self, key: str) -> str: ...
 
-    def __init__(self, path: str): ...
+    def __init__(self, path: PathLike): ...
     @classmethod
     def stack(
         cls,

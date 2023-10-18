@@ -334,13 +334,14 @@ pysplinetable_new(PyTypeObject* type, PyObject* args, PyObject* kwds){
 static int
 pysplinetable_init(pysplinetable* self, PyObject* args, PyObject* kwds){
 	static const char* kwlist[] = {"path", NULL};
-	char* path=NULL;
+	PyObject *path=NULL;
 	
-    if (!PyArg_ParseTupleAndKeywords(args, kwds, "s", (char**)kwlist, &path))
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "O&", (char**)kwlist, &PyUnicode_FSConverter, &path))
         return -1;
+	std::unique_ptr<PyObject, void(*)(PyObject*)> handle(path, &Py_XDECREF);
 	
 	try{
-		self->table=new photospline::splinetable<>(path);
+		self->table=new photospline::splinetable<>(PyBytes_AsString(path));
 	}catch(std::exception& ex){
 		PyErr_SetString(PyExc_Exception,
 						(std::string("Unable to allocate spline table: ")+ex.what()).c_str());
