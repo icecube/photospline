@@ -370,6 +370,8 @@ LIST (APPEND ALL_TESTS
 if(PYTHON_FOUND AND NUMPY_FOUND)
   ADD_TEST(photospline-test-pystack ${PYTHON_EXECUTABLE} ${PROJECT_SOURCE_DIR}/test/test_stack.py)
   LIST (APPEND ALL_TESTS photospline-test-pystack)
+  ADD_TEST(photospline-test-pyeval ${PYTHON_EXECUTABLE} ${PROJECT_SOURCE_DIR}/test/test_eval.py)
+  LIST (APPEND ALL_TESTS photospline-test-pyeval)
 endif()
 
 if(BUILD_SPGLAM)

@@ -310,6 +310,10 @@ pysplinetable_dealloc(pysplinetable* self){
 	delete(self->table);
 }
 
+typedef std::unique_ptr<PyObject, void(*)(PyObject*)> handle;
+
+static handle new_reference(PyObject *ptr) { return handle(ptr, Py_XDECREF); }
+
 static PyObject*
 pysplinetable_new(PyTypeObject* type, PyObject* args, PyObject* kwds){
 	pysplinetable* self;
@@ -338,10 +342,10 @@ pysplinetable_init(pysplinetable* self, PyObject* args, PyObject* kwds){
 	
     if (!PyArg_ParseTupleAndKeywords(args, kwds, "O&", (char**)kwlist, &PyUnicode_FSConverter, &path))
         return -1;
-	std::unique_ptr<PyObject, void(*)(PyObject*)> handle(path, &Py_XDECREF);
+	auto handle = new_reference(path);
 	
 	try{
-		self->table=new photospline::splinetable<>(PyBytes_AsString(path));
+		self->table=new photospline::splinetable<>(PyBytes_AsString(handle.get()));
 	}catch(std::exception& ex){
 		PyErr_SetString(PyExc_Exception,
 						(std::string("Unable to allocate spline table: ")+ex.what()).c_str());
@@ -568,19 +572,28 @@ pysplinetable_searchcenters(pysplinetable* self, PyObject* args, PyObject* kwds)
 		return(NULL);
 	}
 	
+	bool scalar = true;
+	for(unsigned int i=0; i!=ndim; i++){
+		if (!(scalar = scalar && PyFloat_Check(new_reference(PySequence_GetItem(pyx,i)).get())))
+			break;		
+	}
+#ifndef HAVE_NUMPY
+	if (!scalar) {
+		PyErr_SetString(PyExc_ValueError, "x must be a sequence of floats");
+		return(NULL);
+	}
+#else
+	if (scalar)
+#endif
 	//unpack x
 	//assume these are arbitrary sequences, not numpy arrays
-#ifndef HAVE_NUMPY
 	{
 		//a small amount of evil
 		double x[ndim];
 		int centers[ndim];
 		
 		for(unsigned int i=0; i!=ndim; i++){
-			PyObject* xi=PySequence_GetItem(pyx,i);
-			x[i]=PyFloat_AsDouble(xi);
-			Py_DECREF(xi); //done with this
-			//printf("x[%u]=%lf\n",i,x[i]);
+			x[i]=PyFloat_AsDouble(new_reference(PySequence_GetItem(pyx,i)).get());
 		}
 		
 		if(!self->table->searchcenters(x,centers)){
@@ -593,7 +606,8 @@ pysplinetable_searchcenters(pysplinetable* self, PyObject* args, PyObject* kwds)
 			PyTuple_SetItem(result,i,Py_BuildValue("i",centers[i]));
 		return(result);
 	}
-#else
+#if defined(HAVE_NUMPY)
+	else
 	//optimized case for numpy arrays (or things that can be converted to them)
 	{
 		PyArrayObject* arrays[2*ndim];
@@ -623,7 +637,7 @@ pysplinetable_searchcenters(pysplinetable* self, PyObject* args, PyObject* kwds)
 
 		for(unsigned int i=0; i!=ndim; i++){
 			// get a pointer to the data of the row
-			double* row_data = (double*)PyArray_GETPTR1(array_out, i);
+			void* row_data = PyArray_GETPTR1(array_out, i);
 
 			// create a new 1D array that shares data with the row
 			npy_intp dims[1] = {PyArray_DIM(array_out, 1)};  // length of the row
