@@ -369,8 +369,10 @@ LIST (APPEND ALL_TESTS
 
 if(PYTHON_FOUND AND NUMPY_FOUND)
   ADD_TEST(photospline-test-pystack ${PYTHON_EXECUTABLE} ${PROJECT_SOURCE_DIR}/test/test_stack.py)
+  set_property(TEST photospline-test-pystack PROPERTY ENVIRONMENT PYTHONPATH=${PROJECT_BINARY_DIR})
   LIST (APPEND ALL_TESTS photospline-test-pystack)
   ADD_TEST(photospline-test-pyeval ${PYTHON_EXECUTABLE} ${PROJECT_SOURCE_DIR}/test/test_eval.py)
+  set_property(TEST photospline-test-pyeval PROPERTY ENVIRONMENT PYTHONPATH=${PROJECT_BINARY_DIR})
   LIST (APPEND ALL_TESTS photospline-test-pyeval)
 endif()
 
