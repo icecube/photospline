@@ -3,6 +3,7 @@
 
 #include <random>
 #include <chrono>
+#include <iostream>
 
 namespace photospline{
 	
@@ -30,15 +31,21 @@ bool splinetable<Alloc>::searchcenters(const double* x, int* centers) const
 		
 		uint32_t min = order[i];
 		uint32_t max = nknots[i]-2;
-		do {
+		if (knots[i][2] - knots[i][1] == knots[i][1] - knots[i][0]) {
+			centers[i] = x[i]/(knots[i][1] - knots[i][0])+min;
+			std::cout << x[i] <<", " <<centers[i] << std::endl;
+		} else {
 			centers[i] = (max+min)/2;
+			do {
+				centers[i] = (max+min)/2;
 			
-			if (x[i] < knots[i][centers[i]])
-				max = centers[i]-1;
-			else
-				min = centers[i]+1;
-		} while (x[i] < knots[i][centers[i]] ||
-				 x[i] >= knots[i][centers[i]+1]);
+				if (x[i] < knots[i][centers[i]])
+					max = centers[i]-1;
+				else
+					min = centers[i]+1;
+			} while (x[i] < knots[i][centers[i]] ||
+							 x[i] >= knots[i][centers[i]+1]);
+		}
 		
 		/*
 		 * B-splines are defined on a half-open interval. For the
