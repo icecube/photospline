@@ -139,14 +139,16 @@ public:
 	///The resulting object is useful only for calling read_fits, read_fits_mem, or fit.
 	explicit splinetable(allocator_type alloc=Alloc()):
 	ndim(0),order(NULL),knots(NULL),nknots(NULL),extents(NULL),periods(NULL),
-	coefficients(NULL),naxes(NULL),strides(NULL),naux(0),aux(NULL),allocator(alloc)
+	coefficients(NULL),naxes(NULL),strides(NULL),naux(0),aux(NULL),allocator(alloc),
+	min_sep(NULL), max_sep(NULL)
 	{}
 	
 	///Construct a splinetable from serialized data previously stored in a FITS file.
 	///\param filePath the path to the input file
 	explicit splinetable(const std::string& filePath, allocator_type alloc=Alloc()):
 	ndim(0),order(NULL),knots(NULL),nknots(NULL),extents(NULL),periods(NULL),
-	coefficients(NULL),naxes(NULL),strides(NULL),naux(0),aux(NULL),allocator(alloc)
+	coefficients(NULL),naxes(NULL),strides(NULL),naux(0),aux(NULL),allocator(alloc),
+	min_sep(NULL), max_sep(NULL)
 	{
 		read_fits(filePath);
 	}
@@ -157,7 +159,8 @@ public:
 	///\param stackOrder the order of the spline in the stacking dimension
 	explicit splinetable(std::vector<splinetable<Alloc>*> tables, std::vector<double> coordinates, int stackOrder=2, allocator_type alloc=Alloc()):
 	ndim(0),order(NULL),knots(NULL),nknots(NULL),extents(NULL),periods(NULL),
-	coefficients(NULL),naxes(NULL),strides(NULL),naux(0),aux(NULL),allocator(alloc)
+	coefficients(NULL),naxes(NULL),strides(NULL),naux(0),aux(NULL),allocator(alloc),
+	min_sep(NULL), max_sep(NULL)
 	{
     assert(!tables.empty());
     assert(tables.size()==coordinates.size());
@@ -769,6 +772,8 @@ private:
 	double_ptr_ptr extents;
 	
 	double_ptr periods;
+	double_ptr max_sep;
+	double_ptr min_sep;
 	
 	float_ptr coefficients;
 	uint64_t_ptr naxes;
