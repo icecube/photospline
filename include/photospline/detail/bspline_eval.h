@@ -3,8 +3,6 @@
 
 #include <random>
 #include <chrono>
-#include <iostream>
-#include <cmath>
 
 namespace photospline{
 	
