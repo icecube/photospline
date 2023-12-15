@@ -4,6 +4,7 @@
 #include <random>
 #include <chrono>
 #include <iostream>
+#include <cmath>
 
 namespace photospline{
 	
@@ -31,11 +32,21 @@ bool splinetable<Alloc>::searchcenters(const double* x, int* centers) const
 		
 		uint32_t min = order[i];
 		uint32_t max = nknots[i]-2;
-		std::cout << i << " " << knots[i][2] - knots[i][1] << ", " << knots[i][1] - knots[i][0] << std::endl;
-		if (knots[i][2] - knots[i][1] == knots[i][1] - knots[i][0]) {
+		// std::cout << i << " " << knots[i][2] - knots[i][1] << ", " << knots[i][1] - knots[i][0] << std::endl;
+		if (std::abs(knots[i][2] - knots[i][1] - knots[i][1] + knots[i][0]) < 1e-5) {
 		// if (false) {
 			centers[i] = (x[i] - knots[i][0])/(knots[i][1] - knots[i][0]);
-			std::cout << i << " " << x[i] <<", " <<centers[i] << std::endl;
+			// int new_cent = (x[i] - knots[i][0])/(knots[i][1] - knots[i][0]);
+			// do {
+			// 	centers[i] = (max+min)/2;
+			
+			// 	if (x[i] < knots[i][centers[i]])
+			// 		max = centers[i]-1;
+			// 	else
+			// 		min = centers[i]+1;
+			// } while (x[i] < knots[i][centers[i]] ||
+			// 				 x[i] >= knots[i][centers[i]+1]);
+			// std::cout << i << " " << x[i] <<", " <<centers[i] <<", " << new_cent<< std::endl;
 		} else {
 			do {
 				centers[i] = (max+min)/2;
