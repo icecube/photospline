@@ -140,7 +140,7 @@ public:
 	explicit splinetable(allocator_type alloc=Alloc()):
 	ndim(0),order(NULL),knots(NULL),nknots(NULL),extents(NULL),periods(NULL),
 	coefficients(NULL),naxes(NULL),strides(NULL),naux(0),aux(NULL),allocator(alloc),
-	min_sep(NULL), max_sep(NULL)
+	rmin_sep(NULL), rmax_sep(NULL)
 	{}
 	
 	///Construct a splinetable from serialized data previously stored in a FITS file.
@@ -148,7 +148,7 @@ public:
 	explicit splinetable(const std::string& filePath, allocator_type alloc=Alloc()):
 	ndim(0),order(NULL),knots(NULL),nknots(NULL),extents(NULL),periods(NULL),
 	coefficients(NULL),naxes(NULL),strides(NULL),naux(0),aux(NULL),allocator(alloc),
-	min_sep(NULL), max_sep(NULL)
+	rmin_sep(NULL), rmax_sep(NULL)
 	{
 		read_fits(filePath);
 	}
@@ -160,7 +160,7 @@ public:
 	explicit splinetable(std::vector<splinetable<Alloc>*> tables, std::vector<double> coordinates, int stackOrder=2, allocator_type alloc=Alloc()):
 	ndim(0),order(NULL),knots(NULL),nknots(NULL),extents(NULL),periods(NULL),
 	coefficients(NULL),naxes(NULL),strides(NULL),naux(0),aux(NULL),allocator(alloc),
-	min_sep(NULL), max_sep(NULL)
+	rmin_sep(NULL), rmax_sep(NULL)
 	{
     assert(!tables.empty());
     assert(tables.size()==coordinates.size());
@@ -772,8 +772,8 @@ private:
 	double_ptr_ptr extents;
 	
 	double_ptr periods;
-	double_ptr max_sep;
-	double_ptr min_sep;
+	double_ptr rmax_sep;
+	double_ptr rmin_sep;
 	
 	float_ptr coefficients;
 	uint64_t_ptr naxes;

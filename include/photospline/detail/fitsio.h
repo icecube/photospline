@@ -90,8 +90,8 @@ size_t splinetable<Alloc>::estimateMemory(const std::string& filePath,
 	size += ncoeffs*sizeof(float); //coefficients
 	size += dim*sizeof(uint64_t); //naxes
 	size += dim*sizeof(uint64_t); //strides
-	size += dim*sizeof(double); //min_sep
-	size += dim*sizeof(double); //max_sep
+	size += dim*sizeof(double); //rmin_sep
+	size += dim*sizeof(double); //rmax_sep
 	
 	uint32_t naux = countAuxKeywords(fits);
 	//pessimistically assume all keys and values are maximal length
@@ -288,8 +288,8 @@ bool splinetable<Alloc>::read_fits_core(fitsfile* fits, const std::string& fileP
 	//We won't read these things until later, but it's useful to allocate all
 	//arrays which don't depend on the orders or numbers of knots before the
 	//ones which do
-	min_sep = allocate<double>(ndim);
-	max_sep = allocate<double>(ndim);
+	rmin_sep = allocate<double>(ndim);
+	rmax_sep = allocate<double>(ndim);
 	knots = allocate<double_ptr>(ndim);
 	nknots = allocate<uint64_t>(ndim);
 	extents = allocate<double_ptr>(ndim);
@@ -393,8 +393,8 @@ bool splinetable<Alloc>::read_fits_core(fitsfile* fits, const std::string& fileP
 			if (sep < mini) mini = sep;
 			if (sep > maxi) maxi = sep;
 		}
-		min_sep[i] = mini;
-		max_sep[i] = maxi;
+		rmin_sep[i] = 1/mini;
+		rmax_sep[i] = 1/maxi;
 	}
 	
 	if(error!=0)

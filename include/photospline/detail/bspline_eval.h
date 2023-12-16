@@ -31,10 +31,11 @@ bool splinetable<Alloc>::searchcenters(const double* x, int* centers) const
 		uint32_t min = order[i];
 		uint32_t max = nknots[i]-2;
 		double diff = x[i] - knots[i][min];
-		if (diff/min_sep[i] + min < max) max = diff/min_sep[i] + min;
-		min += diff/max_sep[i];
+		double new_max = diff*rmin_sep[i] + min;
+		if (new_max < max) max = new_max;
+		min += diff*rmax_sep[i];
 
-		// std::cout << i << " " << min_sep[i] <<", " << max_sep[i] << std::endl;
+		// std::cout << i << " " << rmin_sep[i] <<", " << rmax_sep[i] << std::endl;
 		// std::cout << i << " " << min <<", " <<max << std::endl;
 		do {
 			centers[i] = (max+min)/2;
