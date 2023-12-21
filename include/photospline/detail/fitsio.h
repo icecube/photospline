@@ -382,19 +382,7 @@ bool splinetable<Alloc>::read_fits_core(fitsfile* fits, const std::string& fileP
 		}
 	}
 
-	for (uint32_t i = 0; i < ndim; i++) {
-		uint32_t min = order[i];
-		uint32_t max = nknots[i]-2;
-		double mini = DBL_MAX;
-		double maxi = 0;
-		for (uint32_t j = min; j < max; j++) {
-			double sep = knots[i][j+1] - knots[i][j];
-			if (sep < mini) mini = sep;
-			if (sep > maxi) maxi = sep;
-		}
-		rmin_sep[i] = 1/mini;
-		rmax_sep[i] = 1/maxi;
-	}
+	dknot_bounds();
 	
 	if(error!=0)
 		throw std::runtime_error("Error reading "+filePath+": Error "+std::to_string(error));
