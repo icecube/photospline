@@ -43,7 +43,7 @@ bool splinetable<Alloc>::searchcenters(const double* x, int* centers) const
 			else
 				min = centers[i]+1;
 		} while (x[i] < knots[i][centers[i]] ||
-						 x[i] >= knots[i][centers[i]+1]);
+				 x[i] >= knots[i][centers[i]+1]);
 		
 		/*
 		 * B-splines are defined on a half-open interval. For the
