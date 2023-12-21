@@ -2,7 +2,6 @@
 #define PHOTOSPLINE_FITSIO_H
 
 #include <string.h>
-#include <float.h>
 
 namespace photospline{
 	
