@@ -82,6 +82,8 @@ void splinetable<Alloc>::fit(const ::ndsparse& data,
 	nknots = allocate<uint64_t>(ndim);
 	for(uint32_t i=0; i<ndim; i++)
 		nknots[i]=knots[i].size();
+	rmin_sep = allocate<double>(ndim);
+	rmax_sep = allocate<double>(ndim);
 	extents = allocate<double_ptr>(ndim);
 	extents[0] = allocate<double>(2*ndim);
 	naxes = allocate<uint64_t>(ndim);
@@ -102,6 +104,7 @@ void splinetable<Alloc>::fit(const ::ndsparse& data,
 		std::copy(knots[i].begin(),knots[i].end(),this->knots[i]);
 		dummy_knots[i]=&this->knots[i][0];
 	}
+	dknot_bounds();
 	//same deal for the coordinates
 	std::unique_ptr<const double*[]> dummy_coords(new const double*[ndim]);
 	for(uint32_t i=0; i<ndim; i++)
@@ -113,7 +116,7 @@ void splinetable<Alloc>::fit(const ::ndsparse& data,
 		extents[i][0] = this->knots[i][order[i]];
 		extents[i][1] = this->knots[i][nknots[i] - order[i] - 1];
 	}
-	
+
 	cholmod_common cholmod_state;
 	cholmod_l_start(&cholmod_state);
 	//build penalty matrix
