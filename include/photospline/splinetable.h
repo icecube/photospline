@@ -187,6 +187,12 @@ public:
         snew->nknots = snew->allocate<uint64_t>(s2->ndim);
         std::copy_n(s2->nknots,s2->ndim,snew->nknots);
 
+        snew->rmin_sep = snew->allocate<double>(s2->ndim);
+        std::copy_n(s2->rmin_sep,s2->ndim,snew->rmin_sep);
+
+        snew->rmax_sep = snew->allocate<double>(s2->ndim);
+        std::copy_n(s2->rmax_sep,s2->ndim,snew->rmax_sep);
+
         snew->knots = snew->allocate<double_ptr>(s2->ndim);
         for(unsigned int i=0; i<s2->ndim; i++){
           snew->knots[i] = snew->allocate<double>(s2->nknots[i]+2*s2->order[i]) + s2->order[i];
@@ -211,8 +217,6 @@ public:
         }
 
         snew->periods = NULL;
-        snew->rmin_sep = NULL;
-        snew->rmax_sep = NULL;
         snew->naux = 0;
         snew->aux = NULL;
 
@@ -273,6 +277,8 @@ public:
       lastKnots[nknots[inputDim]-1]=2*lastKnots[nknots[inputDim]-2]-lastKnots[nknots[inputDim]-3];
     }
 
+    rmin_sep=allocate<double>(ndim);
+    rmax_sep=allocate<double>(ndim);
 		dknot_bounds();
 
     //set naxes
