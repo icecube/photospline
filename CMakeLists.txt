@@ -394,6 +394,14 @@ if(BUILD_SPGLAM)
      WORKING_DIRECTORY ${CMAKE_BUILD_DIR}
     )
     LIST (APPEND ALL_TESTS photospline-test-pyfit)
+    if(BUILD_SPGLAM)
+      ADD_TEST(NAME photospline-test-nnls
+        COMMAND ${PYTHON_EXECUTABLE} ${PROJECT_SOURCE_DIR}/test/test_nnls.py
+        WORKING_DIRECTORY ${CMAKE_BUILD_DIR}
+      )
+      set_property(TEST photospline-test-nnls PROPERTY ENVIRONMENT PYTHONPATH=${PROJECT_BINARY_DIR})
+      LIST (APPEND ALL_TESTS photospline-test-nnls)
+    endif()
   endif()
 endif()
 
