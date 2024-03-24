@@ -1098,6 +1098,9 @@ pysplinetable_deriv(pysplinetable* self, PyObject* args, PyObject* kwds){
 static PyObject*
 pyphotospline_glam_fit(PyObject* self, PyObject* args, PyObject* kwds);
 
+static PyObject*
+pyphotospline_nnls(PyObject* self, PyObject* args, PyObject* kwds);
+
 #ifdef HAVE_NUMPY
 static PyObject*
 pysplinetable_grideval(pysplinetable* self, PyObject* args, PyObject* kwds);
@@ -1313,6 +1316,19 @@ static PyMethodDef photospline_methods[] = {
 	":param monodim: if specified, the fit function will be monotonic (strictly non-decreasing) along the given axis\n"
 	":param verbose: if True, will print status information to standard output while running\n"
 	":returns: a spline table object\n"},
+	{"nnls", (PyCFunction)pyphotospline_nnls, METH_VARARGS | METH_KEYWORDS,
+	 "Solve argmin_x || Ax - b ||_2 for x>=0, where A is a sparse matrix\n\n"
+	 ":param A: model matrix\n"
+	 ":param b: right-hand side vector\n"
+	 ":param tolerance: terminate once the largest element of the gradient is smaller than the tolerance\n"
+	 ":param min_iterations: minimum number of iterations (least-squares solutions in a constrained subspace) before terminating\n"
+	 ":param max_iterations: minimum number of iterations (least-squares solutions in a constrained subspace) before terminating\n"
+	 ":param npos: maximum number of positive coefficients to return\n"
+	 ":param normaleq: if True, the inputs are the normal equations At*A and At*b instead of A and b\n"
+     ":param verbose: print debugging info\n"
+	 ":returns: x, the solution vector\n\n"
+	 "This is a wrapper around a sparse implementation of Algorithm NNLS from \"Solving Least Squares Problems\", Charles Lawson and Richard Hanson. Prentice-Hall, 1974.\n"
+	 },
 #endif
 	{"bspline", (PyCFunction)pyphotospline_bspline, METH_VARARGS | METH_KEYWORDS,
 	 "Evaluate the `i`th B-spline on knot vector `knots` at `x`\n\n"
@@ -1767,6 +1783,139 @@ pysplinetable_grideval(pysplinetable* self, PyObject* args, PyObject* kwds){
 	return ((PyObject *)numpy_ndsparse_to_ndarray(nd.get()));
 }
 #endif
+
+namespace {
+namespace detail {
+
+// A simple self-destructing wrapper around PyObject*
+struct ref {
+	static inline void decref(PyObject *x) { Py_DECREF(x); };
+	std::unique_ptr<PyObject, decltype(&decref)> px;
+	ref(PyObject *ptr) : px(ptr, &decref) {};
+	operator bool() { return bool(px); };
+	operator PyObject*() { return px.get(); };
+	PyObject* ptr() { return px.get(); }
+};
+
+}
+}
+
+static PyObject*
+pyphotospline_nnls(PyObject* self, PyObject* args, PyObject* kwds){
+	static const char* kwlist[] = {"A", "b", "tolerance", "min_iterations", "max_iterations", "npos", "normaleq", "verbose", NULL};
+
+	PyObject* py_A=NULL;
+	PyObject* py_b=NULL;
+	const char *method;
+	double tolerance=0;
+	int min_iterations=0;
+	int max_iterations=INT_MAX;
+	unsigned npos=0;
+	bool normaleq=false;
+	bool verbose=false;
+
+	if (!PyArg_ParseTupleAndKeywords(args, kwds, "OO|diiIpp", (char**)kwlist,
+									 &py_A, &py_b, &tolerance,
+									 &min_iterations, &max_iterations, &npos, &normaleq, &verbose))
+		return(NULL);
+
+	cholmod_common cholmod_state;
+	cholmod_l_start(&cholmod_state);
+
+	// create a cholmod_sparse view into csc matrix A
+	cholmod_sparse sparse_A;
+	{
+		detail::ref sparse(PyImport_ImportModule("scipy.sparse"));
+		if (!sparse) {
+			return(NULL);
+		}
+		detail::ref isspmatrix_csc(PyObject_GetAttrString(sparse, "isspmatrix_csc"));
+		if (!isspmatrix_csc) {
+			return(NULL);
+		}
+		if (PyObject_CallFunctionObjArgs(isspmatrix_csc, py_A, NULL) != Py_True) {
+			detail::ref type(PyObject_Type(py_A));
+			detail::ref name(PyObject_GetAttrString(type, "__name__"));
+			PyErr_Format(PyExc_TypeError, "Expected scipy.sparse.csc_matrix, got %S", name.ptr());
+			return(NULL);
+		}
+	}
+	detail::ref data(
+		PyArray_FromAny(
+			detail::ref(PyObject_GetAttrString(py_A, "data")),
+			PyArray_DescrFromType(NPY_DOUBLE), 1, 1, NPY_ARRAY_C_CONTIGUOUS, NULL
+		));
+	if (!data) {
+		return(NULL);
+	}
+	detail::ref indices(
+		PyArray_FromAny(
+			detail::ref(PyObject_GetAttrString(py_A, "indices")),
+			PyArray_DescrFromType(NPY_LONGLONG), 1, 1, NPY_ARRAY_C_CONTIGUOUS, NULL
+		));
+	if (!indices) {
+		return(NULL);
+	}
+	detail::ref indptr(
+		PyArray_FromAny(
+			detail::ref(PyObject_GetAttrString(py_A, "indptr")),
+			PyArray_DescrFromType(NPY_LONGLONG), 1, 1, NPY_ARRAY_C_CONTIGUOUS, NULL
+		));
+	if (!indptr) {
+		return(NULL);
+	}
+
+	sparse_A.itype = cholmod_state.itype;
+	sparse_A.xtype = CHOLMOD_REAL;
+	sparse_A.dtype = CHOLMOD_DOUBLE;
+	sparse_A.stype = 0; // unsymmetric; all nonzero entries stored
+	sparse_A.nz = NULL; // packed storage
+	sparse_A.z = NULL; // real matrix
+	sparse_A.sorted = true;
+	sparse_A.packed = true;
+	{
+		detail::ref shape = PyObject_GetAttrString(py_A, "shape");
+		sparse_A.nrow = PyLong_AsLong(PyTuple_GetItem(shape, 0));
+		sparse_A.ncol = PyLong_AsLong(PyTuple_GetItem(shape, 1));
+	}
+	{
+		detail::ref nnz(PyObject_GetAttrString(py_A, "nnz"));
+		sparse_A.nzmax = PyLong_AsLong(nnz);
+	}
+	sparse_A.p = ExtractPyArrayDataPtr(indptr.ptr());
+	sparse_A.i = ExtractPyArrayDataPtr(indices.ptr());
+	sparse_A.x = ExtractPyArrayDataPtr(data.ptr());
+
+	// cholmod_dense view into dense matrix b
+	detail::ref array_b(PyArray_FromAny(py_b, PyArray_DescrFromType(NPY_DOUBLE), 1, 1, NPY_ARRAY_C_CONTIGUOUS, NULL));
+	cholmod_dense dense_b;
+	dense_b.xtype = CHOLMOD_REAL;
+	dense_b.dtype = CHOLMOD_DOUBLE;
+	dense_b.nzmax = PyArray_SIZE((PyArrayObject*)array_b.ptr());
+	dense_b.nrow = dense_b.nzmax;
+	dense_b.ncol = 1;
+	dense_b.d = dense_b.nrow;
+	dense_b.x = ExtractPyArrayDataPtr(array_b.ptr());
+	dense_b.z = NULL;
+
+	cholmod_dense *dense_x = nnls_lawson_hanson(&sparse_A, &dense_b,
+		tolerance,/* double tolerance */
+		min_iterations, /* unsigned min_iterations */
+		max_iterations, /* unsigned max_iterations */
+		npos, /* unsigned npos */
+		normaleq, /* int normaleq */
+		verbose, /* verbose */
+		&cholmod_state
+	);
+	npy_intp dims = dense_x->nrow;
+	PyObject *x = PyArray_SimpleNew(1, &dims, NPY_DOUBLE);
+	std::copy((double*)(dense_x->x), (double*)(dense_x->x)+dense_x->nrow, (double*)ExtractPyArrayDataPtr(x));
+
+	cholmod_l_free_dense(&dense_x, &cholmod_state);
+	cholmod_l_finish(&cholmod_state);
+
+	return x;
+}
 
 #endif //PHOTOSPLINE_INCLUDES_SPGLAM
 
