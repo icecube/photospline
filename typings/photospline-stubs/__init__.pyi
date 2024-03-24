@@ -1,6 +1,7 @@
-from typing import Sequence, Union, Any, overload
+from typing import Annotated, Sequence, Union, Any, overload
 from os import PathLike
 import numpy as np
+from scipy import sparse
 import numpy.typing as npt
 
 class SplineTable:
@@ -79,3 +80,14 @@ def glam_fit(
     monodim: None | int = None,
     verbose: int = 1,
 ) -> SplineTable: ...
+
+def nnls(
+    A: sparse.csc_matrix,
+    b: npt.NDArray[np.float64],
+    tolerance: float=0.,
+    min_iterations: int=0,
+    max_iterations: int=np.iinfo(np.int32).max,
+    npos: int=0,
+    normaleq: bool=False,
+    verbose: bool=False,
+) -> npt.NDArray[np.float64]: ...

@@ -1,7 +1,7 @@
 cmake_minimum_required (VERSION 3.1.0 FATAL_ERROR)
 cmake_policy(VERSION 3.1.0)
 
-project (photospline VERSION 2.2.1 LANGUAGES C CXX)
+project (photospline VERSION 2.3.0 LANGUAGES C CXX)
 
 SET(CMAKE_CXX_STANDARD 11)
 SET(CMAKE_C_STANDARD 99)
@@ -394,6 +394,14 @@ if(BUILD_SPGLAM)
      WORKING_DIRECTORY ${CMAKE_BUILD_DIR}
     )
     LIST (APPEND ALL_TESTS photospline-test-pyfit)
+    if(BUILD_SPGLAM)
+      ADD_TEST(NAME photospline-test-nnls
+        COMMAND ${PYTHON_EXECUTABLE} ${PROJECT_SOURCE_DIR}/test/test_nnls.py
+        WORKING_DIRECTORY ${CMAKE_BUILD_DIR}
+      )
+      set_property(TEST photospline-test-nnls PROPERTY ENVIRONMENT PYTHONPATH=${PROJECT_BINARY_DIR})
+      LIST (APPEND ALL_TESTS photospline-test-nnls)
+    endif()
   endif()
 endif()
 
