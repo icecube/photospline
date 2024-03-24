@@ -6,7 +6,7 @@ import photospline
 class TestNNLS(unittest.TestCase):
     def setUp(self):
         try:
-            from scipy import sparse
+            from scipy import sparse  # type: ignore[import]
         except ImportError:
             raise unittest.SkipTest("test requires scipy")
 
@@ -18,7 +18,7 @@ class TestNNLS(unittest.TestCase):
         self.assertEqual(len(self.Asp.data), 3)
 
     def testImplementationMatchesScipy(self):
-        from scipy import optimize
+        from scipy import optimize  # type: ignore[import]
 
         np.testing.assert_allclose(
             photospline.nnls(self.Asp, self.b),
