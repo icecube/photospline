@@ -144,6 +144,9 @@ void splinetable<Alloc>::convolve(const uint32_t dim, const double* conv_knots, 
 		double* src = (i!=dim ? knots_store[i].get() : rho);
 		std::copy(src,src+nknots[i],&knots[i][0]);
 	}
+
+	// Update knot separations
+	dknot_bounds();
 	
 	/*
 	 * NB: A monotonic function remains monotonic after convolution

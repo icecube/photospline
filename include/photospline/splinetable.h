@@ -9,6 +9,7 @@
 #include <sstream>
 #include <vector>
 #include <cstdlib>
+#include <cfloat>
 
 #include "photospline/bspline.h"
 #include "photospline/detail/simd.h"
@@ -138,14 +139,16 @@ public:
 	///Construct an empty splinetable.
 	///The resulting object is useful only for calling read_fits, read_fits_mem, or fit.
 	explicit splinetable(allocator_type alloc=Alloc()):
-	ndim(0),order(NULL),knots(NULL),nknots(NULL),extents(NULL),periods(NULL),
+	ndim(0),order(NULL),knots(NULL),nknots(NULL),rmin_sep(NULL),rmax_sep(NULL),
+	extents(NULL),periods(NULL),
 	coefficients(NULL),naxes(NULL),strides(NULL),naux(0),aux(NULL),allocator(alloc)
 	{}
 	
 	///Construct a splinetable from serialized data previously stored in a FITS file.
 	///\param filePath the path to the input file
 	explicit splinetable(const std::string& filePath, allocator_type alloc=Alloc()):
-	ndim(0),order(NULL),knots(NULL),nknots(NULL),extents(NULL),periods(NULL),
+	ndim(0),order(NULL),knots(NULL),nknots(NULL),rmin_sep(NULL),rmax_sep(NULL),
+	extents(NULL),periods(NULL),
 	coefficients(NULL),naxes(NULL),strides(NULL),naux(0),aux(NULL),allocator(alloc)
 	{
 		read_fits(filePath);
@@ -156,7 +159,8 @@ public:
 	///\param coordinates the coordiantes in the stacking dimension of the tables to be stacked
 	///\param stackOrder the order of the spline in the stacking dimension
 	explicit splinetable(std::vector<splinetable<Alloc>*> tables, std::vector<double> coordinates, int stackOrder=2, allocator_type alloc=Alloc()):
-	ndim(0),order(NULL),knots(NULL),nknots(NULL),extents(NULL),periods(NULL),
+	ndim(0),order(NULL),knots(NULL),nknots(NULL),rmin_sep(NULL),rmax_sep(NULL),
+	extents(NULL),periods(NULL),
 	coefficients(NULL),naxes(NULL),strides(NULL),naux(0),aux(NULL),allocator(alloc)
 	{
     assert(!tables.empty());
@@ -182,6 +186,12 @@ public:
 
         snew->nknots = snew->allocate<uint64_t>(s2->ndim);
         std::copy_n(s2->nknots,s2->ndim,snew->nknots);
+
+        snew->rmin_sep = snew->allocate<double>(s2->ndim);
+        std::copy_n(s2->rmin_sep,s2->ndim,snew->rmin_sep);
+
+        snew->rmax_sep = snew->allocate<double>(s2->ndim);
+        std::copy_n(s2->rmax_sep,s2->ndim,snew->rmax_sep);
 
         snew->knots = snew->allocate<double_ptr>(s2->ndim);
         for(unsigned int i=0; i<s2->ndim; i++){
@@ -267,6 +277,10 @@ public:
       lastKnots[nknots[inputDim]-1]=2*lastKnots[nknots[inputDim]-2]-lastKnots[nknots[inputDim]-3];
     }
 
+    rmin_sep=allocate<double>(ndim);
+    rmax_sep=allocate<double>(ndim);
+		dknot_bounds();
+
     //set naxes
     naxes=allocate<uint64_t>(ndim);
     for(unsigned int i=0; i<inputDim; i++)
@@ -299,7 +313,8 @@ public:
 	nknots(other.nknots),extents(std::move(other.extents)),
 	periods(std::move(other.periods)),coefficients(std::move(other.coefficients)),
 	naxes(std::move(other.naxes)),strides(std::move(other.strides)),
-	naux(other.naux),aux(std::move(other.aux)),
+	naux(other.naux),aux(std::move(other.aux)),rmin_sep(std::move(other.rmin_sep)),
+	rmax_sep(std::move(other.rmax_sep)),
 	allocator(std::move(other.allocator))
 	{
 		other.ndim=0;
@@ -308,6 +323,8 @@ public:
 		other.nknots=NULL;
 		other.extents=NULL;
 		other.periods=NULL;
+		other.rmin_sep=NULL;
+		other.rmax_sep=NULL;
 		other.coefficients=NULL;
 		other.naxes=NULL;
 		other.strides=NULL;
@@ -330,6 +347,10 @@ public:
 			}
 			if(periods)
 				deallocate(periods,ndim);
+			if(rmax_sep)
+				deallocate(rmax_sep,ndim);
+			if(rmin_sep)
+				deallocate(rmin_sep,ndim);
 			deallocate(coefficients,ncoeffs);
 			deallocate(naxes,ndim);
 			deallocate(strides,ndim);
@@ -352,6 +373,8 @@ public:
 		swap(nknots,other.nknots);
 		swap(extents,other.extents);
 		swap(periods,other.periods);
+		swap(rmin_sep,other.rmin_sep);
+		swap(rmax_sep,other.rmax_sep);
 		swap(coefficients,other.coefficients);
 		swap(naxes,other.naxes);
 		swap(strides,other.strides);
@@ -765,6 +788,8 @@ private:
 	
 	double_ptr_ptr knots;
 	uint64_t_ptr nknots;
+	double_ptr rmin_sep;
+	double_ptr rmax_sep;
 	
 	double_ptr_ptr extents;
 	
@@ -830,6 +855,22 @@ private:
 	
 	///Write to a file
 	void write_fits_core(fitsfile*) const;
+
+	void dknot_bounds() {
+		for (uint32_t i = 0; i < ndim; i++) {
+			uint32_t min = order[i];
+			uint32_t max = nknots[i]-2;
+			double mini = DBL_MAX;
+			double maxi = 0;
+			for (uint32_t j = min; j < max; j++) {
+				double sep = knots[i][j+1] - knots[i][j];
+				if (sep < mini) mini = sep;
+				if (sep > maxi) maxi = sep;
+			}
+			rmin_sep[i] = 1/mini;
+			rmax_sep[i] = 1/maxi;
+		}
+	}
 };
 	
 } //namespace photospline
