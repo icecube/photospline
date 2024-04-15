@@ -382,7 +382,7 @@ bool splinetable<Alloc>::read_fits_core(fitsfile* fits, const std::string& fileP
 		}
 	}
 
-	dknot_bounds();
+	fill_knot_spacing_bounds();
 	
 	if(error!=0)
 		throw std::runtime_error("Error reading "+filePath+": Error "+std::to_string(error));
