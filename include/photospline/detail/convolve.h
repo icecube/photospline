@@ -146,7 +146,7 @@ void splinetable<Alloc>::convolve(const uint32_t dim, const double* conv_knots, 
 	}
 
 	// Update knot separations
-	dknot_bounds();
+	fill_knot_spacing_bounds();
 	
 	/*
 	 * NB: A monotonic function remains monotonic after convolution

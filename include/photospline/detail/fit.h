@@ -104,7 +104,7 @@ void splinetable<Alloc>::fit(const ::ndsparse& data,
 		std::copy(knots[i].begin(),knots[i].end(),this->knots[i]);
 		dummy_knots[i]=&this->knots[i][0];
 	}
-	dknot_bounds();
+	fill_knot_spacing_bounds();
 	//same deal for the coordinates
 	std::unique_ptr<const double*[]> dummy_coords(new const double*[ndim]);
 	for(uint32_t i=0; i<ndim; i++)

@@ -84,7 +84,7 @@ void splinetable<Alloc>::permuteDimensions(const std::vector<size_t>& permutatio
 	std::copy(t_coefficients.get(),t_coefficients.get()+ncoeffs,coefficients);
 
 	// Update knot separations
-	dknot_bounds();
+	fill_knot_spacing_bounds();
 }
 	
 } //namespace photospline

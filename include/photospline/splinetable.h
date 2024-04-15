@@ -277,15 +277,15 @@ public:
       lastKnots[nknots[inputDim]-1]=2*lastKnots[nknots[inputDim]-2]-lastKnots[nknots[inputDim]-3];
     }
 
-    rmin_sep=allocate<double>(ndim);
-    rmax_sep=allocate<double>(ndim);
-		dknot_bounds();
-
     //set naxes
     naxes=allocate<uint64_t>(ndim);
     for(unsigned int i=0; i<inputDim; i++)
       naxes[i] = tables.front()->get_ncoeffs(i);
     naxes[inputDim]=tables.size();
+
+    rmin_sep=allocate<double>(ndim);
+    rmax_sep=allocate<double>(ndim);
+    fill_knot_spacing_bounds();
 
     //copy coefficients
     unsigned long nCoeffs=std::accumulate(naxes, naxes+ndim, 1UL, std::multiplies<uint64_t>());
@@ -856,10 +856,10 @@ private:
 	///Write to a file
 	void write_fits_core(fitsfile*) const;
 
-	void dknot_bounds() {
+	void fill_knot_spacing_bounds() {
 		for (uint32_t i = 0; i < ndim; i++) {
 			uint32_t min = order[i];
-			uint32_t max = nknots[i]-2;
+			uint32_t max = naxes[i];
 			double mini = DBL_MAX;
 			double maxi = 0;
 			for (uint32_t j = min; j < max; j++) {
