@@ -45,8 +45,8 @@ jobs:
       fail-fast: false
       matrix:
         python-version:
-          - 3.8
           - 3.9
+          - 3.12
     steps:
       - uses: actions/checkout@v2
       - name: Set up Python ${{ matrix.python-version }}
@@ -55,7 +55,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - run: pip install numpy scipy
       - run: brew install suite-sparse cfitsio gsl
-      - run: cmake -DPython_EXECUTABLE=$(which python) . && make && make install
+      - run: cmake -DPython_EXECUTABLE=$(which python) -DCMAKE_INSTALL_PREFIX=install . && make install
       - run: python -c "import photospline"
       - run: ctest --output-on-failure
   architecture-zoo:

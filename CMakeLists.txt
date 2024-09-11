@@ -1,7 +1,7 @@
 cmake_minimum_required (VERSION 3.1.0 FATAL_ERROR)
 cmake_policy(VERSION 3.1.0)
 
-project (photospline VERSION 2.3.1 LANGUAGES C CXX)
+project (photospline VERSION 2.4.0 LANGUAGES C CXX)
 
 SET(CMAKE_CXX_STANDARD 11)
 SET(CMAKE_C_STANDARD 99)
@@ -374,6 +374,9 @@ if(PYTHON_FOUND AND NUMPY_FOUND)
   ADD_TEST(photospline-test-pyeval ${PYTHON_EXECUTABLE} ${PROJECT_SOURCE_DIR}/test/test_eval.py)
   set_property(TEST photospline-test-pyeval PROPERTY ENVIRONMENT PYTHONPATH=${PROJECT_BINARY_DIR})
   LIST (APPEND ALL_TESTS photospline-test-pyeval)
+  ADD_TEST(photospline-test-pickle ${PYTHON_EXECUTABLE} ${PROJECT_SOURCE_DIR}/test/test_pickle.py)
+  set_property(TEST photospline-test-pickle PROPERTY ENVIRONMENT PYTHONPATH=${PROJECT_BINARY_DIR})
+  LIST (APPEND ALL_TESTS photospline-test-pickle)
 endif()
 
 if(BUILD_SPGLAM)
