@@ -319,20 +319,29 @@ static inline handle new_reference(PyObject *ptr)
 }
 
 static PyObject*
+pysplinetable_init_empty(pysplinetable *self){
+	try{
+		self->table=new photospline::splinetable<>();
+	}catch(std::exception& ex){
+		PyErr_SetString(PyExc_Exception,
+						(std::string("Unable to allocate spline table: ")+ex.what()).c_str());
+		return(NULL);
+	}catch(...){
+		PyErr_SetString(PyExc_Exception, "Unable to allocate spline table");
+		return(NULL);
+	}
+
+	return (PyObject*)self;
+}
+
+static PyObject*
 pysplinetable_new(PyTypeObject* type, PyObject* args, PyObject* kwds){
 	pysplinetable* self;
 
 	self = (pysplinetable*)type->tp_alloc(type, 0);
 	if(self){
-		try{
-			self->table=new photospline::splinetable<>();
-		}catch(std::exception& ex){
-			PyErr_SetString(PyExc_Exception,
-			                (std::string("Unable to allocate spline table: ")+ex.what()).c_str());
-			return(NULL);
-		}catch(...){
-			PyErr_SetString(PyExc_Exception, "Unable to allocate spline table");
-			return(NULL);
+		if (pysplinetable_init_empty(self) == NULL){
+			return NULL;
 		}
 	}
 
@@ -1217,6 +1226,35 @@ pyphotospline_bspline(pysplinetable* self, PyObject* args, PyObject* kwds){
 	return PyFloat_FromDouble(photospline::bspline(knots, x, i, order));
 }
 
+static PyObject*
+pysplinetable_getstate(pysplinetable* self, PyObject *Py_UNUSED(ignored)){
+	auto buffer=self->table->write_fits_mem();
+	std::unique_ptr<void,void(*)(void*)> data(buffer.first,&free);
+	return PyBytes_FromStringAndSize((char*)buffer.first, buffer.second);
+}
+
+static PyObject*
+pysplinetable_setstate(pysplinetable* self, PyObject* state){
+    if (!PyBytes_CheckExact(state)) {
+        PyErr_SetString(PyExc_ValueError, "Pickled object is not bytes.");
+        return NULL;
+    }
+	char *buffer = PyBytes_AsString(state);
+	if (!buffer) {
+		return NULL;
+	}
+	if (!pysplinetable_init_empty(self)) {
+		return NULL;
+	}
+	try{
+		self->table->read_fits_mem(buffer, PyBytes_Size(state));
+	}catch(std::exception& ex){
+		PyErr_SetString(PyExc_Exception,ex.what());
+		return(NULL);
+	}
+
+	Py_RETURN_NONE;
+}
 
 static PyGetSetDef pysplinetable_properties[] = {
 	{(char*)"order", (getter)pysplinetable_getorder, NULL, (char*)"Order of spline in each dimension", NULL},
@@ -1258,12 +1296,14 @@ static PyMethodDef pysplinetable_methods[] = {
 	 ":returns: an array of spline evaluates with size `len(coord[dim])` in each dimension"},
 #endif
 #endif
+	{"__getstate__", (PyCFunction)pysplinetable_getstate, METH_NOARGS, "Pickle the spline"},
+	{"__setstate__", (PyCFunction)pysplinetable_setstate, METH_O, "Unpickle the spline"},
 	{NULL}  /* Sentinel */
 };
 
 static PyTypeObject pysplinetableType = {
 	PyVarObject_HEAD_INIT(NULL, 0)
-	"pyphotospline.Splinetable", /*tp_name*/
+	"photospline.SplineTable", /*tp_name*/
 	sizeof(pysplinetable),     /*tp_basicsize*/
 	0,                         /*tp_itemsize*/
 	(destructor)pysplinetable_dealloc, /*tp_dealloc*/
