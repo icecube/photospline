@@ -55,7 +55,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - run: pip install numpy scipy
       - run: brew install suite-sparse cfitsio gsl
-      - run: cmake -DPython_EXECUTABLE=$(which python) . && make && make install
+      - run: cmake -DPython_EXECUTABLE=$(which python) . && make
       - run: python -c "import photospline"
       - run: ctest --output-on-failure
   architecture-zoo:
