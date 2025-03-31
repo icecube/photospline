@@ -70,7 +70,7 @@ jobs:
             distro: ubuntu20.04
     steps:
       - uses: actions/checkout@v2
-      - uses: uraimo/run-on-arch-action@v2.0.5
+      - uses: uraimo/run-on-arch-action@v2.8.1
         with:
           arch: ${{ matrix.arch }}
           distro: ${{ matrix.distro }}
