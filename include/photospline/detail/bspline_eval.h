@@ -33,7 +33,7 @@ bool splinetable<Alloc>::searchcenters(const double* x, int* centers) const
 		double diff = x[i] - knots[i][min];
 		uint32_t hi = diff*rmin_sep[i];
 		uint32_t lo = diff*rmax_sep[i];
-		if (hi+min+1 < max) max = hi+min+1;
+		if (hi < hi+min+1 && hi+min+1 < max) max = hi+min+1;
 		min += lo;
 		do {
 			centers[i] = (max+min)/2;
