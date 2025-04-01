@@ -1,13 +1,16 @@
 
 on:
   push:
+    branches:
+      - master
+      - renovate/*
   pull_request:
     branches:
       - master
 
 jobs:
   mypy:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
     - uses: actions/checkout@v2
     - name: Set up Python ${{ matrix.python-version }}
@@ -20,7 +23,7 @@ jobs:
     - run: cmake -DPython_EXECUTABLE=$(which python) -DCMAKE_INSTALL_PREFIX=$(dirname $(dirname $(which pip))) && make pyphotospline && sudo make install
     - run: mypy test/*.py
   linux:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     needs: mypy
     strategy:
       fail-fast: false
@@ -39,7 +42,7 @@ jobs:
       - run: python -c "import photospline"
       - run: ctest --output-on-failure
   macos:
-    runs-on: macos-latest
+    runs-on: macos-14
     needs: linux
     strategy:
       fail-fast: false
@@ -59,7 +62,7 @@ jobs:
       - run: python -c "import photospline"
       - run: ctest --output-on-failure
   architecture-zoo:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     needs: linux
     strategy:
       matrix:
@@ -70,7 +73,7 @@ jobs:
             distro: ubuntu20.04
     steps:
       - uses: actions/checkout@v2
-      - uses: uraimo/run-on-arch-action@v2.0.5
+      - uses: uraimo/run-on-arch-action@v3
         with:
           arch: ${{ matrix.arch }}
           distro: ${{ matrix.distro }}
