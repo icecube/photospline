@@ -11,35 +11,59 @@
   "lockFileMaintenance": {
     "enabled": false
   },
-  "masterIssue": true,
+  "dependencyDashboard": true,
   "rangeStrategy": "update-lockfile",
   "useBaseBranchConfig": "merge",
-  "addLabels": ["dependencies"],
+  "addLabels": [
+    "dependencies"
+  ],
   "packageRules": [
     {
-      "matchUpdateTypes": ["major"],
+      "matchUpdateTypes": [
+        "major"
+      ],
       "automerge": false,
       "semanticCommitType": "fix"
     },
     {
-      "matchDepTypes": ["dev-dependencies"],
-      "matchUpdateTypes": ["major", "minor", "patch", "pin", "digest"],
+      "matchDepTypes": [
+        "dev-dependencies"
+      ],
+      "matchUpdateTypes": [
+        "major",
+        "minor",
+        "patch",
+        "pin",
+        "digest"
+      ],
       "groupName": "dev dependencies",
       "semanticCommitType": "chore"
     },
     {
-      "matchManagers": ["github-actions"],
+      "matchManagers": [
+        "github-actions"
+      ],
       "groupName": "actions",
       "rangeStrategy": "auto",
       "semanticCommitType": "chore"
     },
     {
-      "matchUpdateTypes": ["minor", "patch", "pin", "digest"],
+      "matchUpdateTypes": [
+        "minor",
+        "patch",
+        "pin",
+        "digest"
+      ],
       "groupName": "minor updates"
     },
     {
-      "matchUpdateTypes": ["minor"],
-      "matchPackageNames": ["python", "conda-forge/python"],
+      "matchUpdateTypes": [
+        "minor"
+      ],
+      "matchPackageNames": [
+        "python",
+        "conda-forge/python"
+      ],
       "groupName": "python",
       "semanticCommitType": "fix"
     }
