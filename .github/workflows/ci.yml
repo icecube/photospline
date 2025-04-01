@@ -1,17 +1,20 @@
 
 on:
   push:
+    branches:
+      - master
+      - renovate/*
   pull_request:
     branches:
       - master
 
 jobs:
   mypy:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@8d9ed9ac5c53483de85588cdf95a591a75ab9f55 # v5
       with:
         python-version: "3.11"
     - run: pip install numpy mypy
@@ -20,7 +23,7 @@ jobs:
     - run: cmake -DPython_EXECUTABLE=$(which python) -DCMAKE_INSTALL_PREFIX=$(dirname $(dirname $(which pip))) && make pyphotospline && sudo make install
     - run: mypy test/*.py
   linux:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: mypy
     strategy:
       fail-fast: false
@@ -28,9 +31,9 @@ jobs:
         python-version:
           - 3.8
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@8d9ed9ac5c53483de85588cdf95a591a75ab9f55 # v5
         with:
           python-version: ${{ matrix.python-version }}
       - run: pip install numpy scipy
@@ -39,7 +42,7 @@ jobs:
       - run: python -c "import photospline"
       - run: ctest --output-on-failure
   macos:
-    runs-on: macos-latest
+    runs-on: macos-14
     needs: linux
     strategy:
       fail-fast: false
@@ -48,9 +51,9 @@ jobs:
           - 3.9
           - 3.12
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@8d9ed9ac5c53483de85588cdf95a591a75ab9f55 # v5
         with:
           python-version: ${{ matrix.python-version }}
       - run: pip install numpy scipy
@@ -59,7 +62,7 @@ jobs:
       - run: python -c "import photospline"
       - run: ctest --output-on-failure
   architecture-zoo:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: linux
     strategy:
       matrix:
@@ -69,8 +72,8 @@ jobs:
           - arch: ppc64le
             distro: ubuntu20.04
     steps:
-      - uses: actions/checkout@v2
-      - uses: uraimo/run-on-arch-action@v2.0.5
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+      - uses: uraimo/run-on-arch-action@v3
         with:
           arch: ${{ matrix.arch }}
           distro: ${{ matrix.distro }}

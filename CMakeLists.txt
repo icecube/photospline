@@ -1,5 +1,12 @@
-cmake_minimum_required (VERSION 3.1.0 FATAL_ERROR)
-cmake_policy(VERSION 3.1.0)
+if (${CMAKE_VERSION} VERSION_LESS 4.0)
+  cmake_minimum_required (VERSION 3.1.0 FATAL_ERROR)
+  cmake_policy(VERSION 3.1.0)
+else()
+  # CMake 4.0 does not allow compatibility with CMake < 3.5
+  cmake_minimum_required (VERSION 4.0 FATAL_ERROR)
+  cmake_policy(VERSION 4.0)
+endif()
+
 
 project (photospline VERSION 2.4.0 LANGUAGES C CXX)
 
