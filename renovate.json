@@ -1,6 +1,47 @@
 {
-  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
-    "config:recommended"
+    "config:recommended",
+    ":semanticCommits",
+    ":semanticCommitTypeAll(chore)",
+    "helpers:pinGitHubActionDigests"
+  ],
+  "schedule": "every 4th week on Thursday before 10am",
+  "automerge": true,
+  "automergeType": "branch",
+  "lockFileMaintenance": {
+    "enabled": false
+  },
+  "masterIssue": true,
+  "rangeStrategy": "update-lockfile",
+  "useBaseBranchConfig": "merge",
+  "addLabels": ["dependencies"],
+  "packageRules": [
+    {
+      "matchUpdateTypes": ["major"],
+      "automerge": false,
+      "semanticCommitType": "fix"
+    },
+    {
+      "matchDepTypes": ["dev-dependencies"],
+      "matchUpdateTypes": ["major", "minor", "patch", "pin", "digest"],
+      "groupName": "dev dependencies",
+      "semanticCommitType": "chore"
+    },
+    {
+      "matchManagers": ["github-actions"],
+      "groupName": "actions",
+      "rangeStrategy": "auto",
+      "semanticCommitType": "chore"
+    },
+    {
+      "matchUpdateTypes": ["minor", "patch", "pin", "digest"],
+      "groupName": "minor updates"
+    },
+    {
+      "matchUpdateTypes": ["minor"],
+      "matchPackageNames": ["python", "conda-forge/python"],
+      "groupName": "python",
+      "semanticCommitType": "fix"
+    }
   ]
 }
