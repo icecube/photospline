@@ -2,11 +2,11 @@
 #ifndef PHOTOSPLINE_CFITTER_SPLINEUTIL_H
 #define PHOTOSPLINE_CFITTER_SPLINEUTIL_H
 
+#include <cholmod.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-#include <cholmod.h>
 
 struct ndsparse {
 	/*
