@@ -59,17 +59,17 @@ target_include_directories (photospline
     ${CFITSIO_INCLUDE_DIR}
 )
 target_compile_features (photospline
-  PUBLIC
+  PRIVATE
     cxx_constexpr
 )
-target_compile_options (photospline PUBLIC -O3)
+target_compile_options (photospline PRIVATE -O3)
 target_compile_options (photospline PRIVATE -Wall -Wextra)
 IF (CMAKE_SYSTEM_PROCESSOR MATCHES "^(i.86|x86_64)$")
-  target_compile_options (photospline PUBLIC -msse2 -msse3 -msse4 -msse4.1 -msse4.2 -mno-avx)
+  target_compile_options (photospline PRIVATE -msse2 -msse3 -msse4 -msse4.1 -msse4.2 -mno-avx)
 ELSEIF (CMAKE_SYSTEM_PROCESSOR MATCHES "^(powerpc|ppc)")
-  target_compile_options (photospline PUBLIC -maltivec)
+  target_compile_options (photospline PRIVATE -maltivec)
 ELSEIF (CMAKE_SYSTEM_PROCESSOR MATCHES "^sparc")
-  target_compile_options (photospline PUBLIC -mvis)
+  target_compile_options (photospline PRIVATE -mvis)
 ENDIF ()
 target_link_libraries (photospline
   PUBLIC
