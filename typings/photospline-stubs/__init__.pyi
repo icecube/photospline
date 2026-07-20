@@ -4,6 +4,9 @@ import numpy as np
 from scipy import sparse
 import numpy.typing as npt
 
+Float1D = npt.ArrayLike[tuple[int], np.floating[Any]]
+Int1D = npt.ArrayLike[tuple[int], np.integer[Any]]
+
 class SplineTable:
     coefficients: npt.NDArray[np.float32]
     extents: tuple[tuple[float, float], ...]
@@ -16,12 +19,12 @@ class SplineTable:
     def stack(
         cls,
         tables: Sequence[SplineTable],
-        coordinates: Sequence[float],
+        coordinates: Float1D,
         stackOrder: int = 2,
     ) -> SplineTable:
         """ """
         ...
-    def convolve(self, dim: int, knots: Sequence[float]) -> None: ...
+    def convolve(self, dim: int, knots: Float1D) -> None: ...
     def permute_dimensions(self, permutation: Sequence[int]) -> None: ...
     def write(self, path: str) -> None: ...
     @overload
@@ -34,11 +37,11 @@ class SplineTable:
         self, x: Union[npt.NDArray[np.floating[Any]], Sequence[float]]
     ) -> Union[npt.NDArray[np.longlong], tuple[int]]: ...
     def deriv(
-        self, x: Sequence[float], centers: Sequence[int], derivatives: Sequence[int]
+        self, x: Float1D, centers: Int1D, derivatives: Int1D
     ) -> float: ...
     @overload
     def evaluate(
-        self, x: Sequence[float], centers: Sequence[int], derivatives: int = 0
+        self, x: Float1D, centers: Int1D, derivatives: Int1D = 0
     ) -> float: ...
     @overload
     def evaluate(
@@ -54,11 +57,11 @@ class SplineTable:
         derivatives: int = 0,
     ) -> Union[npt.NDArray[np.floating[Any]], float]: ...
     def evaluate_gradient(
-        self, x: Sequence[float], centers: Sequence[int]
+        self, x: Float1D, centers: Int1D
     ) -> float: ...
-    def evaluate_simple(self, x: Sequence[float]) -> float: ...
-    def __call__(self, x: Sequence[float]) -> float: ...
-    def grideval(self, coords: Sequence[npt.ArrayLike]) -> npt.NDArray[np.float64]: ...
+    def evaluate_simple(self, x: Float1D) -> float: ...
+    def __call__(self, x: Float1D) -> float: ...
+    def grideval(self, coords: Sequence[Float1D]) -> npt.NDArray[np.float64]: ...
 
 class ndsparse:
     def __init__(self, rows: int, ndim: int) -> None: ...
@@ -72,9 +75,9 @@ def bspline(knots: npt.ArrayLike, x: float, index: int, order: int) -> float: ..
 def glam_fit(
     data: ndsparse,
     weights: ndsparse,
-    coordinates: Sequence[Sequence[float]],
-    knots: Sequence[Sequence[float]],
-    order: Sequence[int],
+    coordinates: Sequence[Float1D],
+    knots: Sequence[Float1D],
+    order: Int1D,
     smoothing: Sequence[float],
     penaltyOrder: Sequence[int],
     monodim: None | int = None,
