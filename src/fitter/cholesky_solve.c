@@ -120,7 +120,7 @@ cholesky_solve(cholmod_sparse *AtA, cholmod_dense *Atb, cholmod_common *c,
 }
 
 cholmod_sparse* get_column(cholmod_sparse *A, long k, 
-    long *iPerm, long *Fset, long nF, cholmod_common *c)
+    long *iPerm, int64_t *Fset, long nF, cholmod_common *c)
 {
 	cholmod_sparse *R;
 	long *Ap, *Ai, *Anz, *Rp, *Ri;
@@ -191,8 +191,8 @@ intcmp(const void *xa, const void *xb)
 
 cholmod_factor* 
 modify_factor(cholmod_sparse *A, cholmod_factor *L,
-    long *F, long *nF_, long *G, long *nG_, long *H1, long *nH1_,
-    long *H2, long *nH2_, int verbose, cholmod_common *c)
+    int64_t *F, long *nF_, int64_t *G, long *nG_, int64_t *H1, long *nH1_,
+    int64_t *H2, long *nH2_, int verbose, cholmod_common *c)
 {
 	double flop_ratio;
 	bool update;
@@ -270,8 +270,8 @@ modify_factor(cholmod_sparse *A, cholmod_factor *L,
 
 cholmod_factor* 
 modify_factor_p(cholmod_sparse *A, cholmod_factor *L,
-    long *F, long *nF_, long *G, long *nG_, long *H1, long *nH1_,
-    long *H2, long *nH2_, bool update, bool verbose, cholmod_common *c)
+    int64_t *F, long *nF_, int64_t *G, long *nG_, int64_t *H1, long *nH1_,
+    int64_t *H2, long *nH2_, bool update, bool verbose, cholmod_common *c)
 {
 	cholmod_sparse *col;
 	int i, j, k, update_ready;
@@ -427,9 +427,9 @@ modify_factor_p(cholmod_sparse *A, cholmod_factor *L,
 
 cholmod_factor * 
 recompute_factor(cholmod_sparse *A, cholmod_factor *L, long *iPerm,
-    long *F, unsigned long nF, cholmod_common *c)
+    int64_t *F, unsigned long nF, cholmod_common *c)
 {
-	long *iF, *FPerm;
+	int64_t *iF, *FPerm;
 	unsigned long *Lrows;
 	long *LPerm, *LColCount, *L_FColCount;
 	long *Li, *Lp, *Lnz, *Lnext, *L_Fi, *L_Fp, *L_Fnz;
@@ -455,14 +455,14 @@ recompute_factor(cholmod_sparse *A, cholmod_factor *L, long *iPerm,
 	LColCount = (long*)(L->ColCount);
 
 	/* build an inverse mapping for F */
-	iF = (long*)malloc(sizeof(long)*L->n);
+	iF = (int64_t*)malloc(sizeof(int64_t)*L->n);
 	for (i = 0; i < L->n; i++) iF[i] = -1;
 	for (i = 0; i < nF; i++) iF[F[i]] = i;
 
 	/* Permute F to match L->Perm */
 	nFPerm = 0;
 	assert(nF>0);
-	FPerm = (long*)malloc(sizeof(long)*nF);
+	FPerm = (int64_t*)malloc(sizeof(int64_t)*nF);
 	Lrows = (unsigned long*)malloc(sizeof(unsigned long)*nF);
 	if (iPerm != NULL) {
 		/* calculate the permuation as it applies to subset F */
@@ -772,7 +772,7 @@ evaluate_descent(void *trial_)
 	int i, err;
 	double *xptr;
 	cholmod_dense *x, *x_F;
-	const long *F;
+	const int64_t *F;
 	long nF;
 
 	/*
@@ -911,7 +911,7 @@ double_rcmp(const void *xa, const void *xb)
 int
 walk_descents(cholmod_sparse *AtA_F, 
     cholmod_dense *Atb_F, cholmod_dense *x, 
-    cholmod_dense *x_F, long *F, long *nF_, long *H1, long *nH1_,
+    cholmod_dense *x_F, int64_t *F, long *nF_, int64_t *H1, long *nH1_,
     double *residual, int *residual_calcs, int verbose, cholmod_common *c)
 {
 

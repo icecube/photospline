@@ -40,7 +40,7 @@ nnls_lawson_hanson(cholmod_sparse *A, cholmod_dense *y, double tolerance,
 {
         cholmod_dense *x, *w, *p, *yp;
         cholmod_sparse *Ap;
-        long P[A->ncol], Z[A->ncol];
+        int64_t P[A->ncol], Z[A->ncol];
         unsigned int nP, nZ;
         double wmax, wpmin, alpha, qtemp;
         int i, j, n, t, qmax;
@@ -123,7 +123,7 @@ nnls_lawson_hanson(cholmod_sparse *A, cholmod_dense *y, double tolerance,
 
                 /* Step 5: Move coefficient Z[t] into the passive set P */
                 if (verbose)
-                        printf("Freeing coefficient %ld (active: %d, "
+                        printf("Freeing coefficient %"PRId64" (active: %d, "
                             "passive: %d, wmax: %e)\n", Z[t], nZ, nP, wmax);
                 last_freed = Z[t];
                 alpha = -1;
@@ -229,8 +229,8 @@ nnls_lawson_hanson(cholmod_sparse *A, cholmod_dense *y, double tolerance,
                                         continue;
 
                                 if (verbose)
-                                        printf("\tConstraining coefficient %ld "
-                                            "(active: %d, passive: %d, "
+                                        printf("\tConstraining coefficient %"PRId64
+                                            " (active: %d, passive: %d, "
                                             "value: %e)\n", P[i], nZ, nP,
                                             ((double *)(x->x))[P[i]]);
 
@@ -277,7 +277,7 @@ nnls_normal_block(cholmod_sparse *AtA, cholmod_dense *Atb, int verbose,
    cholmod_common *c)
 {
         int nvar = AtA->nrow;
-        long F[nvar], G[nvar];
+        int64_t F[nvar], G[nvar];
         int H1[nvar], H2[nvar];
         cholmod_dense *x, *y, *x_F, *Atb_F;
         cholmod_sparse *AtA_F;
@@ -490,7 +490,7 @@ nnls_normal_block_updown(cholmod_sparse *AtA, cholmod_dense *Atb, int verbose,
    cholmod_common *c)
 {
         int nvar = AtA->nrow;
-        long *F, *G, *H1, *H2;
+        int64_t *F, *G, *H1, *H2;
         cholmod_dense *x, *y;
         cholmod_factor *L;
         long nF, nG, nH1, nH2, ninf;
@@ -508,10 +508,10 @@ nnls_normal_block_updown(cholmod_sparse *AtA, cholmod_dense *Atb, int verbose,
          */
         c->nmethods = 2;
 
-        F  = (long*)malloc(sizeof(long)*nvar);
-        G  = (long*)malloc(sizeof(long)*nvar);
-        H1 = (long*)malloc(sizeof(long)*nvar);
-        H2 = (long*)malloc(sizeof(long)*nvar);
+        F  = (int64_t*)malloc(sizeof(int64_t)*nvar);
+        G  = (int64_t*)malloc(sizeof(int64_t)*nvar);
+        H1 = (int64_t*)malloc(sizeof(int64_t)*nvar);
+        H2 = (int64_t*)malloc(sizeof(int64_t)*nvar);
 
         x = cholmod_l_zeros(nvar, 1, CHOLMOD_REAL, c);
         y = cholmod_l_allocate_dense(nvar, 1, nvar, CHOLMOD_REAL, c);
@@ -596,7 +596,7 @@ nnls_normal_block_updown(cholmod_sparse *AtA, cholmod_dense *Atb, int verbose,
                                         H1[0] = H1[nH1 - 1];
                                         nH1 = 1; nH2 = 0;
                                         if (verbose)
-                                                printf("\tH1: %ld (%e)\n",
+                                                printf("\tH1: %"PRId64" (%e)\n",
                                                     H1[0],
                                                     ((double *)(x->x))[H1[0]]);
                                 } else {
@@ -604,7 +604,7 @@ nnls_normal_block_updown(cholmod_sparse *AtA, cholmod_dense *Atb, int verbose,
                                         H2[0] = H2[nH2 - 1];
                                         nH2 = 1; nH1 = 0;
                                         if (verbose)
-                                                printf("\tH2: %ld (%e)\n",
+                                                printf("\tH2: %"PRId64" (%e)\n",
                                                     H2[0],
                                                     ((double *)(y->x))[H2[0]]);
                                 }
@@ -765,8 +765,8 @@ nnls_normal_block3(cholmod_sparse *AtA, cholmod_dense *Atb, int verbose,
    cholmod_common *c)
 {
         int nvar = AtA->nrow;
-        long *F, *G, *H1, *H2;
-        long *F_, *G_, *Fprime, *Gprime;
+        int64_t *F, *G, *H1, *H2;
+        int64_t *F_, *G_, *Fprime, *Gprime;
         cholmod_dense *x, *y, *x_F, *Atb_F;
         cholmod_sparse *AtA_F;
         cholmod_factor *L;
@@ -790,20 +790,20 @@ nnls_normal_block3(cholmod_sparse *AtA, cholmod_dense *Atb, int verbose,
                 printf("Stopping tolerance: %e\n",kkt_tolerance);
 
         /* F and G track the state of the factorization */
-        F  = (long*)malloc(sizeof(long)*nvar);
-        G  = (long*)malloc(sizeof(long)*nvar);
+        F  = (int64_t*)malloc(sizeof(int64_t)*nvar);
+        G  = (int64_t*)malloc(sizeof(int64_t)*nvar);
         /* 
          * When the factorization is out of sync with the column
          * partition, Fprime and Gprime can be used instead.
          */
-        Fprime = (long*)malloc(sizeof(long)*nvar);
-        Gprime = (long*)malloc(sizeof(long)*nvar);
+        Fprime = (int64_t*)malloc(sizeof(int64_t)*nvar);
+        Gprime = (int64_t*)malloc(sizeof(int64_t)*nvar);
         /* 
          * H1 and H2 hold pending changes to the column partition
          * of the factorization.
          */
-        H1 = (long*)malloc(sizeof(long)*nvar);
-        H2 = (long*)malloc(sizeof(long)*nvar);
+        H1 = (int64_t*)malloc(sizeof(int64_t)*nvar);
+        H2 = (int64_t*)malloc(sizeof(int64_t)*nvar);
 
         nF = nG = nH1 = nH2 = 0;
         nGprime = -1;
