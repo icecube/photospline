@@ -6,290 +6,52 @@
 namespace photospline{
 
 template <typename Alloc>
+template <typename Float, unsigned int Row, unsigned int NV>
+void splinetable<Alloc>::ndsplineeval_multibasis_core_row(const int *centers, const typename detail::simd_vector<Float>::type*** localbasis, typename detail::simd_vector<Float>::type* result) const{
+#if defined(__i386__) && defined(__ELF__)
+	/*
+	 * Work around GCC ABI-compliance issue with SSE on x86 by
+	 * forcibly realigning the stack to a 16-byte boundary.
+	 */
+	volatile register unsigned long sp __asm("esp");
+	__asm("" : "=r"(sp));
+	if (__builtin_expect(sp & 15UL, 0))
+		(void)alloca(16 - (sp & 15UL));
+#endif
+	detail::contract<Row, NV>(&coefficients[0], &strides[0], &order[0], ndim, centers,
+	    [&](unsigned d, unsigned i){ return localbasis[d][i]; }, result);
+}
+
+template <typename Alloc>
+template <typename Float>
+typename splinetable<Alloc>::template multibasis_core_ptr<Float> splinetable<Alloc>::select_multibasis_core() const{
+	// value plus ndim derivatives, PHOTOSPLINE_VECTOR_SIZE lanes per vector
+	const unsigned nv = (ndim + PHOTOSPLINE_VECTOR_SIZE) / PHOTOSPLINE_VECTOR_SIZE;
+#ifndef PHOTOSPLINE_NO_EVAL_TEMPLATES
+	static_assert(PHOTOSPLINE_NVECS == 2, "variants below assume at most two vectors");
+	switch ((order[ndim-1] + 1)*10 + nv) {
+		case 21: return &splinetable::ndsplineeval_multibasis_core_row<Float, 2, 1>;
+		case 22: return &splinetable::ndsplineeval_multibasis_core_row<Float, 2, 2>;
+		case 31: return &splinetable::ndsplineeval_multibasis_core_row<Float, 3, 1>;
+		case 32: return &splinetable::ndsplineeval_multibasis_core_row<Float, 3, 2>;
+		case 41: return &splinetable::ndsplineeval_multibasis_core_row<Float, 4, 1>;
+		case 42: return &splinetable::ndsplineeval_multibasis_core_row<Float, 4, 2>;
+		case 51: return &splinetable::ndsplineeval_multibasis_core_row<Float, 5, 1>;
+		case 52: return &splinetable::ndsplineeval_multibasis_core_row<Float, 5, 2>;
+		case 61: return &splinetable::ndsplineeval_multibasis_core_row<Float, 6, 1>;
+		case 62: return &splinetable::ndsplineeval_multibasis_core_row<Float, 6, 2>;
+	}
+#endif
+	(void)nv;
+	return &splinetable::ndsplineeval_multibasis_core_row<Float, 0, PHOTOSPLINE_NVECS>;
+}
+
+template <typename Alloc>
 template <typename Float>
 void splinetable<Alloc>::ndsplineeval_multibasis_core(const int *centers, const typename detail::simd_vector<Float>::type*** localbasis, typename detail::simd_vector<Float>::type* result) const{
-#if (defined(__i386__) || defined (__x86_64__)) && defined(__ELF__)
-	/*
-	 * Work around GCC ABI-compliance issue with SSE on x86 by
-	 * forcibly realigning the stack to a 16-byte boundary.
-	 */
-	volatile register unsigned long sp __asm("esp");
-	__asm("" : "=r"(sp));
-	if (__builtin_expect(sp & 15UL, 0))
-		(void)alloca(16 - (sp & 15UL));
-#endif
-	typename detail::simd_vector<Float>::type basis_tree[ndim+1][PHOTOSPLINE_NVECS];
-	unsigned decomposedposition[ndim];
-	
-	int64_t tablepos = 0;
-	for (uint32_t n = 0; n < ndim; n++) {
-		decomposedposition[n] = 0;
-		tablepos += (centers[n] - order[n])*strides[n];
-	}
-	
-	for (uint32_t k = 0; k < PHOTOSPLINE_NVECS; k++) {
-		detail::simd_vector<Float>::init(basis_tree[0][k], 1.);
-		for (uint32_t n = 0; n < ndim; n++)
-			basis_tree[n+1][k] = basis_tree[n][k]*localbasis[n][0][k];
-	}
-	
-	uint32_t nchunks = 1;
-	for (uint32_t n = 0; n < ndim - 1; n++)
-		nchunks *= (order[n] + 1);
-	
-	uint32_t n = 0;
-	while (1) {
-		for (uint32_t i = 0; __builtin_expect(i < order[ndim-1] + 1, 1); i++) {
-			typename detail::simd_vector<Float>::type weights;
-			detail::simd_vector<Float>::init(weights, coefficients[tablepos + i]);
-			for (uint32_t k = 0; k < PHOTOSPLINE_NVECS; k++)
-				result[k] += basis_tree[ndim-1][k]*
-				localbasis[ndim-1][i][k]*weights;
-		}
-		
-		if (__builtin_expect(++n == nchunks, 0))
-			break;
-		
-		tablepos += strides[ndim-2];
-		decomposedposition[ndim-2]++;
-		
-		/* Carry to higher dimensions */
-		uint32_t i;
-		for (i = ndim-2;
-			 decomposedposition[i] > order[i]; i--) {
-			decomposedposition[i-1]++;
-			tablepos += (strides[i-1]
-						 - decomposedposition[i]*strides[i]);
-			decomposedposition[i] = 0;
-		}
-		for (uint32_t j = i; __builtin_expect(j < ndim-1, 1); j++)
-			for (uint32_t k = 0; k < PHOTOSPLINE_NVECS; k++)
-				basis_tree[j+1][k] = basis_tree[j][k]*
-				localbasis[j][decomposedposition[j]][k];
-	}
-}
-	
-namespace{
-	template <unsigned int D>
-	struct vectorCountHelper{
-		static constexpr unsigned int VC =
-		((D+1) / PHOTOSPLINE_VECTOR_SIZE)
-		+ ((D+1) % PHOTOSPLINE_VECTOR_SIZE ? 1 : 0);
-	};
-}
-	
-template <typename Alloc>
-template <typename Float, unsigned int D>
-void splinetable<Alloc>::ndsplineeval_multibasis_coreD(const int *centers, const typename detail::simd_vector<Float>::type*** localbasis, typename detail::simd_vector<Float>::type* result) const{
-#if (defined(__i386__) || defined (__x86_64__)) && defined(__ELF__)
-	/*
-	 * Work around GCC ABI-compliance issue with SSE on x86 by
-	 * forcibly realigning the stack to a 16-byte boundary.
-	 */
-
-	volatile register unsigned long sp __asm("esp");
-	__asm("" : "=r"(sp));
-	if (__builtin_expect(sp & 15UL, 0))
-		(void)alloca(16 - (sp & 15UL));
-#endif
-	const unsigned int VC=vectorCountHelper<D>::VC;
-	typename detail::simd_vector<Float>::type basis_tree[D+1][VC];
-	unsigned decomposedposition[D];
-	
-	int64_t tablepos = 0;
-	for (uint32_t n = 0; n < D; n++) {
-		decomposedposition[n] = 0;
-		tablepos += (centers[n] - order[n])*strides[n];
-	}
-	
-	for (uint32_t k = 0; k < VC; k++) {
-		detail::simd_vector<Float>::init(basis_tree[0][k], 1);
-		for (uint32_t n = 0; n < D; n++)
-			basis_tree[n+1][k] = basis_tree[n][k]*localbasis[n][0][k];
-	}
-	
-	uint32_t nchunks = 1;
-	for (uint32_t n = 0; n < D - 1; n++)
-		nchunks *= (order[n] + 1);
-	
-	uint32_t n = 0;
-	while (1) {
-		for (uint32_t i = 0; __builtin_expect(i < order[D-1] + 1, 1); i++) {
-			typename detail::simd_vector<Float>::type weights;
-			detail::simd_vector<Float>::init(weights, coefficients[tablepos + i]);
-			for (uint32_t k = 0; k < VC; k++)
-				result[k] += basis_tree[D-1][k]*localbasis[D-1][i][k]*weights;
-		}
-		
-		if (__builtin_expect(++n == nchunks, 0))
-			break;
-		
-		tablepos += strides[D-2];
-#ifdef __clang__ //this code is unreachable if D<2
-	#pragma clang diagnostic push
-	#pragma clang diagnostic ignored "-Warray-bounds"
-#endif
-		decomposedposition[D-2]++;
-#ifdef __clang__
-	#pragma clang diagnostic pop
-#endif
-		
-		/* Carry to higher dimensions */
-		uint32_t i;
-		for (i = D-2; decomposedposition[i] > order[i]; i--) {
-			decomposedposition[i-1]++;
-			tablepos += (strides[i-1] - decomposedposition[i]*strides[i]);
-			decomposedposition[i] = 0;
-		}
-		for (uint32_t j = i; __builtin_expect(j < D-1, 1); j++)
-			for (uint32_t k = 0; k < VC; k++)
-				basis_tree[j+1][k] = basis_tree[j][k]*
-				localbasis[j][decomposedposition[j]][k];
-	}
+	(this->*select_multibasis_core<Float>())(centers, localbasis, result);
 }
 
-template <typename Alloc>
-template <typename Float, unsigned int D, unsigned int Order>
-void splinetable<Alloc>::ndsplineeval_multibasis_coreD_FixedOrder(const int *centers, const typename detail::simd_vector<Float>::type*** localbasis, typename detail::simd_vector<Float>::type* result) const{
-#if (defined(__i386__) || defined (__x86_64__)) && defined(__ELF__)
-	/*
-	 * Work around GCC ABI-compliance issue with SSE on x86 by
-	 * forcibly realigning the stack to a 16-byte boundary.
-	 */
-
-	volatile register unsigned long sp __asm("esp");
-	__asm("" : "=r"(sp));
-	if (__builtin_expect(sp & 15UL, 0))
-		(void)alloca(16 - (sp & 15UL));
-#endif
-	const unsigned int VC=vectorCountHelper<D>::VC;
-	typename detail::simd_vector<Float>::type basis_tree[D+1][VC];
-	unsigned decomposedposition[D];
-	
-	int64_t tablepos = 0;
-	for (uint32_t n = 0; n < D; n++) {
-		decomposedposition[n] = 0;
-		tablepos += (centers[n] - Order)*strides[n];
-	}
-	
-	for (uint32_t k = 0; k < VC; k++) {
-		detail::simd_vector<Float>::init(basis_tree[0][k], 1);
-		for (uint32_t n = 0; n < D; n++)
-			basis_tree[n+1][k] = basis_tree[n][k]*localbasis[n][0][k];
-	}
-	
-	uint32_t nchunks = 1;
-	for (uint32_t n = 0; n < D - 1; n++)
-		nchunks *= (Order + 1);
-	
-	uint32_t n = 0;
-	while (1) {
-		for (uint32_t i = 0; __builtin_expect(i < Order + 1, 1); i++) {
-			typename detail::simd_vector<Float>::type weights;
-			detail::simd_vector<Float>::init(weights, coefficients[tablepos + i]);
-			for (uint32_t k = 0; k < VC; k++)
-				result[k] += basis_tree[D-1][k]*
-				localbasis[D-1][i][k]*weights;
-		}
-		
-		if (__builtin_expect(++n == nchunks, 0))
-			break;
-		
-		tablepos += strides[D-2];
-#ifdef __clang__ //this code is unreachable if D<2
-	#pragma clang diagnostic push
-	#pragma clang diagnostic ignored "-Warray-bounds"
-#endif
-		decomposedposition[D-2]++;
-#ifdef __clang__
-	#pragma clang diagnostic pop
-#endif
-		
-		/* Carry to higher dimensions */
-		uint32_t i;
-		for (i = D-2;
-			 decomposedposition[i] > Order; i--) {
-			decomposedposition[i-1]++;
-			tablepos += (strides[i-1]
-						 - decomposedposition[i]*strides[i]);
-			decomposedposition[i] = 0;
-		}
-		for (uint32_t j = i; __builtin_expect(j < D-1, 1); j++)
-			for (uint32_t k = 0; k < VC; k++)
-				basis_tree[j+1][k] = basis_tree[j][k]*
-				localbasis[j][decomposedposition[j]][k];
-	}
-}
-
-template <typename Alloc>
-template<typename Float, unsigned int ... Orders>
-void splinetable<Alloc>::ndsplineeval_multibasis_core_KnownOrder(const int *centers, const typename detail::simd_vector<Float>::type*** localbasis, typename detail::simd_vector<Float>::type* result) const{
-#if (defined(__i386__) || defined (__x86_64__)) && defined(__ELF__)
-	/*
-	 * Work around GCC ABI-compliance issue with SSE on x86 by
-	 * forcibly realigning the stack to a 16-byte boundary.
-	 */
-	volatile register unsigned long sp __asm("esp");
-	__asm("" : "=r"(sp));
-	if (__builtin_expect(sp & 15UL, 0))
-		(void)alloca(16 - (sp & 15UL));
-#endif
-	constexpr unsigned int D = sizeof...(Orders);
-	const unsigned int VC=vectorCountHelper<D>::VC;
-	typename detail::simd_vector<Float>::type basis_tree[D+1][VC];
-	unsigned decomposedposition[D];
-	
-	int64_t tablepos = 0;
-	for (uint32_t n = 0; n < D; n++) {
-		decomposedposition[n] = 0;
-		tablepos += (centers[n] - order[n])*strides[n];
-	}
-	
-	for (uint32_t k = 0; k < VC; k++) {
-		detail::simd_vector<Float>::init(basis_tree[0][k], 1);
-		for (uint32_t n = 0; n < D; n++)
-			basis_tree[n+1][k] = basis_tree[n][k]*localbasis[n][0][k];
-	}
-	
-	constexpr uint32_t nchunks = detail::nchunks<Orders...>();
-	constexpr uint32_t chunk = detail::chunk<Orders...>();
-	
-	uint32_t n = 0;
-	while (1) {
-		for (uint32_t i = 0; __builtin_expect(i < chunk, 1); i++) {
-			typename detail::simd_vector<Float>::type weights;
-			detail::simd_vector<Float>::init(weights, coefficients[tablepos + i]);
-			for (uint32_t k = 0; k < VC; k++)
-				result[k] += basis_tree[D-1][k]*localbasis[D-1][i][k]*weights;
-		}
-		
-		if (__builtin_expect(++n == nchunks, 0))
-			break;
-		
-		tablepos += strides[D-2];
-#ifdef __clang__ //this code is unreachable if D<2
-	#pragma clang diagnostic push
-	#pragma clang diagnostic ignored "-Warray-bounds"
-#endif
-		decomposedposition[D-2]++;
-#ifdef __clang__
-	#pragma clang diagnostic pop
-#endif
-		
-		/* Carry to higher dimensions */
-		uint32_t i;
-		for (i = D-2; decomposedposition[i] > order[i]; i--) {
-			decomposedposition[i-1]++;
-			tablepos += (strides[i-1] - decomposedposition[i]*strides[i]);
-			decomposedposition[i] = 0;
-		}
-		for (uint32_t j = i; __builtin_expect(j < D-1, 1); j++)
-			for (uint32_t k = 0; k < VC; k++)
-				basis_tree[j+1][k] = basis_tree[j][k]*
-				localbasis[j][decomposedposition[j]][k];
-	}
-}
-	
 /* Evaluate the spline surface and all its derivatives at x */
 
 template<typename Alloc>

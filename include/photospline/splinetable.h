@@ -816,22 +816,28 @@ private:
 	 * x is the vector at which we will evaluate the space
 	 */
 	template <typename Float>
+	using core_ptr = double (splinetable::*)(const int*, int, detail::buffer2d<Float>) const;
+	template <typename Float>
+	using multibasis_core_ptr = void (splinetable::*)(const int*, const typename detail::simd_vector<Float>::type***, typename detail::simd_vector<Float>::type*) const;
+
+	template <typename Float>
 	double ndsplineeval_core(const int* centers, int maxdegree, detail::buffer2d<Float> localbasis) const;
-	template<typename Float, unsigned int D>
-	double ndsplineeval_coreD(const int* centers, int maxdegree, detail::buffer2d<Float> localbasis) const;
-	template<typename Float, unsigned int D, unsigned int O>
-	double ndsplineeval_coreD_FixedOrder(const int* centers, int maxdegree, detail::buffer2d<Float> localbasis) const;
-	template<typename Float, unsigned int ... Orders>
-	double ndsplineeval_core_KnownOrder(const int* centers, int maxdegree, detail::buffer2d<Float> localbasis) const;
-	
+	///\tparam Row the last dimension's order+1, or 0 to read it at run time
+	template <typename Float, unsigned int Row>
+	double ndsplineeval_core_row(const int* centers, int maxdegree, detail::buffer2d<Float> localbasis) const;
+	///The ndsplineeval_core variant best suited to this table
+	template <typename Float>
+	core_ptr<Float> select_core() const;
+
 	template <typename Float>
 	void ndsplineeval_multibasis_core(const int *centers, const typename detail::simd_vector<Float>::type*** localbasis, typename detail::simd_vector<Float>::type* result) const;
-	template<typename Float, unsigned int D>
-	void ndsplineeval_multibasis_coreD(const int *centers, const typename detail::simd_vector<Float>::type*** localbasis, typename detail::simd_vector<Float>::type* result) const;
-	template<typename Float, unsigned int D, unsigned int O>
-	void ndsplineeval_multibasis_coreD_FixedOrder(const int *centers, const typename detail::simd_vector<Float>::type*** localbasis, typename detail::simd_vector<Float>::type* result) const;
-	template<typename Float, unsigned int ... Orders>
-	void ndsplineeval_multibasis_core_KnownOrder(const int *centers, const typename detail::simd_vector<Float>::type*** localbasis, typename detail::simd_vector<Float>::type* result) const;
+	///\tparam Row the last dimension's order+1, or 0 to read it at run time
+	///\tparam NV the number of SIMD vectors needed to hold ndim+1 lanes
+	template <typename Float, unsigned int Row, unsigned int NV>
+	void ndsplineeval_multibasis_core_row(const int *centers, const typename detail::simd_vector<Float>::type*** localbasis, typename detail::simd_vector<Float>::type* result) const;
+	///The ndsplineeval_multibasis_core variant best suited to this table
+	template <typename Float>
+	multibasis_core_ptr<Float> select_multibasis_core() const;
 	
 	template<typename T>
 	typename allocator_traits::template rebind_traits<T>::pointer allocate(size_t n){
@@ -874,6 +880,7 @@ private:
 	
 } //namespace photospline
 
+#include "photospline/detail/contract.h"
 #include "photospline/detail/bspline_eval.h"
 #include "photospline/detail/bspline_multi.h"
 #include "photospline/detail/auxiliary.h"

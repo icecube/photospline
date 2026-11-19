@@ -1,5 +1,6 @@
 #include "test.h"
 
+#include <array>
 #include <iostream>
 #include <random>
 #include <vector>
@@ -590,5 +591,90 @@ TEST(permutation){
 		//Reordering the dimensions changes how the calculation rounds off during
 		//intermediate steps, so fairly generour error tolerances are needed here.
 		ENSURE_DISTANCE(evaluate,evaluateP,std::max(std::abs(evaluate*1e-4),1e-4),"Permuted spline should give same result for permuted coordinates");
+	}
+}
+
+// Checks detail::contract directly on synthetic blocks, including shapes the test tables lack:
+// mixed orders, one dimension, and blocks big enough (4096 rows) to use heap scratch space.
+TEST(contract_kernel){
+	typedef photospline::detail::simd_vector<float>::type vec;
+	const std::vector<std::vector<uint32_t>> shapes = {
+		{2}, {3,1}, {2,2,2}, {1,4,2,3}, {2,2,2,3,2,2}, {3,3,3,3,3,3,3},
+	};
+	std::mt19937 rng(5);
+	std::uniform_real_distribution<float> u(-1, 1);
+	for (const auto& order : shapes) {
+		const unsigned ndim = order.size();
+		std::vector<uint64_t> naxes(ndim), strides(ndim);
+		for (unsigned d = 0; d < ndim; d++)
+			naxes[d] = order[d] + 2;
+		strides[ndim-1] = 1;
+		for (unsigned d = ndim-1; d-- > 0;)
+			strides[d] = strides[d+1]*naxes[d+1];
+		std::vector<float> coefficients(strides[0]*naxes[0]);
+		for (auto& c : coefficients)
+			c = u(rng);
+
+		for (unsigned trial = 0; trial < 20; trial++) {
+			std::vector<int> centers(ndim);
+			// lane 0 of vector 0 and lane 1 of vector 1 carry the same values as the scalar basis
+			std::vector<std::vector<float>> basis(ndim);
+			std::vector<std::vector<std::array<vec,2>>> vbasis(ndim);
+			for (unsigned d = 0; d < ndim; d++) {
+				centers[d] = order[d] + rng() % (naxes[d] - order[d]);
+				for (unsigned i = 0; i <= order[d]; i++) {
+					basis[d].push_back(u(rng));
+					std::array<vec,2> v;
+					for (unsigned l = 0; l < 4; l++) {
+						v[0][l] = u(rng);
+						v[1][l] = u(rng);
+					}
+					v[0][0] = v[1][1] = basis[d][i];
+					vbasis[d].push_back(v);
+				}
+			}
+
+			double reference = 0, magnitude = 0;
+			std::vector<unsigned> idx(ndim, 0);
+			while (true) {
+				double term = 1;
+				int64_t pos = 0;
+				for (unsigned d = 0; d < ndim; d++) {
+					term *= basis[d][idx[d]];
+					pos += (centers[d] - int64_t(order[d]) + idx[d])*int64_t(strides[d]);
+				}
+				term *= coefficients[pos];
+				reference += term;
+				magnitude += std::abs(term);
+				unsigned d = ndim;
+				while (d-- > 0 && ++idx[d] > order[d])
+					idx[d] = 0;
+				if (d == unsigned(-1))
+					break;
+			}
+
+			auto scalar_basis = [&](unsigned d, unsigned i){ return &basis[d][i]; };
+			auto vector_basis = [&](unsigned d, unsigned i){ return vbasis[d][i].data(); };
+			float runtime_row = 0, fixed_row = 0;
+			photospline::detail::contract<0, 1>(coefficients.data(), strides.data(), order.data(),
+			    ndim, centers.data(), scalar_basis, &runtime_row);
+			if (order[ndim-1] == 2)
+				photospline::detail::contract<3, 1>(coefficients.data(), strides.data(), order.data(),
+				    ndim, centers.data(), scalar_basis, &fixed_row);
+			else
+				fixed_row = runtime_row;
+			vec lanes[2] = {vec{}, vec{}};
+			photospline::detail::contract<0, 2>(coefficients.data(), strides.data(), order.data(),
+			    ndim, centers.data(), vector_basis, lanes);
+
+			ENSURE_DISTANCE(double(runtime_row), reference, 1e-5*magnitude,
+			    "contract() should match a direct sum");
+			ENSURE_EQUAL(runtime_row, fixed_row,
+			    "contract() should not depend on whether the row length is a template parameter");
+			ENSURE_EQUAL(runtime_row, float(lanes[0][0]),
+			    "contract() should give identical results in scalar and vector lanes");
+			ENSURE_EQUAL(runtime_row, float(lanes[1][1]),
+			    "contract() should give identical results in scalar and vector lanes");
+		}
 	}
 }
