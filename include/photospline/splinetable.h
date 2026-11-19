@@ -4,12 +4,13 @@
 
 #include <algorithm>
 #include <cassert>
+#include <cfloat>
+#include <cstdint>
+#include <cstdlib>
 #include <memory>
 #include <numeric>
 #include <sstream>
 #include <vector>
-#include <cstdlib>
-#include <cfloat>
 
 #include "photospline/bspline.h"
 #include "photospline/detail/simd.h"
@@ -22,8 +23,6 @@
 #include "photospline/detail/splineutil.h"
 #include "photospline/detail/glam.h"
 #endif //PHOTOSPLINE_INCLUDES_SPGLAM
-
-#include <iostream>
 
 namespace photospline{
 	

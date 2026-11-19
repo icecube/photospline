@@ -1,5 +1,7 @@
 #include "test.h"
 
+#include <iostream>
+
 #include "photospline/splinetable.h"
 
 namespace{
