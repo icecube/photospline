@@ -8,6 +8,7 @@ extern "C" {
 
 #include <cholmod.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include <pthread.h>
 
 cholmod_dense *
@@ -15,7 +16,7 @@ cholesky_solve(cholmod_sparse *AtA, cholmod_dense *Atb, cholmod_common *c, int v
 
 cholmod_sparse *
 get_column(cholmod_sparse *A, long k, long *iPerm, 
-    long *Fset, long nF, cholmod_common *c);
+    int64_t *Fset, long nF, cholmod_common *c);
 
 cholmod_sparse *
 submatrix_symm(cholmod_sparse *A, long *rows, unsigned long nrows,
@@ -23,17 +24,17 @@ submatrix_symm(cholmod_sparse *A, long *rows, unsigned long nrows,
 
 cholmod_factor * 
 modify_factor(cholmod_sparse* A, cholmod_factor *L,
-    long *F, long *nF, long *G, long *nG, long *H1, long *nH1,
-    long *H2, long *nH2, int verbose, cholmod_common *c);
+    int64_t *F, long *nF, int64_t *G, long *nG, int64_t *H1, long *nH1,
+    int64_t *H2, long *nH2, int verbose, cholmod_common *c);
 
 cholmod_factor * 
 modify_factor_p(cholmod_sparse *A, cholmod_factor *L,
-    long *F, long *nF_, long *G, long *nG_, long *H1, long *nH1_,
-    long *H2, long *nH2_, bool update, bool verbose, cholmod_common *c);
+    int64_t *F, long *nF_, int64_t *G, long *nG_, int64_t *H1, long *nH1_,
+    int64_t *H2, long *nH2_, bool update, bool verbose, cholmod_common *c);
 
 cholmod_factor * 
 recompute_factor(cholmod_sparse *A, cholmod_factor *L, long *iPerm,
-    long *F, unsigned long nF, cholmod_common *c);
+    int64_t *F, unsigned long nF, cholmod_common *c);
 
 double
 calc_residual(cholmod_sparse *AtA, cholmod_dense *Atb, cholmod_dense *x,
@@ -65,7 +66,7 @@ typedef struct {
 	cholmod_dense *Atb_F;
 	cholmod_common *c; /* Caution to the wind. */
 
-	const long *F;
+	const int64_t *F;
 	long nF;
 
 	const double *alpha;   /* Descent scale to use */
@@ -91,7 +92,7 @@ evaluate_descent(void *trial_);
 int
 walk_descents(cholmod_sparse *AtA_F, 
     cholmod_dense *Atb_F, cholmod_dense *x, 
-    cholmod_dense *x_F, long *F, long *nF_, long *H1, long *nH1_,
+    cholmod_dense *x_F, int64_t *F, long *nF_, int64_t *H1, long *nH1_,
     double *residual, int *residual_calcs, int verbose, cholmod_common *c);
 
 #ifdef __cplusplus
